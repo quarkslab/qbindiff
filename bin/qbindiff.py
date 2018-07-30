@@ -48,6 +48,7 @@ def load_qbindiff_program(file_path):
     p_path = Path(file_path)
     p = Program(p_path / "data")
     p.load_call_graph(p_path / "callgraph.json")
+    logging.info("[+} %s loaded: %d functions" % (p_path.name, len(p)))
     return p
 
 def load_binexport_program(file):

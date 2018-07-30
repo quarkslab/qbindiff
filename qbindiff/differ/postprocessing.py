@@ -1,5 +1,4 @@
-# coding: utf-8
-
+import logging
 from functools import reduce
 from operator import itemgetter
 
@@ -88,4 +87,5 @@ def format_matching(adds1: AddrIndex, adds2: AddrIndex, matching: Matching) -> F
     matching = list(matching.items())
     matching += [(addr1, None) for addr1 in unmatched_p1]
     matching += [(None, addr2) for addr2 in unmatched_p2]
+    logging.debug("unmatched functions: %d primary, %d secondary" % (len(unmatched_p1), len(unmatched_p2)))
     return matching

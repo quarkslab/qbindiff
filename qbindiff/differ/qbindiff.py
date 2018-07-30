@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import logging
 
 from qbindiff.features.visitor import ProgramVisitor
@@ -74,8 +72,10 @@ class QBinDiff:
         # Postprocessing to refine results
         logging.info("[+] match refinement")
 
+        tmp_nb_match = len(self._matching)
         matching, lonely = match_relatives(self.primary, self.secondary, self.features1, self.features2, self._matching)
         self._matching = match_lonely(self.secondary, self.features1, self.features2, matching, lonely)
+        logging.info("[+] %d new matches found by refinement" % (len(self._matching) - tmp_nb_match))
 
     @property
     def matching(self) -> Optional[FinalMatching]:
