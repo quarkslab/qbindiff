@@ -3,7 +3,8 @@ import os.path
 import logging
 import networkx
 
-from ml_analysis.loader.instruction import Instruction
+from qbindiff.loader.instruction import Instruction
+
 
 class Function(dict):
     def __init__(self, data):

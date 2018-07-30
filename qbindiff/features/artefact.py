@@ -1,5 +1,5 @@
 
-from ml_analysis.features.visitor import OperandFeatureExtractor
+from qbindiff.features.visitor import OperandFeatureExtractor
 
 class LibName(OperandFeatureExtractor):
     ''' Call to library (local function) '''

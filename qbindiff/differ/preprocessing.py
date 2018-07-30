@@ -8,8 +8,8 @@ from scipy.sparse import csr_matrix
 from functools import reduce
 
 from typing import List, Dict, Tuple, Optional, Union
-from ml_analysis.features.visitor import ProgramVisitor
-from ml_analysis.loader.program import Program
+from qbindiff.features.visitor import ProgramVisitor
+from qbindiff.loader.program import Program
 from pandas import DataFrame, Index
 Addr = int
 Idx = int

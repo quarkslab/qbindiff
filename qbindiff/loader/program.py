@@ -6,7 +6,7 @@ from collections import OrderedDict
 logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] %(message)s")
 
 
-from ml_analysis.loader.function import Function
+from qbindiff.loader.function import Function
 
 
 class Program(OrderedDict):

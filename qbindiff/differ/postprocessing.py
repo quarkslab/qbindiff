@@ -5,7 +5,7 @@ from operator import itemgetter
 
 #Imports for type
 from pandas import DataFrame, Index
-from ml_analysis.loader.program import Program
+from qbindiff.loader.program import Program
 from typing import Dict, Tuple, List, Optional, Set
 Addr = int
 Idx = int

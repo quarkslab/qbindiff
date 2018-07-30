@@ -1,7 +1,5 @@
-
 # coding: utf-8
 
-from ml_analysis.loader import Program
 from collections import OrderedDict
 import time
 import logging

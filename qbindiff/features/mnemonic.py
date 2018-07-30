@@ -1,4 +1,4 @@
-from ml_analysis.features.visitor import InstructionFeatureExtractor
+from qbindiff.features.visitor import InstructionFeatureExtractor
 
 
 class MnemonicSimple(InstructionFeatureExtractor):

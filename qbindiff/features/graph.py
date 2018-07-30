@@ -1,6 +1,6 @@
 import networkx
 import community
-from ml_analysis.features.visitor import FeatureExtractor
+from qbindiff.features.visitor import FeatureExtractor
 
 
 class GraphNbBlock(FeatureExtractor):

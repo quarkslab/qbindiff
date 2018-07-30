@@ -10,12 +10,17 @@ import logging
 logger = logging.getLogger('matplotlib')
 logger.setLevel(logging.WARNING)
 
-from ml_analysis.loader import Program
-from ml_analysis.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCategory
-from ml_analysis.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanDegree, \
+
+# Pop the directory of the script (to avoid import conflict with qbindiff (same name)
+import sys
+del sys.path[0]
+
+from qbindiff.loader.program import Program
+from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCategory
+from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanDegree, \
         GraphDensity, GraphNbComponents, GraphDiameter, GraphTransitivity, GraphCommunities
-from ml_analysis.features.artefact import LibName, DatName, Constant, ImpName
-from ml_analysis.differ.qbindiff import QBinDiff
+from qbindiff.features.artefact import LibName, DatName, Constant, ImpName
+from qbindiff.differ.qbindiff import QBinDiff
 
 LOADERS = ['qbindiff', 'binexport', 'diaphora']
 _FEATURES_TABLE = { MnemonicSimple.name: MnemonicSimple,

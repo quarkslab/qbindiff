@@ -2,14 +2,11 @@
 
 import logging
 
-from ml_analysis.abstract_diff import AbstractDiff, Match
-from ml_analysis.features.visitor import ProgramVisitor
-from ml_analysis.features.visitor import InstructionFeatureExtractor, BasicBlockFeatureExtractor, \
-                                         FunctionFeatureExtractor, OperandFeatureExtractor, FeatureExtractor
-from ml_analysis.differ.preprocessing import load_features, build_weight_matrix, build_callgraphs
-from ml_analysis.differ.postprocessing import convert_matching, match_relatives, match_lonely, format_matching
-from ml_analysis.belief.belief_propagation import Belief_NAQP
-from ml_analysis.tools.progress_bar import Progress_Bar
+from qbindiff.features.visitor import ProgramVisitor
+from qbindiff.features.visitor import FeatureExtractor
+from qbindiff.differ.preprocessing import load_features, build_weight_matrix, build_callgraphs
+from qbindiff.differ.postprocessing import convert_matching, match_relatives, match_lonely, format_matching
+from qbindiff.belief.belief_propagation import Belief_NAQP
 from json import dump as json_dump
 from pathlib import Path
 
@@ -17,7 +14,7 @@ from typing import Generator, List, Tuple, Optional
 Addr = int
 FinalMatching = List[Tuple[Optional[Addr], Optional[Addr]]]
 
-class QBinDiff(AbstractDiff):
+class QBinDiff:
 
     name = "QBinDiff"
 
