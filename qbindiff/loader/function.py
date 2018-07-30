@@ -31,5 +31,12 @@ class Function(dict):
         dead = sum(1 for x in data['inst_status'].values() if x == 1)
         self.obfu_percentage = (dead * 100) / total
 
+    def is_alone(self):
+        if self.children:
+            return False
+        if self.parents:
+            return False
+        return True
+
     def __repr__(self):
         return '<Function: 0x%x>' % self.addr

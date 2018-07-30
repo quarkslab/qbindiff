@@ -43,13 +43,14 @@ def match_relatives(program1:Program, program2:Program, features1:DataFrame, fea
                 break
     return matching, lonely
 
+
 def match_lonely(program2, features1:DataFrame, features2:DataFrame, matching:Matching, lonely:List[Addr])-> Matching:
     '''
     Matches secondary lonely unmatched functions to primary ones
     Matched if same feature_vector
     '''
     unmatched = set(program2.keys()).difference(matching.values())
-    lone_candidates = list(filter(program2.is_lonely, unmatched))
+    lone_candidates = [x for x in unmatched if program2[x].is_alone()]
     for address in lonely:
         for candidate in iter(lone_candidates):
             if (features1.loc[address] == features2.loc[candidate]).all():
@@ -58,7 +59,8 @@ def match_lonely(program2, features1:DataFrame, features2:DataFrame, matching:Ma
                 break
     return matching
 
-def get_candidates(address:int, program1:Program, program2:Program, matching:Matching) -> Optional[Set[Addr]]:
+
+def get_candidates(address: int, program1:Program, program2:Program, matching:Matching) -> Optional[Set[Addr]]:
     '''
     Extracts the candidate set of the function "address"
     Intersects the children sets of all secondary functions matched with parents of "address" in primay
@@ -69,12 +71,14 @@ def get_candidates(address:int, program1:Program, program2:Program, matching:Mat
         return None
     candidates = set()
     if program1[address].parents:
-        candidates.update(reduce(set.intersection, map(program2.get_children, map(matching.get, program1[address].parents))))
+        candidates.update(reduce(set.intersection, [program2[f_p2].children for f_p2 in map(matching.get, program1[address].parents) if f_p2], set()))
+
     if program1[address].children:
-        candidates.update(reduce(set.intersection, map(program2.get_parents, map(matching.get, program1[address].children))))
+        candidates.update(reduce(set.intersection, [program2[f_p2].parents for f_p2 in map(matching.get, program1[address].children) if f_p2], set()))
     return candidates
 
-def compare_function(add1:Addr, add2:Addr,  program1:Program, program2:Program, features1:DataFrame, features2:DataFrame, matching:Matching) -> bool:
+
+def compare_function(add1: Addr, add2:Addr,  program1:Program, program2:Program, features1:DataFrame, features2:DataFrame, matching:Matching) -> bool:
     '''
     True if adds1 and adds2 have the same parents and the same children according to the current matching as well as same feature_vector
     '''

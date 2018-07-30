@@ -48,22 +48,3 @@ class Program(OrderedDict):
 
     def __repr__(self):
         return '<Program:%s>' % self.name
-
-    def get_parents(self, add):
-        function = self.get(add)
-        if function: return self[add].parents
-        return set()
-
-    def get_children(self, add):
-        function = self.get(add)
-        if function: return self[add].children
-        return set()
-
-    def is_lonely(self, add):
-        function = self.get(add)
-        if function.children:
-            return False
-        if function.parents:
-            return False
-        return True
-
