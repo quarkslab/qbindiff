@@ -5,15 +5,8 @@ import numpy as np
 from scipy.sparse import csr_matrix, diags
 from functools import reduce
 
-from typing import Generator, List, Tuple, Optional, Union
-from pandas import DataFrame
+from qbindiff.types import Generator, ℝ, CallGraph, InputMatrix, Vector, BeliefMatching
 
-Addr = int
-Idx = int
-Vector = np.array  # 1-Dimensional array
-InputMatrix = Union[DataFrame, csr_matrix, np.array]
-CallGraph = List[List[Idx]]
-ℝ = Union[int, float]
 
 class BeliefMatrixError(Exception):
     pass
@@ -48,7 +41,7 @@ class Belief_MWM(object):
         logging.debug("did not converged after %d iterations" % niter)
 
     @property
-    def matching(self) -> List[Tuple[Idx, Optional[Idx]]]:
+    def matching(self) -> BeliefMatching:
         def row_match(rowmates, colidx):
             if not np.logical_xor.reduce(rowmates):
                 return None

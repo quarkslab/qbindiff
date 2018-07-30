@@ -3,16 +3,8 @@
 from functools import reduce
 from operator import itemgetter
 
-#Imports for type
-from pandas import DataFrame, Index
-from qbindiff.loader.program import Program
-from typing import Dict, Tuple, List, Optional, Set
-Addr = int
-Idx = int
-AddrIndex = Index  # panda index of addresses
-Matching = Dict[Addr, Addr]
-BeliefMatching = Dict[Idx, Idx]  # FIXME: Elie (mauvais type cf. belief)
-FinalMatching = List[Tuple[Optional[Addr], Optional[Addr]]]
+from qbindiff.types import Tuple, List, Optional, Set
+from qbindiff.types import AddrIndex, BeliefMatching, Matching, Program, DataFrame, Addr, FinalMatching
 
 
 def convert_matching(adds1:AddrIndex, adds2:AddrIndex, matching:BeliefMatching) -> Matching:

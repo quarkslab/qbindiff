@@ -5,18 +5,8 @@ import numpy as np
 from pandas import DataFrame
 from scipy.spatial.distance import cdist
 from scipy.sparse import csr_matrix
-from functools import reduce
 
-from typing import List, Dict, Tuple, Optional, Union
-from qbindiff.features.visitor import ProgramVisitor
-from qbindiff.loader.program import Program
-from pandas import DataFrame, Index
-Addr = int
-Idx = int
-Vector = np.array  # 1-Dimensional array
-InputMatrix = Union[DataFrame, csr_matrix, np.array]
-CallGraph = List[List[Idx]]
-AddrIndex = Index  # panda index of addresses
+from qbindiff.types import Tuple, Program, ProgramVisitor, AddrIndex, CallGraph
 
 
 def load_features(program1:Program, program2:Program, visitor:ProgramVisitor) -> Tuple[DataFrame, DataFrame]:

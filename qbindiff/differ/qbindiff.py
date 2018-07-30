@@ -7,12 +7,10 @@ from qbindiff.features.visitor import FeatureExtractor
 from qbindiff.differ.preprocessing import load_features, build_weight_matrix, build_callgraphs
 from qbindiff.differ.postprocessing import convert_matching, match_relatives, match_lonely, format_matching
 from qbindiff.belief.belief_propagation import Belief_NAQP
+from qbindiff.types import FinalMatching, Generator, Optional
 from json import dump as json_dump
 from pathlib import Path
 
-from typing import Generator, List, Tuple, Optional
-Addr = int
-FinalMatching = List[Tuple[Optional[Addr], Optional[Addr]]]
 
 class QBinDiff:
 
@@ -75,7 +73,7 @@ class QBinDiff:
     def refine_matching(self) -> None:
         # Postprocessing to refine results
         logging.info("[+] match refinement")
-        
+
         matching, lonely = match_relatives(self.primary, self.secondary, self.features1, self.features2, self._matching)
         self._matching = match_lonely(self.secondary, self.features1, self.features2, matching, lonely)
 
