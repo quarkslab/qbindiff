@@ -22,8 +22,8 @@ class DatName(OperandFeatureExtractor):
 
 class Constant(OperandFeatureExtractor):
     ''' Reference to specific data in the program '''
-    name = "datname"
-    key = 'dat'
+    name = "cstname"
+    key = 'cst'
 
     def call(self, env, expr, full_op=None):
         if expr['type'] == "number":
