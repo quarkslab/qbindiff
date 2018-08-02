@@ -1,50 +1,31 @@
-import json
-import os.path
-from pathlib import Path
-import logging
 from collections import OrderedDict
-logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] %(message)s")
 
-
-from qbindiff.loader.function import Function
+from qbindiff.loader.types import LoaderType
+from qbindiff.loader.backend.program import ProgramBackendBinExport
+from qbindiff.loader.backend.program import ProgramBackendQBinDiff
 
 
 class Program(OrderedDict):
-    def __init__(self, directory=None, loader="qbindiff"):
+    def __init__(self, loader: LoaderType=None, **kwargs):
         super(dict, self).__init__()
-        self.name = None
-        #TODO: implement a loader for binexport !
-        if directory is not None:
-            self.from_directory(directory)
-
-    def from_directory(self, directory):
-        p = Path(directory)
-        self.name = p.name[:-5]
-        for file in p.iterdir():
-            if os.path.splitext(str(file))[1] != ".json":
-                logging.warning("skip file %s (not json)" % file)
+        self._backend = None
+        if loader:
+            if loader == LoaderType.qbindiff:
+                self.loader_qbindiff(**kwargs)
+            elif loader == LoaderType.binexport:
+                self.load_binexport(**kwargs)
             else:
-                with open(str(file), "r") as fun_handle:
-                    #logging.debug("Load fun: %s" % file.name)
-                    f = Function(json.load(fun_handle))
-                    self[f.addr] = f
+                raise NotImplementedError("Loader: %s not implemented" % loader)
 
-    def load_call_graph(self, file):
-        call_graph = json.load(open(str(file), "r"))
-        for node in call_graph["nodes"]:
-            node_addr = node['id']
-            if node_addr not in self:
-                print("Error missing node: %x" % node_addr)
-        for links in call_graph["links"]:
-            src = links['source']
-            dst = links['target']
-            self[src].children.add(dst)
-            self[dst].parents.add(src)
+    def load_binexport(self,  file_path) -> None:
+        self._backend = ProgramBackendBinExport(self, file_path)
 
-    def load_obfuscation_data(self, file):
-        all_data = json.load(open(file, "r"))
-        for fun_addr, data in all_data.items():
-            self[int(fun_addr)].load_obfuscation_data(data)
+    def loader_qbindiff(self, directory, call_graph) -> None:
+        self._backend = ProgramBackendQBinDiff(self, directory, call_graph)
 
     def __repr__(self):
         return '<Program:%s>' % self.name
+
+    @property
+    def name(self):
+        return self._backend.name

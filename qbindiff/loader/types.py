@@ -1,6 +1,11 @@
 from enum import IntEnum
 
 
+class LoaderType(IntEnum):
+    qbindiff = 0
+    binexport = 1
+    diaphora = 2
+
 class OperandType(IntEnum):
     void = 0
     register = 1

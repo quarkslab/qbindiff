@@ -1,35 +1,53 @@
-import json
-import os.path
-import logging
 import networkx
-
-from qbindiff.loader.instruction import Instruction
+from qbindiff.loader.backend.qbindiff import FunctionBackendQBinDiff
+from qbindiff.loader.backend.binexport import FunctionBackendBinExport
+from qbindiff.loader.types import LoaderType, FunctionType
+from typing import Set
 
 
 class Function(dict):
-    def __init__(self, data):
+    def __init__(self, loader, *args, **kwargs):
         super(dict, self).__init__()
-        self.addr = None
-        self.graph = networkx.DiGraph()
-        self.from_json(data)
-        self.parents = set()
-        self.children = set()
+        self._backend = None
+        if loader == LoaderType.qbindiff:
+            self.load_qbindiff(*args)
+        elif loader == LoaderType.binexport:
+            self.load_binexport(*args, **kwargs)
+        else:
+            raise NotImplementedError("Loader: %s not implemented" % loader)
 
-    def from_json(self, data):
-        self.addr = data["addr"]
-        for node in data["nodes"]:
-            self.graph.add_node(node['id'])
-            bb = []
-            for inst in node['instructions']:
-                bb.append(Instruction(inst))
-            self[node['id']] = bb
-        for edge in data["links"]:
-            self.graph.add_edge(edge['source'], edge['target'])
+    def load_qbindiff(self, data):
+        self._backend = FunctionBackendQBinDiff(self, data)
 
-    def load_obfuscation_data(self, data):
-        total = len(data['inst_status'])
-        dead = sum(1 for x in data['inst_status'].values() if x == 1)
-        self.obfu_percentage = (dead * 100) / total
+    def load_binexport(self, *args, **kwargs):
+        self._backend = FunctionBackendBinExport(self, *args, **kwargs)
+
+    @property
+    def addr(self) -> int:
+        return self._backend.addr
+
+    @property
+    def graph(self) -> networkx.DiGraph:
+        return self._backend.graph
+
+    @property
+    def parents(self) -> Set[int]:
+        return self._backend.parents
+
+    @property
+    def children(self) -> Set[int]:
+        return self._backend.children
+
+    @property
+    def type(self):
+        return self._backend.type
+
+    @type.setter
+    def type(self, value) -> FunctionType:
+        self._backend.type = value
+
+    def is_import(self) -> bool:
+        return self._backend.is_import()
 
     def is_alone(self):
         if self.children:

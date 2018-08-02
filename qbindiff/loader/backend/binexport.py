@@ -5,6 +5,10 @@ from pathlib import Path
 from qbindiff.loader.binexport.binexport2_pb2 import BinExport2
 from qbindiff.loader.types import OperandType, FunctionType
 #from ml_analysis.loader.binexport.function import function
+from qbindiff.loader.function import Function
+from qbindiff.loader.instruction import Instruction
+from qbindiff.loader.operand import Operand
+from qbindiff.loader.types import LoaderType
 
 '''
 This is all the types for ida_lines things that can be put on a line !
@@ -78,7 +82,7 @@ Reference address_comment:
 '''
 
 
-class OperandBinexport:
+class OperandBackendBinexport:
 
     __sz_lookup = {'b1': 1, 'b2': 2, 'b4': 4, 'b8': 8, 'b16': 16, 'b32': 32, 'b64': 64}
     __sz_name = {1: 'byte', 2: 'word', 4: 'dword', 8: "qword", 16: "xmmword", 32: "ymmword", 64: "zmmword"}
@@ -168,11 +172,14 @@ class OperandBinexport:
             else:
                 print("wooot")
 
-    def __repr__(self):
+    def __str__(self):
         return ''.join(self._program.proto.expression[idx].symbol for idx in self._me().expression_index)
 
+    def __repr__(self):
+        return "<Op:%s>" % str(self)
 
-class InstructionBinExport:
+
+class InstructionBackendBinExport:
     def __init__(self, program, fun, addr, i_idx):
         self._addr = addr
         self._program = program
@@ -194,14 +201,11 @@ class InstructionBinExport:
 
     @property
     def operands(self):
-        return [OperandBinexport(self._program, self._function, self, op_idx) for op_idx in self._me().operand_index]
+        return [Operand(LoaderType.binexport, self._program, self._function, self, op_idx) for op_idx in self._me().operand_index]
 
     @property
     def groups(self):
         return []  # not supported
-
-    def __repr__(self):
-        return "0x%x [%d] %s %s" % (self.addr, self._idx, self.mnemonic, ",".join(repr(x) for x in self.operands[1:]))
 
     @property
     def comment(self):
@@ -226,13 +230,13 @@ class InstructionBinExport:
         return self.addr in self._program
 
 
-class FunctionBinExport(dict):
-    def __init__(self, program, data_refs, addr_refs, pb_fun, is_import=False, addr=None):
+class FunctionBackendBinExport(object):
+    def __init__(self, function, program, data_refs, addr_refs, pb_fun, is_import=False, addr=None):
+        self._function = function
         self.addr = addr
         self.parents = set()
         self.children = set()
         self.graph = networkx.DiGraph()
-        self._is_import = is_import
         self._pb_type = None  # Set by the Program constructor
         self.name = None  # Set by the Program constructor (mangled name)
 
@@ -269,7 +273,7 @@ class FunctionBinExport(dict):
                     if bb_addr is None:
                         bb_addr = cur_addr
 
-                    inst = InstructionBinExport(program, self, cur_addr, idx)
+                    inst = Instruction(LoaderType.binexport, program, self, cur_addr, idx)
 
                     bb_data.append(inst)
                     if idx in data_refs:  # Add some
@@ -278,11 +282,11 @@ class FunctionBinExport(dict):
                         inst.addr_refs = addr_refs[idx]
 
                     cur_addr += len(pb_i.raw_bytes)
-            self[bb_addr] = bb_data
+            self._function[bb_addr] = bb_data
             self.graph.add_node(bb_addr)
 
-        if len(pb_fun.basic_block_index) != len(self):
-            print("%x, bb:%d, self:%d" % (self.addr, len(pb_fun.basic_block_index), len(self)))
+        if len(pb_fun.basic_block_index) != len(self._function):
+            print("%x, bb:%d, self:%d" % (self.addr, len(pb_fun.basic_block_index), len(self._function)))
 
         # Load the edges between blocks
         for edge in pb_fun.edge:
@@ -306,14 +310,12 @@ class FunctionBinExport(dict):
         self._pb_type = value
 
     def is_import(self):
-        return self._is_import
-
-    def __repr__(self):
-        return '<Function: 0x%x>' % self.addr
+        return self.type == FunctionType.imported
 
 
-class ProgramBinExport(dict):
-    def __init__(self, file):
+class ProgramBackendBinExport(object):
+    def __init__(self, program, file):
+        self._program = program
         self._pb = BinExport2()
         self._pb.ParseFromString(Path(file).read_bytes())
         self._mask = 0xFFFFFFFF if self.architecture.endswith("32") else 0xFFFFFFFFFFFFFFFF
@@ -341,32 +343,32 @@ class ProgramBinExport(dict):
         coll = 0
         # Load all the functions
         for i, pb_fun in enumerate(self.proto.flow_graph):
-            f = FunctionBinExport(self, data_refs, addr_refs, pb_fun)
+            f = Function(LoaderType.binexport, self, data_refs, addr_refs, pb_fun)
             if f.addr in self:
                 logging.error("Address collision for 0x%x" % f.addr)
                 coll += 1
-            self[f.addr] = f
+            self._program[f.addr] = f
             count_f += 1
 
         count_imp = 0
         # Load the callgraph
         cg = self.proto.call_graph
         for node in cg.vertex:
-            if node.address not in self and node.type == cg.Vertex.IMPORTED:
-                self[node.address] = FunctionBinExport(self, data_refs, addr_refs, None, is_import=True, addr=node.address)
+            if node.address not in self._program and node.type == cg.Vertex.IMPORTED:
+                self._program[node.address] = Function(LoaderType.binexport, self, data_refs, addr_refs, None, is_import=True, addr=node.address)
                 count_imp += 1
-            if node.address not in self and node.type == cg.Vertex.NORMAL:
+            if node.address not in self._program and node.type == cg.Vertex.NORMAL:
                 logging.error("Missing function address: 0x%x (%d)" % (node.address, node.type))
 
-            self[node.address].type = node.type
-            self[node.address].name = node.mangled_name
+            self._program[node.address].type = node.type
+            self._program[node.address].name = node.mangled_name
         for edge in cg.edge:
             src = cg.vertex[edge.source_vertex_index].address
             dst = cg.vertex[edge.target_vertex_index].address
-            self[src].children.add(dst)
-            self[dst].parents.add(src)
+            self._program[src].children.add(dst)
+            self._program[dst].parents.add(src)
 
-        for f in self.values():  # Create a map of function names for quick lookup later on
+        for f in self._program.values():  # Create a map of function names for quick lookup later on
             self.fun_names[f.name] = f
 
         logging.debug("total all:%d, imported:%d collision:%d (total:%d)" % (count_f, count_imp, coll, (count_f+count_imp+coll)))

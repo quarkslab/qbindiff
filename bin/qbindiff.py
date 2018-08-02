@@ -56,7 +56,7 @@ def load_binexport_program(file):
 
 @click.command()
 @click.option('-o', '--output', type=click.Path(), default="matching.json", help="Output file matching")
-@click.option('-l', '--loader', type=click.Choice(LOADERS), default="qbindiff", help="Input files type")
+@click.option('-l', '--loader', type=click.Choice(LOADERS), default="binexport", help="Input files type")
 @click.option('-f', '--feature', type=click.Choice(FEATURES), default=None, multiple=True, help="Input files type")
 @click.option('-d', '--distance', type=click.Choice(DISTANCE), default="correlation", help="Distance function to apply")
 @click.option('-t', '--threshold', type=float, default=0.5, help="Distance treshold to keep matches [0.0 to 1.0]")

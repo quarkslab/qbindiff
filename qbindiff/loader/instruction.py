@@ -1,36 +1,49 @@
 
+from qbindiff.loader.types import LoaderType
+from qbindiff.loader.backend.qbindiff import InstructionBackendQBinDiff
+from qbindiff.loader.backend.binexport import InstructionBackendBinExport
+from qbindiff.loader.operand import Operand
+from typing import List, Generator
+
+
 class Instruction(object):
-    def __init__(self, data):
-        self._data = data
+    def __init__(self, loader, *args):
+        self._backend = None
+        if loader == LoaderType.qbindiff:
+            self.load_qbindiff(*args)
+        elif loader == LoaderType.binexport:
+            self.load_binexport(*args)
+        else:
+            raise NotImplementedError("Loader: %s not implemented" % loader)
+
+    def load_qbindiff(self, data):
+        self._backend = InstructionBackendQBinDiff(data)
+
+    def load_binexport(self, *args):
+        self._backend = InstructionBackendBinExport(*args)
 
     @property
-    def addr(self):
-        return self._data['addr']
+    def addr(self) -> int:
+        return self._backend.addr
 
     @property
-    def mnemonic(self):
-        return str(self._data['mnem'])
+    def mnemonic(self) -> str:
+        return self._backend.mnemonic
 
     @property
     def operands(self):
-        return self._data['opnds']
+        return self._backend.operands
 
     @property
-    def groups(self):
-        return self._data['groups']
+    def groups(self) -> List[str]:
+        return self._backend.groups
 
     @property
-    def full_line(self):
-        try:
-            return self._data['full_line'].encode("utf-8")
-        except UnicodeDecodeError:
-            print("Cannot decode 0x%x" % self.addr)
-            return ""
-        return self._data
+    def comment(self):
+        return self._backend.comment
 
     def __str__(self):
-        operands = [''.join(y['value'] for y in op['expr']) for op in self.operands]
-        return "%s %s" % (self.mnemonic, ', '.join(operands))
+        return "%s %s" % (self.mnemonic, ', '.join(str(op) for op in self._backend.operands))
 
     def __repr__(self):
         return "<Inst:%s>" % str(self)
