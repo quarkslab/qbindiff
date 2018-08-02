@@ -88,16 +88,18 @@ class OperandBinexport:
         self._function = fun
         self._instruction = inst
         self._idx = op_idx
-        self._expression = []  # ?
 
     def _me(self):
         return self._program.proto.operand[self._idx]
+
+    def _pb_expressions(self):
+        yield from (self._program.proto.expression[idx] for idx in self._me().expression_index)
 
     @property
     def expressions(self):
         is_deref = False
         size = None
-        for exp in (self._program.proto.expression[idx] for idx in self._me().expression_index):
+        for exp in self._pb_expressions():
             if exp.type == BinExport2.Expression.SYMBOL:  # If the expression is a symbol
                 if exp.symbol in self._program.fun_names:  # If it is a function name
                     f = self._program.fun_names[exp.symbol]
