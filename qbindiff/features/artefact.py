@@ -1,6 +1,7 @@
 
 from qbindiff.features.visitor import OperandFeatureExtractor
 
+
 class LibName(OperandFeatureExtractor):
     ''' Call to library (local function) '''
     name = "libname"
@@ -9,7 +10,8 @@ class LibName(OperandFeatureExtractor):
     def call(self, env, expr, full_op=None):
         if expr['type'] == 'libname':
             env.inc_feature(expr['value'])
-    
+
+
 class DatName(OperandFeatureExtractor):
     ''' Reference to specific data in the program '''
     name = "datname"

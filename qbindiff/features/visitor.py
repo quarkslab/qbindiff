@@ -4,6 +4,7 @@ from collections import OrderedDict
 import time
 import logging
 
+
 class Environment(object):
     def __init__(self):
         self.features = {}
@@ -105,7 +106,7 @@ class ProgramVisitor(object):
             self.stats[callback] += time.time() - x0
 
     def visit_operand(self, operand, env):
-        for exp in operand['expr']:
+        for exp in operand.expressions:
             for callback in self.operand_callbacks:
                 callback.call(env, exp, full_op=operand)
 

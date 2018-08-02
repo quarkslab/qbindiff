@@ -11,6 +11,7 @@ class GraphNbBlock(FeatureExtractor):
         n_node = len(function.graph)
         env.add_feature("N_BLOCK", n_node)
 
+
 class GraphMeanInstBlock(FeatureExtractor):
     name = "graph_mean_inst_block"
     key = "Gmib"
@@ -21,6 +22,7 @@ class GraphMeanInstBlock(FeatureExtractor):
         metric = sum(n_elements) / n_node
         env.add_feature('MEAN_INST_P_BLOCK', metric)
 
+
 class GraphMeanDegree(FeatureExtractor):
     name = "graph_mean_degree"
     key = "Gmd"
@@ -30,12 +32,14 @@ class GraphMeanDegree(FeatureExtractor):
         metric = sum(x for a,x in function.graph.degree()) / n_node
         env.add_feature('MEAN_DEGREE', metric)
 
+
 class GraphDensity(FeatureExtractor):
     name = "graph_density"
     key = "Gd"
 
     def call(self, env, function):
         env.add_feature('DENSITY', networkx.density(function.graph))
+
 
 class GraphNbComponents(FeatureExtractor):
     name = "graph_num_components"
@@ -44,6 +48,7 @@ class GraphNbComponents(FeatureExtractor):
     def call(self, env, function):
         components = list(networkx.connected_components(function.graph.to_undirected()))
         env.add_feature("N_COMPONENTS", len(components))
+
 
 class GraphDiameter(FeatureExtractor):
     name = "graph_diameter"
@@ -54,12 +59,14 @@ class GraphDiameter(FeatureExtractor):
         max_dia = max(networkx.diameter(networkx.subgraph(function.graph, x).to_undirected()) for x in components)
         env.add_feature("MAX_DIAMETER", max_dia)
 
+
 class GraphTransitivity(FeatureExtractor):
     name = "graph_transitivity"
     key = "Gt"
 
     def call(self, env, function):
         env.add_feature('TRANSITIVITY', networkx.transitivity(function.graph))
+
 
 class GraphCommunities(FeatureExtractor):
     name = "graph_community"

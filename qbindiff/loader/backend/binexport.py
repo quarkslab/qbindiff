@@ -131,7 +131,7 @@ class OperandBackendBinexport:
                     elif exp.immediate in self._function: # its a basic block address
                         yield {'type': 'codname', 'value': 'loc_%X' % exp.immediate}
                     else:
-                        yield {'type': 'imm', 'value': self._program.addr_mask(exp.immediate)}
+                        yield {'type': 'number', 'value': self._program.addr_mask(exp.immediate)}
 
             elif exp.type == BinExport2.Expression.IMMEDIATE_FLOAT:
                 print("IMMEDIATE FLOAT ignored:", exp)

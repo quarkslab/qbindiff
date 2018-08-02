@@ -8,18 +8,15 @@ class MnemonicSimple(InstructionFeatureExtractor):
     def call(self, env, instruction):
         env.inc_feature(instruction.mnemonic)
 
+
 class MnemonicTyped(InstructionFeatureExtractor):
     name = "mnemonic_typed"
     key = "Mt"
 
-    map_table = {'void':'', 'reg':'b', 'mem': 'c', 'phrase': 'd',
-                 'displ': 'e', 'imm': 'f', 'far': 'g', 'near': 'h',
-                 'idpspec0': 'i', 'idpspec1': 'j', 'idpspec2': 'k',
-                 'idpspec3': 'l', 'idpspec4': 'm', 'idpspec5': 'n'}
-
     def call(self, env, instruction):
-        keycode = ''.join(self.map_table[x['type']] for x in instruction.operands)
+        keycode = ''.join(str(x.type.value) for x in instruction.operands)
         env.inc_feature(instruction.mnemonic+keycode)
+
 
 class GroupsCategory(InstructionFeatureExtractor):
     name = "groups_category"
