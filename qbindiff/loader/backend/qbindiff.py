@@ -9,7 +9,7 @@ from qbindiff.loader.types import LoaderType, OperandType
 from qbindiff.loader.instruction import Instruction
 from qbindiff.loader.operand import Operand
 
-__map_table = {'void': OperandType.void,
+map_table = {'void': OperandType.void,
                'reg': OperandType.register,
                'mem': OperandType.memory,
                'phrase': OperandType.phrase,
@@ -31,8 +31,7 @@ class OperandBackendQBinDiff(object):
 
     @property
     def type(self):
-        global __map_table
-        return __map_table[self._data['type']]
+        return map_table[self._data['type']]
 
     @property
     def expressions(self):

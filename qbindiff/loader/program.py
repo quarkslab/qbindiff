@@ -1,8 +1,8 @@
 from collections import OrderedDict
 
 from qbindiff.loader.types import LoaderType
-from qbindiff.loader.backend.program import ProgramBackendBinExport
-from qbindiff.loader.backend.program import ProgramBackendQBinDiff
+from qbindiff.loader.backend.binexport import ProgramBackendBinExport
+from qbindiff.loader.backend.qbindiff import ProgramBackendQBinDiff
 
 
 class Program(OrderedDict):
@@ -11,7 +11,7 @@ class Program(OrderedDict):
         self._backend = None
         if loader:
             if loader == LoaderType.qbindiff:
-                self.loader_qbindiff(**kwargs)
+                self.load_qbindiff(**kwargs)
             elif loader == LoaderType.binexport:
                 self.load_binexport(**kwargs)
             else:
@@ -20,7 +20,7 @@ class Program(OrderedDict):
     def load_binexport(self,  file_path) -> None:
         self._backend = ProgramBackendBinExport(self, file_path)
 
-    def loader_qbindiff(self, directory, call_graph) -> None:
+    def load_qbindiff(self, directory, call_graph) -> None:
         self._backend = ProgramBackendQBinDiff(self, directory, call_graph)
 
     def __repr__(self):

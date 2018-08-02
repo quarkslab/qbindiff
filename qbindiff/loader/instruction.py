@@ -1,7 +1,7 @@
 
 from qbindiff.loader.types import LoaderType
-from qbindiff.loader.backend.qbindiff import InstructionBackendQBinDiff
-from qbindiff.loader.backend.binexport import InstructionBackendBinExport
+# from qbindiff.loader.backend.qbindiff import InstructionBackendQBinDiff
+# from qbindiff.loader.backend.binexport import InstructionBackendBinExport
 from qbindiff.loader.operand import Operand
 from typing import List, Generator
 
@@ -17,9 +17,11 @@ class Instruction(object):
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
     def load_qbindiff(self, data):
+        from qbindiff.loader.backend.qbindiff import InstructionBackendQBinDiff
         self._backend = InstructionBackendQBinDiff(data)
 
     def load_binexport(self, *args):
+        from qbindiff.loader.backend.binexport import InstructionBackendBinExport
         self._backend = InstructionBackendBinExport(*args)
 
     @property

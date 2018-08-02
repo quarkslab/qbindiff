@@ -1,6 +1,6 @@
 import networkx
-from qbindiff.loader.backend.qbindiff import FunctionBackendQBinDiff
-from qbindiff.loader.backend.binexport import FunctionBackendBinExport
+# from qbindiff.loader.backend.qbindiff import FunctionBackendQBinDiff
+# from qbindiff.loader.backend.binexport import FunctionBackendBinExport
 from qbindiff.loader.types import LoaderType, FunctionType
 from typing import Set
 
@@ -17,9 +17,11 @@ class Function(dict):
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
     def load_qbindiff(self, data):
+        from qbindiff.loader.backend.qbindiff import FunctionBackendQBinDiff
         self._backend = FunctionBackendQBinDiff(self, data)
 
     def load_binexport(self, *args, **kwargs):
+        from qbindiff.loader.backend.binexport import FunctionBackendBinExport
         self._backend = FunctionBackendBinExport(self, *args, **kwargs)
 
     @property

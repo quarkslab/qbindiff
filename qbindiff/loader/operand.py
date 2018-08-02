@@ -1,7 +1,7 @@
 
 from qbindiff.loader.types import LoaderType
-from qbindiff.loader.backend.qbindiff import OperandBackendQBinDiff
-from qbindiff.loader.backend.binexport import OperandBackendBinexport
+# from qbindiff.loader.backend.qbindiff import OperandBackendQBinDiff
+# from qbindiff.loader.backend.binexport import OperandBackendBinexport
 
 
 class Operand(object):
@@ -15,9 +15,11 @@ class Operand(object):
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
     def load_qbindiff(self, data):
+        from qbindiff.loader.backend.qbindiff import OperandBackendQBinDiff
         self._backend = OperandBackendQBinDiff(data)
 
     def load_binexport(self, *args):
+        from qbindiff.loader.backend.binexport import OperandBackendBinexport
         self._backend = OperandBackendBinexport(*args)
 
     @property

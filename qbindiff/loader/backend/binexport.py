@@ -2,9 +2,8 @@ import logging
 import networkx
 from pathlib import Path
 
-from qbindiff.loader.binexport.binexport2_pb2 import BinExport2
+from qbindiff.loader.backend.binexport2_pb2 import BinExport2
 from qbindiff.loader.types import OperandType, FunctionType
-#from ml_analysis.loader.binexport.function import function
 from qbindiff.loader.function import Function
 from qbindiff.loader.instruction import Instruction
 from qbindiff.loader.operand import Operand
@@ -126,9 +125,9 @@ class OperandBackendBinexport:
                     s = "%s_%X" % (self.__sz_name[size], exp.immediate)
                     yield {'type': 'datname', 'value': s}
                 else:
-                    if exp.immediate in self._program:  # if it is a function
+                    if exp.immediate in self._program.program:  # if it is a function
                         yield {'type': 'codname', 'value': "sub_%X" % exp.immediate}
-                    elif exp.immediate in self._function: # its a basic block address
+                    elif exp.immediate in self._function.function:  # its a basic block address
                         yield {'type': 'codname', 'value': 'loc_%X' % exp.immediate}
                     else:
                         yield {'type': 'number', 'value': self._program.addr_mask(exp.immediate)}
@@ -298,6 +297,10 @@ class FunctionBackendBinExport(object):
         return program.proto.instruction[program.proto.basic_block[idx].instruction_index[0].begin_index].address
 
     @property
+    def function(self):
+        return self._function
+
+    @property
     def type(self):
         return {BinExport2.CallGraph.Vertex.NORMAL: FunctionType.normal,
                 BinExport2.CallGraph.Vertex.LIBRARY: FunctionType.library,
@@ -344,7 +347,7 @@ class ProgramBackendBinExport(object):
         # Load all the functions
         for i, pb_fun in enumerate(self.proto.flow_graph):
             f = Function(LoaderType.binexport, self, data_refs, addr_refs, pb_fun)
-            if f.addr in self:
+            if f.addr in self._program:
                 logging.error("Address collision for 0x%x" % f.addr)
                 coll += 1
             self._program[f.addr] = f
@@ -375,6 +378,10 @@ class ProgramBackendBinExport(object):
 
     def addr_mask(self, value):
         return value & self._mask
+
+    @property
+    def program(self):
+        return self._program
 
     @property
     def proto(self):
