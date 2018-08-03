@@ -1,9 +1,9 @@
 import networkx
 import community
-from qbindiff.features.visitor import FeatureExtractor
+from qbindiff.features.visitor import FunctionFeatureExtractor
 
 
-class GraphNbBlock(FeatureExtractor):
+class GraphNbBlock(FunctionFeatureExtractor):
     name = "graph_nblock"
     key = "Gnb"
 
@@ -12,28 +12,27 @@ class GraphNbBlock(FeatureExtractor):
         env.add_feature("N_BLOCK", n_node)
 
 
-class GraphMeanInstBlock(FeatureExtractor):
+class GraphMeanInstBlock(FunctionFeatureExtractor):
     name = "graph_mean_inst_block"
     key = "Gmib"
 
     def call(self, env, function):
         n_node = len(function.graph)
-        n_elements = map(len, function.values())
-        metric = sum(n_elements) / n_node
+        metric = sum(map(len, function.values())) / n_node if n_node != 0 else 0
         env.add_feature('MEAN_INST_P_BLOCK', metric)
 
 
-class GraphMeanDegree(FeatureExtractor):
+class GraphMeanDegree(FunctionFeatureExtractor):
     name = "graph_mean_degree"
     key = "Gmd"
 
     def call(self, env, function):
         n_node = len(function.graph)
-        metric = sum(x for a,x in function.graph.degree()) / n_node
+        metric = sum(x for a,x in function.graph.degree()) / n_node if n_node != 0 else 0
         env.add_feature('MEAN_DEGREE', metric)
 
 
-class GraphDensity(FeatureExtractor):
+class GraphDensity(FunctionFeatureExtractor):
     name = "graph_density"
     key = "Gd"
 
@@ -41,7 +40,7 @@ class GraphDensity(FeatureExtractor):
         env.add_feature('DENSITY', networkx.density(function.graph))
 
 
-class GraphNbComponents(FeatureExtractor):
+class GraphNbComponents(FunctionFeatureExtractor):
     name = "graph_num_components"
     key = "Gnc"
 
@@ -50,17 +49,20 @@ class GraphNbComponents(FeatureExtractor):
         env.add_feature("N_COMPONENTS", len(components))
 
 
-class GraphDiameter(FeatureExtractor):
+class GraphDiameter(FunctionFeatureExtractor):
     name = "graph_diameter"
     key = "Gdi"
 
     def call(self, env, function):
         components = list(networkx.connected_components(function.graph.to_undirected()))
-        max_dia = max(networkx.diameter(networkx.subgraph(function.graph, x).to_undirected()) for x in components)
+        if components:
+            max_dia = max(networkx.diameter(networkx.subgraph(function.graph, x).to_undirected()) for x in components)
+        else:
+            max_dia = 0
         env.add_feature("MAX_DIAMETER", max_dia)
 
 
-class GraphTransitivity(FeatureExtractor):
+class GraphTransitivity(FunctionFeatureExtractor):
     name = "graph_transitivity"
     key = "Gt"
 
@@ -68,7 +70,7 @@ class GraphTransitivity(FeatureExtractor):
         env.add_feature('TRANSITIVITY', networkx.transitivity(function.graph))
 
 
-class GraphCommunities(FeatureExtractor):
+class GraphCommunities(FunctionFeatureExtractor):
     name = "graph_community"
     key = "Gcom"
 
