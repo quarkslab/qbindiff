@@ -30,11 +30,9 @@ class Constant(OperandFeatureExtractor):
     def call(self, env, expr, full_op=None):
         if expr['type'] == "number":
             try:
-                raw_val = expr['value']
-                if raw_val[-1] == "h":
-                    val = int(raw_val[:-1], 16)
-                else:
-                    val = int(raw_val)
+                val = expr['value']
+                if isinstance(val, str):
+                    val = int(val[:-1], 16) if val[-1] == "h" else int(val)
                 if 0xFFFF < val <= 0xFFFFFF00:
                     if val not in [0x80000000]:
                         env.inc_feature('cst_0x%x' % val)

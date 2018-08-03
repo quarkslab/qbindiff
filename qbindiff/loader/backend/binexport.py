@@ -144,7 +144,7 @@ class OperandBackendBinexport:
             elif exp.type == BinExport2.Expression.SIZE_PREFIX:
                 size = self.__sz_lookup[exp.symbol]
             else:
-                print("wooot")
+                print("woot:", exp)
 
     def byte_size(self):
         exp = self._program.proto.expression[self._me().expression_index[0]]
@@ -156,7 +156,9 @@ class OperandBackendBinexport:
     @property
     def type(self):
         for exp in (self._program.proto.expression[idx] for idx in self._me().expression_index):
-            if exp.type == BinExport2.Expression.SYMBOL:
+            if exp.type == BinExport2.Expression.SIZE_PREFIX:
+                continue
+            elif exp.type == BinExport2.Expression.SYMBOL:
                 return OperandType.memory  # As it is either a ref to data or function
             elif exp.type == BinExport2.Expression.IMMEDIATE_INT:
                 return OperandType.immediate  # Could also have been far, near and memory?
@@ -169,7 +171,7 @@ class OperandBackendBinexport:
             elif exp.type == BinExport2.Expression.DEREFERENCE:
                 return OperandType.displacement  # could also have been phrase
             else:
-                print("wooot")
+                print("wooot", exp.type)
 
     def __str__(self):
         return ''.join(self._program.proto.expression[idx].symbol for idx in self._me().expression_index)
@@ -276,9 +278,9 @@ class FunctionBackendBinExport(object):
 
                     bb_data.append(inst)
                     if idx in data_refs:  # Add some
-                        inst.data_refs = data_refs[idx]
+                        inst._backend.data_refs = data_refs[idx]
                     if idx in addr_refs:
-                        inst.addr_refs = addr_refs[idx]
+                        inst._backend.addr_refs = addr_refs[idx]
 
                     cur_addr += len(pb_i.raw_bytes)
             self._function[bb_addr] = bb_data
