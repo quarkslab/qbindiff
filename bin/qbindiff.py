@@ -43,7 +43,7 @@ _FEATURES_TABLE = { MnemonicSimple.name: MnemonicSimple,
 
 FEATURES = list(_FEATURES_TABLE.keys())
 DISTANCE = ['correlation', 'cosine']
-
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 def load_qbindiff_program(file_path):
     p_path = Path(file_path)
@@ -58,7 +58,7 @@ def load_binexport_program(file):
     return p
 
 
-@click.command()
+@click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('-o', '--output', type=click.Path(), default="matching.json", help="Output file matching")
 @click.option('-l', '--loader', type=click.Choice(LOADERS), default=LoaderType.binexport.name, help="Input files type")
 @click.option('-f', '--feature', type=click.Choice(FEATURES), default=None, multiple=True, help="Input files type")
@@ -114,6 +114,7 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
 
     differ.save_matching(output)
     exit(0)
+
 
 if __name__ == '__main__':
     main()
