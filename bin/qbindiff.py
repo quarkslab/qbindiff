@@ -102,7 +102,7 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
     differ.beta = mcall
     for name in feature:
         ft = _FEATURES_TABLE[name]()  # instanciate the feature
-        differ.add_feature(ft)
+        differ.register_feature(ft)
 
     differ.initialize()
     logging.info("[+] starts NAQP computation")

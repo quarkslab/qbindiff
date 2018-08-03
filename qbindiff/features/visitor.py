@@ -47,31 +47,31 @@ class ProgramVisitor(object):
         self.operand_callbacks = []
         self.stats = {}
 
-    def add_feature(self, ft: FeatureExtractor):
+    def register_feature(self, ft: FeatureExtractor):
         if isinstance(ft, InstructionFeatureExtractor):
-            self.register_instruction_feature(ft)
+            self._register_instruction_feature(ft)
         elif isinstance(ft, BasicBlockFeatureExtractor):
-            self.register_basic_block_feature(ft)
+            self._register_basic_block_feature(ft)
         elif isinstance(ft, FunctionFeatureExtractor):
-            self.register_function_feature(ft)
+            self._register_function_feature(ft)
         elif isinstance(ft, OperandFeatureExtractor):
-            self.register_operand_feature(ft)
+            self._register_operand_feature(ft)
         else:
             logging.error("[-] invalid feature extractor")
 
-    def register_function_feature(self, feature_obj):
+    def _register_function_feature(self, feature_obj):
         self.function_callbacks.append(feature_obj)
         self.stats[feature_obj] = 0
 
-    def register_basic_block_feature(self, feature_obj):
+    def _register_basic_block_feature(self, feature_obj):
         self.basic_block_callbacks.append(feature_obj)
         self.stats[feature_obj] = 0
 
-    def register_instruction_feature(self, feature_obj):
+    def _register_instruction_feature(self, feature_obj):
         self.instruction_callbacks.append(feature_obj)
         self.stats[feature_obj] = 0
 
-    def register_operand_feature(self, feature_obj):
+    def _register_operand_feature(self, feature_obj):
         self.operand_callbacks.append(feature_obj)
         self.stats[feature_obj] = 0
 
@@ -100,10 +100,10 @@ class ProgramVisitor(object):
         for callback in self.instruction_callbacks:
             x0 = time.time()
             callback.call(env, instruction)
-            if self.operand_callbacks:
-                for op in instruction.operands:
-                    self.visit_operand(op, env)
             self.stats[callback] += time.time() - x0
+        if self.operand_callbacks:
+            for op in instruction.operands:
+                self.visit_operand(op, env)
 
     def visit_operand(self, operand, env):
         for exp in operand.expressions:

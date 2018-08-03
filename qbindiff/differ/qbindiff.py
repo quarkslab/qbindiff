@@ -36,11 +36,11 @@ class QBinDiff:
         self.weight_matrix = None
         self.callgraph1, self.callgraph2 = None, None
  
-    def add_feature(self, ft: FeatureExtractor) -> None:
+    def register_feature(self, ft: FeatureExtractor) -> None:
         '''
         Call the visitor method to add the feature.
         '''
-        self.visitor.add_feature(ft)
+        self.visitor.register_feature(ft)
 
     def initialize(self) -> None:
         # Preprocessing to extract features and filters functions
