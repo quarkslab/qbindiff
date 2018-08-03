@@ -21,8 +21,9 @@ from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanD
         GraphDensity, GraphNbComponents, GraphDiameter, GraphTransitivity, GraphCommunities
 from qbindiff.features.artefact import LibName, DatName, Constant, ImpName
 from qbindiff.differ.qbindiff import QBinDiff
+from qbindiff.loader.types import LoaderType
 
-LOADERS = ['qbindiff', 'binexport', 'diaphora']
+LOADERS = list(x.name for x in LoaderType)
 _FEATURES_TABLE = { MnemonicSimple.name: MnemonicSimple,
                     MnemonicTyped.name: MnemonicTyped,
                     GroupsCategory.name: GroupsCategory,
@@ -46,17 +47,20 @@ DISTANCE = ['correlation', 'cosine']
 
 def load_qbindiff_program(file_path):
     p_path = Path(file_path)
-    p = Program(p_path / "data")
-    p.load_call_graph(p_path / "callgraph.json")
-    logging.info("[+} %s loaded: %d functions" % (p_path.name, len(p)))
+    p = Program(LoaderType.qbindiff, p_path / "data", p_path / "callgraph.json")
+    logging.info("[+} %s loaded: %d functions" % (p.name, len(p)))
     return p
 
+
 def load_binexport_program(file):
-    return Program(file, loader='binexport')
+    p = Program(LoaderType.binexport, file)
+    logging.info("[+} %s loaded: %d functions" % (p.name, len(p)))
+    return p
+
 
 @click.command()
 @click.option('-o', '--output', type=click.Path(), default="matching.json", help="Output file matching")
-@click.option('-l', '--loader', type=click.Choice(LOADERS), default="binexport", help="Input files type")
+@click.option('-l', '--loader', type=click.Choice(LOADERS), default=LoaderType.binexport.name, help="Input files type")
 @click.option('-f', '--feature', type=click.Choice(FEATURES), default=None, multiple=True, help="Input files type")
 @click.option('-d', '--distance', type=click.Choice(DISTANCE), default="correlation", help="Distance function to apply")
 @click.option('-t', '--threshold', type=float, default=0.5, help="Distance treshold to keep matches [0.0 to 1.0]")

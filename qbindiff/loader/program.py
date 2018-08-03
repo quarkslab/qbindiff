@@ -6,14 +6,14 @@ from qbindiff.loader.backend.qbindiff import ProgramBackendQBinDiff
 
 
 class Program(OrderedDict):
-    def __init__(self, loader: LoaderType=None, **kwargs):
+    def __init__(self, loader: LoaderType=None, *args):
         super(dict, self).__init__()
         self._backend = None
-        if loader:
+        if loader is not None:
             if loader == LoaderType.qbindiff:
-                self.load_qbindiff(**kwargs)
+                self.load_qbindiff(*args)
             elif loader == LoaderType.binexport:
-                self.load_binexport(**kwargs)
+                self.load_binexport(*args)
             else:
                 raise NotImplementedError("Loader: %s not implemented" % loader)
 

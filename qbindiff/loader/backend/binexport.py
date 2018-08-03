@@ -333,7 +333,6 @@ class ProgramBackendBinExport(object):
                 data_refs[entry.instruction_index].append(entry.address)
             else:
                 data_refs[entry.instruction_index] = [entry.address]
-        print("total data_refs", len(data_refs))
 
         # Make the address comment
         addr_refs = {}
@@ -342,7 +341,6 @@ class ProgramBackendBinExport(object):
                 addr_refs[entry.instruction_index].append(self.proto.string_table[entry.string_table_index])
             else:
                 addr_refs[entry.instruction_index] = [self.proto.string_table[entry.string_table_index]]
-        print("total addr_refs", len(addr_refs))
 
         count_f = 0
         coll = 0
