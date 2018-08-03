@@ -49,7 +49,11 @@ class QBinDiff:
         self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(self.features1, self.features2, self.distance, self.threshold)
         self.callgraph1, self.callgraph2 = build_callgraphs(self.primary, self.secondary, self.adds1, self.adds2)
 
-    def run(self, match_refine=True) -> Generator[int, None, None]:
+    def run(self, match_refine=True) -> None:
+        for _ in self.run_iter(match_refine=match_refine):
+            pass
+
+    def run_iter(self, match_refine=True) -> Generator[int, None, None]:
         # Performing the matching
         belief = Belief_NAQP(self.weight_matrix, self.callgraph1, self.callgraph2, self.alpha, self.beta)
         yield from belief.compute_matching(self.maxiter)
