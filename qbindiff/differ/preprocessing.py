@@ -48,8 +48,8 @@ def build_weight_matrix(features1: DataFrame, features2: DataFrame, distance: st
     Recall : the weights are to be MAXIMISED so they should computed according to a SIMILARITY measure (not a distance)
     '''
     features1, features2 = process_features(features1, features2)
-    weight_matrix = 1 - cdist(features1, features2, distance) # Distance to similarity
-    threshmask = weight_matrix > threshold
+    weight_matrix = np.nan_to_num(1 - cdist(features1, features2, distance), 0)  # Distance to similarity
+    threshmask = weight_matrix > threshold  # did nan_to_num because this might raise: RuntimeWarning: invalid value encountered in greater
     weight_matrix *= threshmask
     _compute_sparsity(threshmask)
     rowmask = threshmask.any(1) # Keep vertex with at least
