@@ -33,9 +33,10 @@ def _vectorize_features(program_features:dict, features_idx:dict) -> DataFrame:
     '''
     Converts function features into vector forms (DataFrame)
     '''
-    features = np.zeros((len(program_features), len(features_idx)), np.float32) # Check floating size according to program size
+    features = np.zeros((len(program_features), len(features_idx)), np.float32)  # Check floating size according to program size
     for funid, pfeatures in enumerate(program_features.values()):
-        opid, count = zip(*((features_idx[opc], count) for opc, count in pfeatures.items() if opc in features_idx))
+        if pfeatures:  # if the function have features (otherwise array cells are already zeroes
+            opid, count = zip(*((features_idx[opc], count) for opc, count in pfeatures.items() if opc in features_idx))
         features[funid, opid] = count
     features = DataFrame(features, index=program_features.keys())
     return features
