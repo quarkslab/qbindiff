@@ -83,8 +83,8 @@ Reference address_comment:
 
 class OperandBackendBinexport:
 
-    __sz_lookup = {'b1': 1, 'b2': 2, 'b4': 4, 'b8': 8, 'b16': 16, 'b32': 32, 'b64': 64}
-    __sz_name = {1: 'byte', 2: 'word', 4: 'dword', 8: "qword", 16: "xmmword", 32: "ymmword", 64: "zmmword"}
+    __sz_lookup = {'b1': 1, 'b2': 2, 'b4': 4, 'b8': 8, 'b10': 10, 'b16': 16, 'b32': 32, 'b64': 64}
+    __sz_name = {1: 'byte', 2: 'word', 4: 'dword', 8: "qword", 10: 'b10', 16: "xmmword", 32: "ymmword", 64: "zmmword"}
 
     def __init__(self, program, fun, inst, op_idx):
         self._program = program

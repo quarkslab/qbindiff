@@ -90,8 +90,7 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
         # checks here that selected features are supported
         unsupported_fts = [GroupsCategory.name]
         if [x for x in feature if x in unsupported_fts]:
-            logging.error("Unsupported features for the binexport loader : %s" % str(unsupported_fts))
-            exit(1)
+            logging.warning("Useless feature %s for the binexport loader" % str(unsupported_fts))
         p1 = load_binexport_program(primary)
         p2 = load_binexport_program(secondary)
     else:
