@@ -20,28 +20,6 @@ from qbindiff.features.artefact import LibName, DatName, Constant, ImpName
 from qbindiff.differ.qbindiff import QBinDiff
 from qbindiff.loader.types import LoaderType
 
-LOADERS = list(x.name for x in LoaderType)
-_FEATURES_TABLE = { MnemonicSimple.name: MnemonicSimple,
-                    MnemonicTyped.name: MnemonicTyped,
-                    GroupsCategory.name: GroupsCategory,
-                    GraphNbBlock.name: GraphNbBlock,
-                    GraphMeanInstBlock.name: GraphMeanInstBlock,
-                    GraphMeanDegree.name: GraphMeanDegree,
-                    GraphDensity.name: GraphDensity,
-                    GraphNbComponents.name: GraphNbComponents,
-                    GraphDiameter.name: GraphDiameter,
-                    GraphTransitivity.name: GraphTransitivity,
-                    GraphCommunities.name: GraphCommunities,
-                    LibName.name: LibName,
-                    DatName.name: DatName,
-                    Constant.name: Constant,
-                    ImpName.name: ImpName
-                  }
-
-FEATURES = list(_FEATURES_TABLE.keys())
-DISTANCE = ['correlation', 'cosine']
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
 
 def configure_logging(verbose):
     #first desactivate matplotlib logging
@@ -71,15 +49,56 @@ def load_binexport_program(file):
     return p
 
 
+LOADERS = list(x.name for x in LoaderType)
+FEATURES = {MnemonicSimple,
+            MnemonicTyped,
+            GroupsCategory,
+            GraphNbBlock,
+            GraphMeanInstBlock,
+            GraphMeanDegree,
+            GraphDensity,
+            GraphNbComponents,
+            GraphDiameter,
+            GraphTransitivity,
+            GraphCommunities,
+            LibName,
+            DatName,
+            Constant,
+            ImpName
+            # New features should be added here
+            }
+
+FEATURES_KEYS = {x.name: x for x in FEATURES}
+FEATURES_KEYS.update({x.key: x for x in FEATURES})  # also add short keys as a valid feature
+DISTANCE = ['correlation', 'cosine']
+
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
+                        max_content_width=300)
+
+DEFAULT_LOADER = LoaderType.binexport.name
+DEFAULT_OUTPUT = "matching.json"
+DEFAULT_DISTANCE = "correlation"
+DEFAULT_THRESHOLD = 0.5
+DEFAULT_MAXITER = 80
+DEFAULT_ALPHA = 1
+DEFAULT_BETA = 2
+
+help_features = """The following features are available:
+"""+''.join("- %s, %s: %s\n" % (x.key, x.name, x.__doc__) for x in FEATURES)
+
+help_distance = "Mathematical distance function between cosine and correlation [default: %s]" % DEFAULT_DISTANCE
+
+
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option('-o', '--output', type=click.Path(), default="matching.json", help="Output file matching")
-@click.option('-l', '--loader', type=click.Choice(LOADERS), default=LoaderType.binexport.name, help="Input files type")
-@click.option('-f', '--feature', type=click.Choice(FEATURES), default=None, multiple=True, help="Input files type")
-@click.option('-d', '--distance', type=click.Choice(DISTANCE), default="correlation", help="Distance function to apply")
-@click.option('-t', '--threshold', type=float, default=0.5, help="Distance treshold to keep matches [0.0 to 1.0]")
-@click.option('-i', '--maxiter', type=int, default=50, help="Maximum number of iteration for belief propagation")
-@click.option('--msim', type=int, default=1, help="Maximize similarity matching (alpha for NAQP)")
-@click.option('--mcall', type=int, default=2, help='Maximize call graph matching (beta for NAQP)')
+@click.option('-o', '--output', type=click.Path(), default=DEFAULT_OUTPUT, help="Output file matching [default: %s]" % DEFAULT_OUTPUT)
+@click.option('-l', '--loader', type=click.Choice(LOADERS), default=DEFAULT_LOADER, metavar="<loader>",
+              help="Input files type between %s. [default loader: %s]" % (LOADERS, DEFAULT_LOADER))
+@click.option('-f', '--feature', type=click.Choice(FEATURES_KEYS), default=None, multiple=True, metavar="<feature>", help=help_features)
+@click.option('-d', '--distance', type=click.Choice(DISTANCE), default=DEFAULT_DISTANCE, metavar="<function>", help=help_distance)
+@click.option('-t', '--threshold', type=float, default=DEFAULT_THRESHOLD, help="Distance treshold to keep matches between 0.0 to 1.0 [default: %.02f]" % DEFAULT_THRESHOLD)
+@click.option('-i', '--maxiter', type=int, default=DEFAULT_MAXITER, help="Maximum number of iteration for belief propagation [default: %d]" % DEFAULT_MAXITER)
+@click.option('--msim', type=int, default=DEFAULT_ALPHA, help="Maximize similarity matching (alpha for NAQP) [default: %d]" % DEFAULT_ALPHA)
+@click.option('--mcall', type=int, default=DEFAULT_BETA, help='Maximize call graph matching (beta for NAQP) [default: %d]' % DEFAULT_BETA)
 @click.option('--refine-match/--no-refine-match', default=True)
 @click.option('-v', '--verbose', count=True, help="Activate debugging messages")
 @click.argument("primary", type=click.Path(exists=True), metavar="<primary file>")
@@ -119,9 +138,14 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
     differ.threshold = threshold
     differ.alpha = msim
     differ.beta = mcall
+    registered_ft = set()
     for name in feature:
-        ft = _FEATURES_TABLE[name]()  # instanciate the feature
-        differ.register_feature(ft)
+        ft = FEATURES_KEYS[name]
+        if ft in registered_ft:
+            logging.warning("feature %s already registered (skip it)" % (ft.name))
+        else:
+            differ.register_feature(ft())  # instanciate it
+            registered_ft.add(ft)
 
     differ.initialize()
     logging.info("[+] starts NAQP computation")

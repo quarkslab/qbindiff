@@ -3,7 +3,7 @@ from qbindiff.features.visitor import OperandFeatureExtractor
 
 
 class LibName(OperandFeatureExtractor):
-    ''' Call to library (local function) '''
+    """Call to library functions (local function)"""
     name = "libname"
     key = "lib"
 
@@ -13,7 +13,7 @@ class LibName(OperandFeatureExtractor):
 
 
 class DatName(OperandFeatureExtractor):
-    ''' Reference to specific data in the program '''
+    """References to data in the instruction"""
     name = "datname"
     key = 'dat'
 
@@ -23,7 +23,7 @@ class DatName(OperandFeatureExtractor):
 
 
 class Constant(OperandFeatureExtractor):
-    ''' Reference to specific data in the program '''
+    """Constant (32/64bits) in the instruction (not addresses)"""
     name = "cstname"
     key = 'cst'
 
@@ -41,7 +41,7 @@ class Constant(OperandFeatureExtractor):
 
 
 class ImpName(OperandFeatureExtractor):
-    ''' Reference import to an external library '''
+    """References to imports in the instruction"""
     name = 'impname'
     key = 'imp'
 

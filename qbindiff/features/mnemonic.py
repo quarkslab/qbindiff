@@ -2,6 +2,7 @@ from qbindiff.features.visitor import InstructionFeatureExtractor
 
 
 class MnemonicSimple(InstructionFeatureExtractor):
+    """Mnemonic of instructions feature"""
     name = "mnemonic"
     key = "M"
 
@@ -10,6 +11,7 @@ class MnemonicSimple(InstructionFeatureExtractor):
 
 
 class MnemonicTyped(InstructionFeatureExtractor):
+    """Mnemonic and type of operand feature"""
     name = "mnemonic_typed"
     key = "Mt"
 
@@ -19,6 +21,7 @@ class MnemonicTyped(InstructionFeatureExtractor):
 
 
 class GroupsCategory(InstructionFeatureExtractor):
+    """Group of the instruction (FPU, SSE, stack..)"""
     name = "groups_category"
     key = "Gp"
 

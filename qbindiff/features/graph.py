@@ -4,6 +4,7 @@ from qbindiff.features.visitor import FunctionFeatureExtractor
 
 
 class GraphNbBlock(FunctionFeatureExtractor):
+    """Number of basic blocks in the function"""
     name = "graph_nblock"
     key = "Gnb"
 
@@ -13,6 +14,7 @@ class GraphNbBlock(FunctionFeatureExtractor):
 
 
 class GraphMeanInstBlock(FunctionFeatureExtractor):
+    """Mean of instruction per basic blocks in the function"""
     name = "graph_mean_inst_block"
     key = "Gmib"
 
@@ -23,6 +25,7 @@ class GraphMeanInstBlock(FunctionFeatureExtractor):
 
 
 class GraphMeanDegree(FunctionFeatureExtractor):
+    """Mean degree of the function"""
     name = "graph_mean_degree"
     key = "Gmd"
 
@@ -33,6 +36,7 @@ class GraphMeanDegree(FunctionFeatureExtractor):
 
 
 class GraphDensity(FunctionFeatureExtractor):
+    """Density of the function flow graph"""
     name = "graph_density"
     key = "Gd"
 
@@ -41,6 +45,7 @@ class GraphDensity(FunctionFeatureExtractor):
 
 
 class GraphNbComponents(FunctionFeatureExtractor):
+    """Number of components in the function (non-connected flow graphs)"""
     name = "graph_num_components"
     key = "Gnc"
 
@@ -50,6 +55,7 @@ class GraphNbComponents(FunctionFeatureExtractor):
 
 
 class GraphDiameter(FunctionFeatureExtractor):
+    """Diamater of the function flow graph"""
     name = "graph_diameter"
     key = "Gdi"
 
@@ -63,6 +69,7 @@ class GraphDiameter(FunctionFeatureExtractor):
 
 
 class GraphTransitivity(FunctionFeatureExtractor):
+    """Transitivity of the function flow graph"""
     name = "graph_transitivity"
     key = "Gt"
 
@@ -71,6 +78,7 @@ class GraphTransitivity(FunctionFeatureExtractor):
 
 
 class GraphCommunities(FunctionFeatureExtractor):
+    """Number of graph communities (Louvain modularity)"""
     name = "graph_community"
     key = "Gcom"
 
