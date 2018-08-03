@@ -268,7 +268,7 @@ class FunctionBackendBinExport(object):
                                 if program.proto.instruction[tmp_idx].address != 0:
                                     break
                             cur_addr = program.proto.instruction[tmp_idx].address + tmp_sz
-                            logging.debug("current address unset: backtracked 0x%x up to: 0x%x" % (cur_addr, cur_addr-tmp_sz))
+                            #logging.debug("current address unset: backtracked 0x%x up to: 0x%x" % (cur_addr, cur_addr-tmp_sz))
                     if pb_i.address != 0:
                         cur_addr = pb_i.address
                     if bb_addr is None:

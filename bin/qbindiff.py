@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+import logging
 import click
 from pathlib import Path
 from tqdm import tqdm
-
-# Disable this shitty matplotlib DEBUG messages !
-import logging
-logger = logging.getLogger('matplotlib')
-logger.setLevel(logging.WARNING)
-
+import coloredlogs
+from coloredlogs import DEFAULT_FIELD_STYLES as FST, DEFAULT_LEVEL_STYLES as LST
 
 # Pop the directory of the script (to avoid import conflict with qbindiff (same name)
 import sys
@@ -45,16 +42,32 @@ FEATURES = list(_FEATURES_TABLE.keys())
 DISTANCE = ['correlation', 'cosine']
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
+
+def configure_logging(verbose):
+    #first desactivate matplotlib logging
+    logger = logging.getLogger('matplotlib')
+    logger.setLevel(logging.WARNING)
+    logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
+    # coloredlogs.install(logger.level,
+    #                     logger=logger,
+    #                     fmt='[%(name)s] [%(levelname)s] %(message)s',
+    #                     field_styles={**FST, **{'asctime': {'bold': True}, 'name': {'color': 'blue', 'bold': True}}},
+    #                     level_styles={**LST, **{'debug': {'color': 'blue'}}})
+
+
 def load_qbindiff_program(file_path):
     p_path = Path(file_path)
     p = Program(LoaderType.qbindiff, p_path / "data", p_path / "callgraph.json")
-    logging.info("[+} %s loaded: %d functions" % (p.name, len(p)))
+    logging.info("[+] %s loaded: %d functions" % (p.name, len(p)))
     return p
 
 
 def load_binexport_program(file):
     p = Program(LoaderType.binexport, file)
-    logging.info("[+} %s loaded: %d functions" % (p.name, len(p)))
+    logging.info("[+] %s loaded: %d functions" % (p.name, len(p)))
     return p
 
 
@@ -68,13 +81,16 @@ def load_binexport_program(file):
 @click.option('--msim', type=int, default=1, help="Maximize similarity matching (alpha for NAQP)")
 @click.option('--mcall', type=int, default=2, help='Maximize call graph matching (beta for NAQP)')
 @click.option('--refine-match/--no-refine-match', default=True)
+@click.option('-v', '--verbose', count=True, help="Activate debugging messages")
 @click.argument("primary", type=click.Path(exists=True), metavar="<primary file>")
 @click.argument('secondary', type=click.Path(exists=True), metavar="<secondary file>")
-def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, refine_match, primary, secondary):
+def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, refine_match, verbose, primary, secondary):
     """
     qBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
     """
+
+    configure_logging(verbose)
 
     if 0.0 > threshold > 1:  # check the threshold value to fit
         logging.warning("Threshold value should within 0..1 (set it to 1.0)")
