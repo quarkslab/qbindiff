@@ -6,6 +6,7 @@ class LoaderType(IntEnum):
     binexport = 1
     diaphora = 2
 
+
 class OperandType(IntEnum):
     void = 0
     register = 1
@@ -29,4 +30,3 @@ class FunctionType(IntEnum):
     imported = 2
     thunk = 3
     invalid = 4
-

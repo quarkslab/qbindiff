@@ -1,9 +1,5 @@
-
 from qbindiff.loader.types import LoaderType
-# from qbindiff.loader.backend.qbindiff import InstructionBackendQBinDiff
-# from qbindiff.loader.backend.binexport import InstructionBackendBinExport
-from qbindiff.loader.operand import Operand
-from typing import List, Generator
+from typing import List
 
 
 class Instruction(object):

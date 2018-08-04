@@ -26,17 +26,22 @@ class FeatureExtractor(object):
     def call(self, env, item):
         pass
 
+
 class InstructionFeatureExtractor(FeatureExtractor):
     pass
+
 
 class FunctionFeatureExtractor(FeatureExtractor):
     pass
 
+
 class BasicBlockFeatureExtractor(FeatureExtractor):
     pass
 
+
 class OperandFeatureExtractor(FeatureExtractor):
     pass
+
 
 class ProgramVisitor(object):
 
@@ -81,13 +86,13 @@ class ProgramVisitor(object):
             function_features[fun_addr] = self.visit_function(fun)
         return function_features
 
-    def visit_function(self, function):
+    def visit_function(self, func):
         env = Environment()
         for callback in self.function_callbacks:
             x0 = time.time()
-            callback.call(env, function)
+            callback.call(env, func)
             self.stats[callback] += time.time() - x0
-        for bb_addr, bb in function.items():
+        for bb_addr, bb in func.items():
             for callback in self.basic_block_callbacks:
                 x0 = time.time()
                 callback.call(env, bb)
@@ -112,4 +117,3 @@ class ProgramVisitor(object):
 
     def get_stats(self):
         return self.stats
-

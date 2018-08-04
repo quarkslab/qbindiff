@@ -10,19 +10,19 @@ from qbindiff.loader.instruction import Instruction
 from qbindiff.loader.operand import Operand
 
 map_table = {'void': OperandType.void,
-               'reg': OperandType.register,
-               'mem': OperandType.memory,
-               'phrase': OperandType.phrase,
-               'displ': OperandType.displacement,
-               'imm': OperandType.immediate,
-               'far': OperandType.far,
-               'near': OperandType.near,
-               'idpspec0': OperandType.specific0,
-               'idpspec1': OperandType.specific1,
-               'idpspec2': OperandType.specific2,
-               'idpspec3': OperandType.specific3,
-               'idpspec4': OperandType.specific4,
-               'idpspec5': OperandType.specific5}
+             'reg': OperandType.register,
+             'mem': OperandType.memory,
+             'phrase': OperandType.phrase,
+             'displ': OperandType.displacement,
+             'imm': OperandType.immediate,
+             'far': OperandType.far,
+             'near': OperandType.near,
+             'idpspec0': OperandType.specific0,
+             'idpspec1': OperandType.specific1,
+             'idpspec2': OperandType.specific2,
+             'idpspec3': OperandType.specific3,
+             'idpspec4': OperandType.specific4,
+             'idpspec5': OperandType.specific5}
 
 
 class OperandBackendQBinDiff(object):

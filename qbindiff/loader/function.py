@@ -1,6 +1,4 @@
 import networkx
-# from qbindiff.loader.backend.qbindiff import FunctionBackendQBinDiff
-# from qbindiff.loader.backend.binexport import FunctionBackendBinExport
 from qbindiff.loader.types import LoaderType, FunctionType
 from typing import Set
 
@@ -41,11 +39,11 @@ class Function(dict):
         return self._backend.children
 
     @property
-    def type(self):
+    def type(self) -> FunctionType:
         return self._backend.type
 
     @type.setter
-    def type(self, value) -> FunctionType:
+    def type(self, value) -> None:
         self._backend.type = value
 
     def is_import(self) -> bool:

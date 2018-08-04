@@ -5,14 +5,14 @@ import numpy as np
 from scipy.sparse import csr_matrix, diags
 from functools import reduce
 
-from qbindiff.types import Generator, ℝ, CallGraph, InputMatrix, Vector, BeliefMatching
+from qbindiff.types import Generator, ℝ, CallGraph, InputMatrix, Vector, BeliefMatching, Iterator
 
 
 class BeliefMatrixError(Exception):
     pass
 
 
-class Belief_MWM(object):
+class BeliefMWM(object):
     """
     Compute the **Maxmimum Weight Matching** of the matrix of weights (similarity).
     Returns the *real* maximum assignement.
@@ -23,6 +23,7 @@ class Belief_MWM(object):
         self.objective = []
         self._init_indices(weights)
         self._init_messages()
+        self._converged_iter = 0
 
     def compute_matching(self, maxiter: int=100) -> Generator[int, None, None]:
         niter = 0
@@ -37,7 +38,7 @@ class Belief_MWM(object):
                     yield niter
                 yield maxiter
                 logging.debug("converged after %d iterations" % niter)
-                break
+                return
         logging.debug("did not converged after %d iterations" % niter)
 
     @property
@@ -68,28 +69,29 @@ class Belief_MWM(object):
         self.mates = (self.x + self.y - self.weights) > 0
         self.objective.append(self._objective())
 
-    def _rowslice(self, vector:Vector) -> Generator[Vector, None, None]:
+    def _rowslice(self, vector: Vector) -> Iterator[Vector]:
         def get_slice(x, y): return vector[x:y]
         return map(get_slice, self._rowmap[:-1], self._rowmap[1:])
 
-    def _colslice(self, vector:Vector) -> Generator[Vector, None, None]:
+    def _colslice(self, vector: Vector) -> Iterator[Vector]:
         def get_slice(x, y): return vector[x:y]
         vector = vector[self._tocol]
         return map(get_slice, self._colmap[:-1], self._colmap[1:])
 
-    def _other_rowmax(self, vector:Vector) -> Vector:
+    def _other_rowmax(self, vector: Vector) -> Vector:
         maxvec = map(self._othermax_, self._rowslice(vector))
         return np.hstack(maxvec)
 
-    def _other_colmax(self, vector:Vector) -> Vector:
+    def _other_colmax(self, vector: Vector) -> Vector:
         maxvec = map(self._othermax_, self._colslice(vector))
         return np.hstack(maxvec)[self._torow]
 
-    def _othermax_(self, vector:Vector) -> Vector:
-        '''
+    @staticmethod
+    def _othermax_(vector: Vector) -> Vector:
+        """
         Compute the maximum value for all elements except (for the maxmimum value)
         $$x_i = max_{j!=i}{x_j}$$
-        '''
+        """
         maxvec = np.zeros_like(vector)
         if len(vector) > 1:
             max2, max1 = vector.argsort()[-2:]
@@ -100,8 +102,8 @@ class Belief_MWM(object):
     def _objective(self) -> float:
         return self.weights[self.mates].sum()
 
-    def _converged(self, m:int=5, w:int=50) -> bool:
-        '''
+    def _converged(self, m: int=5, w: int=50) -> bool:
+        """
         Decide whether or not the algorithm have converged
 
         :param m: minimum size of the pattern to match 
@@ -109,7 +111,7 @@ class Belief_MWM(object):
         
         :return: True or False if the algorithm have converged
         :rtype: bool
-        '''
+        """
         def _converged_(obj, idx):
             return obj[-2*idx:-idx] == obj[-idx:]
         patterns = self.objective[-w:-m]
@@ -121,22 +123,23 @@ class Belief_MWM(object):
                 return True
         return False
 
-    def _checkmatrix(self, matrix:InputMatrix) -> csr_matrix:
-        '''
+    @staticmethod
+    def _checkmatrix(matrix: InputMatrix) -> csr_matrix:
+        """
         Normalize the weight values into something homogenous
 
         .. todo:: check if all weights are positives
-        '''
+        """
         try:
             matrix = csr_matrix(matrix)
-        except:
+        except Exception:
             raise BeliefMatrixError("Unknown matrix type: %s" % str(type(matrix)))
         if not (matrix.getnnz(0).all() and matrix.getnnz(1).all()):
             raise BeliefMatrixError("Incomplete bipartite, (isolated nodes)")
         return matrix
 
 
-class Belief_NAQP(Belief_MWM):
+class BeliefNAQP(BeliefMWM):
     """
     Compute an approximate solution to **Network Alignement Quadratic Problem**.
     """
@@ -157,7 +160,7 @@ class Belief_NAQP(Belief_MWM):
         mxyz = self.x + self.y - mz
         self.z = diags(mxyz).dot(self.s) - zclip
 
-        self.mates = (mxyz) >= 0
+        self.mates = mxyz >= 0
         self.objective.append(self._objective())
 
     def _objective(self) -> float:
@@ -167,23 +170,23 @@ class Belief_NAQP(Belief_MWM):
 
     @property
     def numsquares(self) -> int:
-        return self.s[self.mates][:,self.mates].nnz / 2
+        return self.s[self.mates][:, self.mates].nnz / 2
 
     @staticmethod
-    def compute_squares(weights: csr_matrix, E1: CallGraph, E2: CallGraph) -> csr_matrix:
+    def compute_squares(weights: csr_matrix, edge1: CallGraph, edge2: CallGraph) -> csr_matrix:
         L = weights.astype(bool).toarray()
         cumsum = L.cumsum().reshape(L.shape) * L
-        colsum = np.hstack((0,cumsum.max(1)))
-        edgesum = [len(e) for e in E2]
+        colsum = np.hstack((0, cumsum.max(1)))
+        edgesum = [len(e) for e in edge2]
         buildix = lambda x: [x[0]]*edgesum[x[1]]
         idxx, idxy = [], []
         for i, j in ((i, j.nonzero()[0]) for i, j in enumerate(L)):
-            edgesi = E1[i]
-            edgesj = reduce(list.__add__, map(E2.__getitem__,  j), [])
+            edgesi = edge1[i]
+            edgesj = reduce(list.__add__, map(edge2.__getitem__,  j), [])
             idxj = reduce(list.__add__, map(buildix,  enumerate(j)), [])
-            match = cumsum[edgesi][:,edgesj]
+            match = cumsum[edgesi][:, edgesj]
             matched = match.nonzero()
-            idxx.extend(map(lambda idx:idxj[idx] + colsum[i], matched[1]))
+            idxx.extend(map(lambda idx: idxj[idx] + colsum[i], matched[1]))
             idxy.extend(list(match[matched] - 1))
         s = colsum.max()
         boolean = np.ones(len(idxx), bool)

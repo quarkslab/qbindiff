@@ -9,77 +9,6 @@ from qbindiff.loader.instruction import Instruction
 from qbindiff.loader.operand import Operand
 from qbindiff.loader.types import LoaderType
 
-'''
-This is all the types for ida_lines things that can be put on a line !
-default  #
-regcmt   # comment (not repeatable)
-rptcmt   # repeatable comment
-autocmt  # auto comment (also used for demangled function comments)
-insn     # instruction mnemonic
-datname  # name of data
-dname    # name of data (function pointer for exception ??) mangled name ?
-demname  # demangled name ?
-symbol   # symbol "operator": '$+', '(', ')[', '*2+', '*2-', '*2]', '*4+', '*4-', '*4]', '*8+', '*8-', '*8]', '+', '-', ':', ':(', '[', ']'
-char     #
-string   #
-number   # number 
-voidop   # no meant to occur ?
-cref     #
-dref     #
-creftail #
-dreftail #
-error    # on some integer in instruction ? (don't know why..)
-prefix   # instruction prefixes (lock, rep, repne)
-binpref  #
-extra    #
-altop    #
-hidname  # code name location (seen for SEH handler)
-libname  # library function (local) eg: _strcpy etc...
-locname  # named variable (shadow an offset or reg+off) eg: var_XX, arg_XX or struct fields
-codname  # location name eg: loc_XXX, or sub_XXX
-asmdir   #
-macro    #
-dstr     #
-dchar    #
-dnum     # dummy number ? (used in nop XXXXX 0000h (to align))
-keyword  # keywords eg: 'byte ptr', 'dword ptr', 'large ', 'offset', 'qword ptr', 'word ptr', 'xmmword ptr'
-reg      # register (include ss: ds: etc.)
-impname  # imported function
-segname  #
-unkname  # data (with unknown type) eg: unk_XXX
-cname    # loc name (for known functions)
-uname    #
-collapsed#
-addr     #
-unk      # 3rd operand on x86 (created by me for not recognized operands)
-'''
-
-'''
-SYMBOL = 1
-    "__alloca_probe"  # call to functions
-    "??_7bad_alloc@std@@6B@" # symbol in rdata
-
-     --> tester si la string est dans les fun_name si oui le type etc..
-IMMEDIATE_INT = 2
-IMMEDIATE_FLOAT = 3
-OPERATOR = 4
-    "+"
-    'ds:'
-    'ss:'
-REGISTER         # register (in symbol)
-SIZE_PREFIX = 6  # b1, b2, b4 or b8
-DEREFERENCE = 7
-    - Immediate: (voir si reference dans data_refs)
-    -
-
-DataReference:
-
-
-Reference address_comment:
-    -> s'il n'est pas dans les symbols des expr ni nom de fonction
-    alors commentaire
-'''
-
 
 class OperandBackendBinexport:
 
@@ -100,7 +29,7 @@ class OperandBackendBinexport:
 
     @property
     def expressions(self):
-        is_deref = False
+        # is_deref = False
         size = None
         for exp in self._pb_expressions():
             if exp.type == BinExport2.Expression.SYMBOL:  # If the expression is a symbol
@@ -140,7 +69,7 @@ class OperandBackendBinexport:
                 yield {'type': 'reg', 'value': exp.symbol}
             elif exp.type == BinExport2.Expression.DEREFERENCE:
                 yield {'type': 'symbol', 'value': exp.symbol}
-                is_deref = True
+                # is_deref = True
             elif exp.type == BinExport2.Expression.SIZE_PREFIX:
                 size = self.__sz_lookup[exp.symbol]
             else:
@@ -202,7 +131,8 @@ class InstructionBackendBinExport:
 
     @property
     def operands(self):
-        return [Operand(LoaderType.binexport, self._program, self._function, self, op_idx) for op_idx in self._me().operand_index]
+        return [Operand(LoaderType.binexport, self._program, self._function, self, op_idx)
+                for op_idx in self._me().operand_index]
 
     @property
     def groups(self):
@@ -232,8 +162,8 @@ class InstructionBackendBinExport:
 
 
 class FunctionBackendBinExport(object):
-    def __init__(self, function, program, data_refs, addr_refs, pb_fun, is_import=False, addr=None):
-        self._function = function
+    def __init__(self, fun, program, data_refs, addr_refs, pb_fun, is_import=False, addr=None):
+        self._function = fun
         self.addr = addr
         self.parents = set()
         self.children = set()
@@ -268,7 +198,7 @@ class FunctionBackendBinExport(object):
                                 if program.proto.instruction[tmp_idx].address != 0:
                                     break
                             cur_addr = program.proto.instruction[tmp_idx].address + tmp_sz
-                            #logging.debug("current address unset: backtracked 0x%x up to: 0x%x" % (cur_addr, cur_addr-tmp_sz))
+                            # logging.debug("address unset: backtracked 0x%x up to: 0x%x" % (cur_addr, cur_addr-tmp_sz))
                     if pb_i.address != 0:
                         cur_addr = pb_i.address
                     if bb_addr is None:
@@ -295,7 +225,8 @@ class FunctionBackendBinExport(object):
             bb_dst = self._get_basic_block_addr(program, edge.target_basic_block_index)
             self.graph.add_edge(bb_src, bb_dst)
 
-    def _get_basic_block_addr(self, program, idx):
+    @staticmethod
+    def _get_basic_block_addr(program, idx):
         return program.proto.instruction[program.proto.basic_block[idx].instruction_index[0].begin_index].address
 
     @property
@@ -358,7 +289,8 @@ class ProgramBackendBinExport(object):
         cg = self.proto.call_graph
         for node in cg.vertex:
             if node.address not in self._program and node.type == cg.Vertex.IMPORTED:
-                self._program[node.address] = Function(LoaderType.binexport, self, data_refs, addr_refs, None, is_import=True, addr=node.address)
+                self._program[node.address] = Function(LoaderType.binexport, self, data_refs, addr_refs, None,
+                                                       is_import=True, addr=node.address)
                 count_imp += 1
             if node.address not in self._program and node.type == cg.Vertex.NORMAL:
                 logging.error("Missing function address: 0x%x (%d)" % (node.address, node.type))
@@ -374,7 +306,8 @@ class ProgramBackendBinExport(object):
         for f in self._program.values():  # Create a map of function names for quick lookup later on
             self.fun_names[f.name] = f
 
-        logging.debug("total all:%d, imported:%d collision:%d (total:%d)" % (count_f, count_imp, coll, (count_f+count_imp+coll)))
+        logging.debug("total all:%d, imported:%d collision:%d (total:%d)" %
+                      (count_f, count_imp, coll, (count_f+count_imp+coll)))
 
     def addr_mask(self, value):
         return value & self._mask

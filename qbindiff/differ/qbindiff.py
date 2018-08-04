@@ -4,7 +4,7 @@ from qbindiff.features.visitor import ProgramVisitor
 from qbindiff.features.visitor import FeatureExtractor
 from qbindiff.differ.preprocessing import load_features, build_weight_matrix, build_callgraphs
 from qbindiff.differ.postprocessing import convert_matching, match_relatives, match_lonely, format_matching
-from qbindiff.belief.belief_propagation import Belief_NAQP
+from qbindiff.belief.belief_propagation import BeliefNAQP
 from qbindiff.types import FinalMatching, Generator, Optional
 from json import dump as json_dump
 from pathlib import Path
@@ -37,16 +37,17 @@ class QBinDiff:
         self.callgraph1, self.callgraph2 = None, None
  
     def register_feature(self, ft: FeatureExtractor) -> None:
-        '''
+        """
         Call the visitor method to add the feature.
-        '''
+        """
         self.visitor.register_feature(ft)
 
     def initialize(self) -> None:
         # Preprocessing to extract features and filters functions
         logging.info("[+] extracting features")
         self.features1, self.features2 = load_features(self.primary, self.secondary, self.visitor)
-        self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(self.features1, self.features2, self.distance, self.threshold)
+        self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(
+                                                        self.features1, self.features2, self.distance, self.threshold)
         self.callgraph1, self.callgraph2 = build_callgraphs(self.primary, self.secondary, self.adds1, self.adds2)
 
     def run(self, match_refine=True) -> None:
@@ -55,7 +56,7 @@ class QBinDiff:
 
     def run_iter(self, match_refine=True) -> Generator[int, None, None]:
         # Performing the matching
-        belief = Belief_NAQP(self.weight_matrix, self.callgraph1, self.callgraph2, self.alpha, self.beta)
+        belief = BeliefNAQP(self.weight_matrix, self.callgraph1, self.callgraph2, self.alpha, self.beta)
         yield from belief.compute_matching(self.maxiter)
 
         logging.info("[+] squares number : %d" % belief.numsquares)
@@ -68,9 +69,6 @@ class QBinDiff:
         min_fun_nb = min(len(self.primary), len(self.secondary))
         logging.info("[+] matched functions : %d / %d" % (len(self._matching), min_fun_nb))
         self._matching = format_matching(self.adds1, self.adds2, self._matching)
-
-        # Compute matching with Match class from abstract_diff
-        #logging.info("[+] Statistics : ")
 
     def refine_matching(self) -> None:
         # Postprocessing to refine results
@@ -90,7 +88,6 @@ class QBinDiff:
             return self._matching
 
     def save_matching(self, output: Path) -> None:
-        with open(output, 'w') as outputfile:
+        with open(str(output), 'w') as outputfile:
             json_dump(self.matching, outputfile)
         logging.info("[+] matching successfully saved to: %s" % output)
-

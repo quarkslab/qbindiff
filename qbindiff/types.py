@@ -1,9 +1,8 @@
-from typing import Dict, Tuple, List, Optional, Set, Union, Generator
+from typing import Dict, Tuple, List, Optional, Set, Union, Generator, Iterator
 
 import numpy
 from pandas import DataFrame, Index
 from scipy.sparse import csr_matrix
-
 
 from qbindiff.loader.program import Program
 from qbindiff.features.visitor import ProgramVisitor
