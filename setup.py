@@ -22,7 +22,8 @@ setup(
         'community',
         'scipy',
         'protobuf',
-        'pandas'
+        'pandas',
+        'numpy'
     ],
     scripts=['bin/qbindiff']
 
