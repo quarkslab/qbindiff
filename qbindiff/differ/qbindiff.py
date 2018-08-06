@@ -14,18 +14,18 @@ class QBinDiff:
 
     name = "QBinDiff"
 
-    def __init__(self, primary, secondary):
+    def __init__(self, primary, secondary, distance="correlation", threshold=0.5, maxiter=100, alpha=1, beta=2):
         super().__init__()
         self.primary = primary
         self.secondary = secondary
         self.visitor = ProgramVisitor()
 
         # parameters
-        self.distance = "correlation"
-        self.threshold = 0.5
-        self.maxiter = 50
-        self.alpha = 1
-        self.beta = 2
+        self.distance = distance
+        self.threshold = threshold
+        self.maxiter = maxiter
+        self.alpha = alpha
+        self.beta = beta
 
         # final values
         self._matching = None

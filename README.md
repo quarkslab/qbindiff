@@ -71,10 +71,8 @@ p1 = Program()
 p1.load_binexport("primary.BinExport")
 p2 = Program()
 p2.load_binexport("secondary.BinExport")
-differ = QBinDiff()
+differ = QBinDiff(p1, p2, distance=0.80, threshold=0.5, maxiter=100)
 differ.register_feature(MnemonicSimple())
-differ.threshold = 0.5
-differ.maxiter = 50
 differ.run(match_refine=True)
 matching = differ.matching
 ```
