@@ -149,9 +149,9 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
     for _ in tqdm(differ.run_iter(match_refine=refine_match), total=maxiter):
         pass
 
-    with open(str(output), 'w') as output:
-        json.json_dump(differ.matching, output)
-    logging.info("[+] matching successfully saved to: %s" % output)
+    with open(str(output), 'w') as f_out:
+        json.dump(differ.matching, f_out)
+    logging.info("[+] matching successfully saved to: %s" % output.name)
     exit(0)
 
 
