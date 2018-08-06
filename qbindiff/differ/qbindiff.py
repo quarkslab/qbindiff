@@ -6,8 +6,6 @@ from qbindiff.differ.preprocessing import load_features, build_weight_matrix, bu
 from qbindiff.differ.postprocessing import convert_matching, match_relatives, match_lonely, format_matching
 from qbindiff.belief.belief_propagation import BeliefNAQP
 from qbindiff.types import FinalMatching, Generator, Optional
-from json import dump as json_dump
-from pathlib import Path
 
 
 class QBinDiff:
@@ -86,8 +84,3 @@ class QBinDiff:
             return None
         else:
             return self._matching
-
-    def save_matching(self, output: Path) -> None:
-        with open(str(output), 'w') as outputfile:
-            json_dump(self.matching, outputfile)
-        logging.info("[+] matching successfully saved to: %s" % output)

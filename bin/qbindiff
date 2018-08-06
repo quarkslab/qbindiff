@@ -5,6 +5,7 @@ import logging
 import click
 from pathlib import Path
 from tqdm import tqdm
+import json
 
 # Pop the directory of the script (to avoid import conflict with qbindiff (same name)
 import sys
@@ -148,7 +149,9 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
     for _ in tqdm(differ.run_iter(match_refine=refine_match), total=maxiter):
         pass
 
-    differ.save_matching(output)
+    with open(str(output), 'w') as output:
+        json.json_dump(differ.matching, output)
+    logging.info("[+] matching successfully saved to: %s" % output)
     exit(0)
 
 
