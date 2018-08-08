@@ -16,7 +16,7 @@ setup(
               'qbindiff.loader.backend'],
     package_dir={'qbindiff': 'qbindiff'},
     install_requires=[
-        'networkx',
+        'networkx >= 2.0',
         'click',
         'tqdm',
         'community',

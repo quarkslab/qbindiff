@@ -2,12 +2,18 @@ from enum import IntEnum
 
 
 class LoaderType(IntEnum):
+    """
+    The different kind of loaders (diaphora not supported)
+    """
     qbindiff = 0
     binexport = 1
     diaphora = 2
 
 
 class OperandType(IntEnum):
+    """
+    All the operand types as defined by IDA
+    """
     void = 0
     register = 1
     memory = 3
@@ -25,6 +31,9 @@ class OperandType(IntEnum):
 
 
 class FunctionType(IntEnum):
+    """
+    Function types as defined by IDA
+    """
     normal = 0
     library = 1
     imported = 2

@@ -2,8 +2,10 @@ import logging
 from functools import reduce
 from operator import itemgetter
 
+# Imports for types
 from qbindiff.types import Tuple, List, Optional, Set
-from qbindiff.types import AddrIndex, BeliefMatching, Matching, Program, DataFrame, Addr, FinalMatching
+from qbindiff.types import AddrIndex, BeliefMatching, Matching, DataFrame, Addr, FinalMatching
+from qbindiff.loader.program import Program
 
 
 def convert_matching(adds1: AddrIndex, adds2: AddrIndex, matching: BeliefMatching) -> Matching:

@@ -6,7 +6,10 @@ from pandas import DataFrame
 from scipy.spatial.distance import cdist
 from scipy.sparse import csr_matrix
 
-from qbindiff.types import Tuple, Program, ProgramVisitor, AddrIndex, CallGraph
+# Import for types
+from qbindiff.loader.program import Program
+from qbindiff.features.visitor import ProgramVisitor
+from qbindiff.types import Tuple, AddrIndex, CallGraph
 
 
 def load_features(program1: Program, program2: Program, visitor: ProgramVisitor) -> Tuple[DataFrame, DataFrame]:

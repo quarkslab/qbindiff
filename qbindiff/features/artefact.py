@@ -1,5 +1,6 @@
 
-from qbindiff.features.visitor import OperandFeatureExtractor
+from qbindiff.features.visitor import OperandFeatureExtractor, Environment
+from qbindiff.loader.operand import Operand, Expr
 
 
 class LibName(OperandFeatureExtractor):
@@ -7,7 +8,7 @@ class LibName(OperandFeatureExtractor):
     name = "libname"
     key = "lib"
 
-    def call(self, env, expr, full_op=None):
+    def call(self, env: Environment, expr: Expr, full_op: Operand=None):
         if expr['type'] == 'libname':
             env.inc_feature(expr['value'])
 
@@ -17,7 +18,7 @@ class DatName(OperandFeatureExtractor):
     name = "datname"
     key = 'dat'
 
-    def call(self, env, expr, full_op=None):
+    def call(self, env: Environment, expr: Expr, full_op: Operand=None):
         if expr['type'] == 'datname':
             env.inc_feature(expr['value'])
 
@@ -27,7 +28,7 @@ class Constant(OperandFeatureExtractor):
     name = "cstname"
     key = 'cst'
 
-    def call(self, env, expr, full_op=None):
+    def call(self, env: Environment, expr: Expr, full_op: Operand=None):
         if expr['type'] == "number":
             try:
                 val = expr['value']
@@ -45,6 +46,6 @@ class ImpName(OperandFeatureExtractor):
     name = 'impname'
     key = 'imp'
 
-    def call(self, env, expr, full_op=None):
+    def call(self, env: Environment, expr: Expr, full_op: Operand=None):
         if expr['type'] == 'impname':
             env.inc_feature(expr['value'])

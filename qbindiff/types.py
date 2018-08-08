@@ -4,16 +4,71 @@ import numpy
 from pandas import DataFrame, Index
 from scipy.sparse import csr_matrix
 
-from qbindiff.loader.program import Program
-from qbindiff.features.visitor import ProgramVisitor
-
+"""
+An integer representing an address within a program
+"""
 Addr = int
+
+"""
+An integer representing an index in a matrix. At low-level
+functions are manipulated using indexes in matrices.
+"""
 Idx = int
-AddrIndex = Index  # panda index of addresses
+
+"""
+Set of address indexes, as pandas Index
+"""
+AddrIndex = Index
+
+"""
+Matching of functions as a dictionnary from primary
+function addresses to secondary function addresses
+"""
 Matching = Dict[Addr, Addr]
+
+"""
+Low-level matching on matrix indexes computed by
+the belief propagation algorithm. (Internal type)
+"""
 BeliefMatching = List[Tuple[Idx, Optional[Idx]]]
+
+"""
+Final matching. List of pairs of function of both primary and secondary
+binary. One of the two can be None if it has not been matched. The length
+of the list is len_matched + len_unmatched_p1 + len_unmatched_p2 
+"""
 FinalMatching = List[Tuple[Optional[Addr], Optional[Addr]]]
-Vector = numpy.array  # 1-Dimensional array
+
+"""
+1-Dimensional array. Use to represente slice of a matrix or function features
+"""
+Vector = numpy.array
+
+"""
+2-D Matrix given to the belief propagation algorithm which represent distances
+of both programs. It can be a DataFrame, a sparse matrix or a numpy array
+"""
 InputMatrix = Union[DataFrame, csr_matrix, numpy.array]
+
+"""
+Internal representation of call graphs, as a list of function indexes which
+are parents to a list of indexes which are children
+"""
 CallGraph = List[List[Idx]]
+
+"""
+Math set of natural positive integers
+"""
 ℝ = Union[int, float]
+
+"""
+Features of a function. The type is a dictionnary of features
+keys to their occurence or value
+"""
+FunctionFeatures = Dict[str, int]
+
+"""
+Features extracted from the program. This a dictionnary indexed by function addreses
+wich contains a dictionnary of features
+"""
+ProgramFeatures = Dict[Addr, FunctionFeatures]
