@@ -6,10 +6,11 @@ from qbindiff.loader.backend.qbindiff import ProgramBackendQBinDiff
 
 
 class Program(OrderedDict):
-    def __init__(self, loader: LoaderType=None, *args):
+    def __init__(self, loader: str=None, *args):
         super(dict, self).__init__()
         self._backend = None
         if loader is not None:
+            loader = LoaderType[loader]
             if loader == LoaderType.qbindiff:
                 self.load_qbindiff(*args)
             elif loader == LoaderType.binexport:

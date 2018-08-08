@@ -32,13 +32,13 @@ def configure_logging(verbose):
 
 def load_qbindiff_program(file_path):
     p_path = Path(file_path)
-    p = Program(LoaderType.qbindiff, p_path / "data", p_path / "callgraph.json")
+    p = Program(LoaderType.qbindiff.name, p_path / "data", p_path / "callgraph.json")
     logging.info("[+] %s loaded: %d functions" % (p.name, len(p)))
     return p
 
 
 def load_binexport_program(file):
-    p = Program(LoaderType.binexport, file)
+    p = Program(LoaderType.binexport.name, file)
     logging.info("[+] %s loaded: %d functions" % (p.name, len(p)))
     return p
 
