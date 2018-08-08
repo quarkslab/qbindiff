@@ -3,7 +3,7 @@ import logging
 from qbindiff.features.visitor import ProgramVisitor
 from qbindiff.features.visitor import FeatureExtractor
 from qbindiff.differ.preprocessing import load_features, build_weight_matrix, build_callgraphs
-from qbindiff.differ.postprocessing import convert_matching, match_relatives, match_lonely, format_matching
+from qbindiff.differ.postprocessing import convert_matching, match_relatives, match_lonely, format_final_matching
 from qbindiff.belief.belief_propagation import BeliefNAQP
 from qbindiff.types import FinalMatching, Generator, Optional
 from qbindiff.loader.program import Program
@@ -83,12 +83,19 @@ class QBinDiff:
         matching = belief.matching  # TODO: See what to do of intermediate matching
         self._matching = convert_matching(self.adds1, self.adds2, matching)
 
+        # print stats about belief matching
+        unmatched_p1 = set(self.adds1) - set(self._matching.keys())
+        unmatched_p2 = set(self.adds2) - set(self._matching.values())
+        logging.debug("belief unmatched functions: p1:%d, p2:%d" % (len(unmatched_p1), len(unmatched_p2)))
+
         if match_refine:
             self.refine_matching()
 
         min_fun_nb = min(len(self.primary), len(self.secondary))
-        logging.info("[+] matched functions : %d / %d" % (len(self._matching), min_fun_nb))
-        self._matching = format_matching(self.adds1, self.adds2, self._matching)
+        match_len = len(self._matching)
+        self._matching = format_final_matching(self.primary, self.secondary, self._matching)
+        logging.info("final unmatched p1:%d, p2:%d" % (len(self.primary)-match_len, len(self.secondary)-match_len))
+        logging.info("final matched functions: %d / %d" % (match_len, min_fun_nb))
 
     def refine_matching(self) -> None:
         """

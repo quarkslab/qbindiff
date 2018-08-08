@@ -92,11 +92,10 @@ def compare_function(add1: Addr, add2: Addr,  program1: Program, program2: Progr
     return True
 
 
-def format_matching(adds1: AddrIndex, adds2: AddrIndex, matching: Matching) -> FinalMatching:
-    unmatched_p1 = set(adds1) - set(matching.keys())
-    unmatched_p2 = set(adds2) - set(matching.values())
+def format_final_matching(primary: Program, secondary: Program, matching: Matching) -> FinalMatching:
+    unmatched_p1 = set(primary.keys()) - set(matching.keys())
+    unmatched_p2 = set(secondary.keys()) - set(matching.values())
     matching = list(matching.items())
     matching += [(addr1, None) for addr1 in unmatched_p1]
     matching += [(None, addr2) for addr2 in unmatched_p2]
-    logging.debug("unmatched functions: %d primary, %d secondary" % (len(unmatched_p1), len(unmatched_p2)))
     return matching

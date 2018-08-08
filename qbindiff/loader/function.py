@@ -4,6 +4,7 @@ from qbindiff.loader.types import LoaderType, FunctionType
 from typing import Set
 from qbindiff.types import Addr
 
+
 class Function(dict):
     """
     Function representation of a binary function. This class is a dict
