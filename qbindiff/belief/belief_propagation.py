@@ -106,9 +106,9 @@ class BeliefMWM(object):
         """
         Decide whether or not the algorithm have converged
 
-        :param m: minimum size of the pattern to match 
+        :param m: minimum size of the pattern to match
         :param w: latest score of the w last function matching
-        
+
         :return: True or False if the algorithm have converged
         :rtype: bool
         """
