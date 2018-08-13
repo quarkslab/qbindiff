@@ -35,7 +35,7 @@ class QBinDiff:
         self.adds1, self.adds2 = None, None
         self.weight_matrix = None
         self.callgraph1, self.callgraph2 = None, None
- 
+
     def register_feature(self, ft: FeatureExtractor) -> None:
         """
         Call the visitor method to add the feature.
@@ -81,6 +81,10 @@ class QBinDiff:
 
         logging.info("[+] squares number : %d" % belief.numsquares)
         matching = belief.matching  # TODO: See what to do of intermediate matching
+
+        if len(matching) == 0:
+            logging.debug("No function match among %i / %i possibilities.\nYou can retry lowering the threshold." %self.weight_matrix.shape)
+
         self._matching = convert_matching(self.adds1, self.adds2, matching)
 
         # print stats about belief matching

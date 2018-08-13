@@ -52,14 +52,15 @@ def build_weight_matrix(features1: DataFrame, features2: DataFrame, distance: st
     Processes features, then builds the weight matrix and applies the specified threshold
     Recall : the weights are to be MAXIMISED so they should computed according to a SIMILARITY measure (not a distance)
     """
-    features1, features2 = process_features(features1, features2)
-    weight_matrix = np.nan_to_num(1 - cdist(features1, features2, distance), 0)  # Distance to similarity
-    # do nan_to_num because this might raise: RuntimeWarning: invalid value encountered in greater
-    threshmask = weight_matrix > threshold
+    features1, features2, rowmask, colmask = process_features(features1, features2)
+    weight_matrix = - cdist(features1, features2, distance)  # Compute distance
+    max_weight = - weight_matrix.min()
+    weight_matrix +=  max_weight                             # Distance to similarity
+    threshmask = weight_matrix >= (max_weight * threshold)
     weight_matrix *= threshmask
     _compute_sparsity(threshmask)
-    rowmask = threshmask.any(1)  # Keep vertex with at least
-    colmask = threshmask.any(0)  # one possible matching
+    rowmask &= threshmask.any(1)  # Keep vertex with at least
+    colmask &= threshmask.any(0)  # one possible matching
     adds1 = features1.index[rowmask]
     adds2 = features2.index[colmask]
     logging.debug("distance function pruning: p1: %d (after:%d), p2: %d (after: %d) [no match]" %
@@ -71,19 +72,19 @@ def build_weight_matrix(features1: DataFrame, features2: DataFrame, distance: st
 def process_features(features1: DataFrame, features2: DataFrame) -> Tuple[DataFrame, DataFrame]:
     opcmask = features1.astype(bool).sum(0) > 1   # remove features that only appears
     opcmask &= features2.astype(bool).sum(0) > 1  # in one function or in one graph
-
+    '''
     (sh_ft1,_), (sh_ft2,_) = features1.shape, features2.shape
     features1 = features1.loc[:, opcmask].drop_duplicates()  # remove duplicated rows
     features2 = features2.loc[:, opcmask].drop_duplicates()  # (near-duplicate functions)
     (sh2_ft1,_), (sh2_ft2,_) = features1.shape, features2.shape
     logging.debug("function removed: p1:%d  (after:%d), p2: %d (after: %d) [duplicate features]" %
                   (sh_ft1-sh2_ft1, sh2_ft1, sh_ft2-sh2_ft2, sh2_ft2))
-
+    '''
     opcsum = features1.sum(0) + features2.sum(0)
     features1 /= opcsum  # feature ponderation via total
     features2 /= opcsum  # number of appearance per features
 
-    return features1, features2
+    return features1, features2, rowmask, colmask
 
 
 def build_callgraphs(program1: Program, program2: Program, adds1: AddrIndex, adds2: AddrIndex) -> \

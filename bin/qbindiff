@@ -115,7 +115,16 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
     if 0.0 > threshold > 1:  # check the threshold value to fit
         logging.warning("Threshold value should within 0..1 (set it to 1.0)")
         threshold = 1
-    # TODO: verify that alpha beta are positive
+
+    if msim < 0 or mcall < 0:  # verify that alpha and beta are positive
+        logging.warning("Trade-off parameters should be positive (set negative to 0)")
+        msim = max(0, msim)
+        mcall = max(0, mcall)
+
+    if len(feature) < 2:  # verify that the number of selected features suites with the selected similarity measure
+        if not(MnemonicSimple in feature or MnemonicTyped in feature) and distance == "correlation":
+            logging.warning("Can not compute correlation similarity with 1-dimensionnal vectors (set to absolute value")
+            distance = "euclidean"
 
     # Preprocessing to extract features and filters functions
     logging.info("[+] loading programs")
@@ -145,8 +154,11 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
             registered_ft.add(ft)
 
     differ.initialize()
-    if differ.weight_matrix.shape[0] == 0:
+
+    if differ.weight_matrix.shape[0] == 0: #  check the weight matrix size
+        logging.error("No possible function match (Empty weight matrix). \nYou can retry lowering the threshold.")
         exit(130)
+
     logging.info("[+] starts NAQP computation")
     for _ in tqdm(differ.run_iter(match_refine=refine_match), total=maxiter):
         pass
