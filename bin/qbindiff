@@ -157,7 +157,7 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
 
     if differ.weight_matrix.shape[0] == 0: #  check the weight matrix size
         logging.error("No possible function match (Empty weight matrix). \nYou can retry lowering the threshold.")
-        exit(130)
+        exit(1)
 
     logging.info("[+] starts NAQP computation")
     for _ in tqdm(differ.run_iter(match_refine=refine_match), total=maxiter):

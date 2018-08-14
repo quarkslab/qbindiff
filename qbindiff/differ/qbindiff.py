@@ -82,7 +82,7 @@ class QBinDiff:
         logging.info("[+] squares number : %d" % belief.numsquares)
         matching = belief.matching  # TODO: See what to do of intermediate matching
 
-        if len(matching) == 0:
+        if all(map(lambda x: x[1] is None, matching))
             logging.debug("No function match among %i / %i possibilities.\nYou can retry lowering the threshold." %self.weight_matrix.shape)
             exit(0)
 
