@@ -84,6 +84,7 @@ class QBinDiff:
 
         if len(matching) == 0:
             logging.debug("No function match among %i / %i possibilities.\nYou can retry lowering the threshold." %self.weight_matrix.shape)
+            exit(0)
 
         self._matching = convert_matching(self.adds1, self.adds2, matching)
 

@@ -12,7 +12,7 @@ def convert_matching(adds1: AddrIndex, adds2: AddrIndex, matching: BeliefMatchin
     """
     Converts index matching of Belief propagation into matching of addresses.
     """
-    match1, match2 = map(list, zip(*filter(itemgetter(1), matching)))
+    match1, match2 = map(list, zip(*filter(lambda x: x[1] is not None, matching)))
     madds1 = adds1[match1]
     madds2 = adds2[match2]
     return dict(zip(madds1, madds2))
