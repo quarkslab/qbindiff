@@ -83,7 +83,7 @@ class OperandBackendBinexport:
             raise Exception("First expression not byte size..")
 
     @property
-    def type(self):
+    def type(self) -> OperandType:
         for exp in (self._program.proto.expression[idx] for idx in self._me().expression_index):
             if exp.type == BinExport2.Expression.SIZE_PREFIX:
                 continue
@@ -101,6 +101,15 @@ class OperandBackendBinexport:
                 return OperandType.displacement  # could also have been phrase
             else:
                 print("wooot", exp.type)
+
+        # if we reach here something necessarily went wrong
+        if len(self._me().expression_index) == 1 and self._program.architecture.startswith("ARM"):
+            if self._program.proto.expression[self._me().expression_index[0]].type == BinExport2.Expression.OPERATOR:
+                return OperandType.specific5  # Specific handling of some ARM flags typed as OPERATOR
+            else:
+                logging.error("Unknown case for operand type on ARM: %s" % str(self))
+        else:
+            logging.error("No type found for operand: %s" % str(self))
 
     def __str__(self):
         return ''.join(self._program.proto.expression[idx].symbol for idx in self._me().expression_index)
