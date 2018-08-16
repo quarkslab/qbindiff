@@ -217,7 +217,8 @@ class FunctionBackendBinExport(object):
             self.graph.add_node(bb_addr)
 
         if len(pb_fun.basic_block_index) != len(self._function):
-            print("%x, bb:%d, self:%d" % (self.addr, len(pb_fun.basic_block_index), len(self._function)))
+            logging.error("Wrong basic block number %x, bb:%d, self:%d" %
+                          (self.addr, len(pb_fun.basic_block_index), len(self._function)))
 
         # Load the edges between blocks
         for edge in pb_fun.edge:
