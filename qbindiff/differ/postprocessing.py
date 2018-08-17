@@ -1,6 +1,5 @@
 import logging
 from functools import reduce
-from operator import itemgetter
 
 # Imports for types
 from qbindiff.types import Tuple, List, Optional, Set
@@ -39,7 +38,7 @@ def match_relatives(program1: Program, program2: Program, features1: DataFrame, 
     return matching, lonely
 
 
-def match_lonely(program2, features1: DataFrame, features2: DataFrame, matching: Matching,
+def match_lonely(program2: Program, features1: DataFrame, features2: DataFrame, matching: Matching,
                  lonely: List[Addr]) -> Matching:
     """
     Matches secondary lonely unmatched functions to primary ones

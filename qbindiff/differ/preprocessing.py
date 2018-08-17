@@ -56,14 +56,14 @@ def build_weight_matrix(features1: DataFrame, features2: DataFrame, distance: st
     weight_matrix = cdist(features1, features2, distance)            # Compute distance
     weight_matrix /=  weight_matrix.max()                            # Normalization
     weight_matrix = 1 - weight_matrix                                # Distance to similarity
-    #nsparse = int((1-threshold) * len(weight_matrix))
-    #minrows = np.partition(weight_matrix, nsparse)[:,nsparse, None]  # Set row threshold
-    #threshmask = weight_matrix >= minrows                            # Apply threshold
-    threshmask = weight_matrix >= threshold
+    nsparse = int((1-threshold) * len(weight_matrix))
+    minrows = np.partition(weight_matrix, nsparse)[:,nsparse, None]  # Set row threshold
+    threshmask = weight_matrix >= minrows                            # Apply threshold
     weight_matrix *= threshmask
     _compute_sparsity(threshmask)
-    colmask= threshmask.any(0)                                       # Keep vertex with at least one possible matching
-    adds2 = features2.index[colmask]
+    colmask= threshmask.any(0)
+    adds1 = features1.index                                           # Keep vertex with at least
+    adds2 = features2.index[colmask]                                  # one possible matching
     logging.debug("distance function pruning: p1: %d (after:%d), p2: %d (after: %d) [no match]" %
             (len(features1.index)-len(adds1), len(adds1), len(features2.index)-len(adds2), len(adds2)))
     weight_matrix = csr_matrix(weight_matrix[:, colmask])

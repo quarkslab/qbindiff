@@ -20,6 +20,7 @@ class BeliefMWM(object):
     def __init__(self, weights: csr_matrix):
         weights = self._checkmatrix(weights)
         self.weights = weights.data
+        self.mates = np.zeros_like(self.weights, dtype=bool)
         self.objective = []
         self._init_indices(weights)
         self._init_messages()
@@ -94,7 +95,8 @@ class BeliefMWM(object):
         """
         maxvec = np.zeros_like(vector)
         if len(vector) > 1:
-            max2, max1 = vector.argsort()[-2:]
+            max1, max2 = np.argpartition(-vector, 1)[:2]
+            #max2, max1 = vector.argsort()[-2:]
             maxvec += vector[max1]
             maxvec[max1] = vector[max2]
         return maxvec
@@ -127,8 +129,6 @@ class BeliefMWM(object):
     def _checkmatrix(matrix: InputMatrix) -> csr_matrix:
         """
         Normalize the weight values into something homogenous
-
-        .. todo:: check if all weights are positives
         """
         try:
             matrix = csr_matrix(matrix)
@@ -144,21 +144,21 @@ class BeliefNAQP(BeliefMWM):
     Compute an approximate solution to **Network Alignement Quadratic Problem**.
     """
     def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, alpha: ℝ=1, beta: ℝ=5):
-        super().__init__(alpha * weights)
         assert(alpha >= 0)
         assert(beta >= 0)
-        self.s = self.compute_squares(weights, edges1, edges2)
-        self.z = self.s.astype(float)
+        super().__init__(alpha * weights)
+        self.z = self.compute_squares(weights, edges1, edges2)
+        self._zrownnz = np.diff(self.z.indptr)
+        self._ztocol = np.argsort(self.z.indices, kind="mergesort")
         self.beta = beta
 
     def _update_messages(self) -> None:
-        zclip = self.z.copy().T
-        zclip.data = np.clip(zclip.data + self.beta, 0, self.beta)
-        mz = self.weights + zclip.sum(1).getA1()
+        self.z.data = np.clip(self.z.data + self.beta, 0, self.beta)
+        mz = self.weights + self.z.sum(0).getA1()
         self.x = mz - np.maximum(0, self._other_rowmax(self.y))
         self.y = mz - np.maximum(0, self._other_colmax(self.x))
         mxyz = self.x + self.y - mz
-        self.z = diags(mxyz).dot(self.s) - zclip
+        self.z.data = np.repeat(mxyz, self._zrownnz) - self.z.data[self._ztocol]
 
         self.mates = mxyz >= 0
         self.objective.append(self._objective())
@@ -170,7 +170,7 @@ class BeliefNAQP(BeliefMWM):
 
     @property
     def numsquares(self) -> int:
-        return self.s[self.mates][:, self.mates].nnz / 2
+        return self.z[self.mates][:, self.mates].nnz / 2
 
     @staticmethod
     def compute_squares(weights: csr_matrix, edge1: CallGraph, edge2: CallGraph) -> csr_matrix:
@@ -190,6 +190,6 @@ class BeliefNAQP(BeliefMWM):
             idxy.extend(list(match[matched] - 1))
         s = colsum.max()
         boolean = np.ones(len(idxx), bool)
-        S = csr_matrix((boolean, (idxx, idxy)), shape=(s, s), dtype=bool)
+        S = csr_matrix((boolean, (idxx, idxy)), shape=(s, s), dtype=float)
         S += S.T
         return S
