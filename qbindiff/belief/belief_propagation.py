@@ -44,12 +44,9 @@ class BeliefMWM(object):
 
     @property
     def matching(self) -> BeliefMatching:
-        def row_match(rowmates, colidx):
-            if not np.logical_xor.reduce(rowmates):
-                return None
-            return colidx[rowmates][0]
-        matching = map(row_match, self._rowslice(self.mates), self._rowslice(self._colidx))
-        return list(enumerate(matching))
+        rows = np.where(np.add.reduceat(self.mates, self._rowmap[:-1]) == 1)[0]
+        cols = self._colidx[self.mates]
+        return zip(rows, cols)
 
     def _init_indices(self, weights: csr_matrix) -> None:
         self.dims = weights.shape
@@ -58,6 +55,7 @@ class BeliefMWM(object):
         self._colmap = np.hstack((0, np.bincount(self._colidx).cumsum()))
         self._tocol = self._colidx.argsort(kind="mergesort")
         self._torow = self._tocol.argsort(kind="mergesort")
+        self._rownnz = np.diff(weights.indptr)
 
     def _init_messages(self) -> None:
         self.x = self.weights.copy()
@@ -67,7 +65,11 @@ class BeliefMWM(object):
         self.x = self.weights - np.maximum(0, self._other_rowmax(self.y))
         self.y = self.weights - np.maximum(0, self._other_colmax(self.x))
 
-        self.mates = (self.x + self.y - self.weights) > 0
+        self._round_messages((self.x + self.y - self.weights) > 0)
+
+    def _round_messages(self, messages: Vector) -> None:
+        matchmask = np.add.reduceat(messages, self._rowmap[:-1]) == 1
+        self.mates = messages & np.repeat(matchmask, self._rownnz)
         self.objective.append(self._objective())
 
     def _rowslice(self, vector: Vector) -> Iterator[Vector]:
@@ -96,7 +98,6 @@ class BeliefMWM(object):
         maxvec = np.zeros_like(vector)
         if len(vector) > 1:
             max1, max2 = np.argpartition(-vector, 1)[:2]
-            #max2, max1 = vector.argsort()[-2:]
             maxvec += vector[max1]
             maxvec[max1] = vector[max2]
         return maxvec
@@ -147,25 +148,48 @@ class BeliefNAQP(BeliefMWM):
         assert(alpha >= 0)
         assert(beta >= 0)
         super().__init__(alpha * weights)
+        self._init_squares(weights, edges1, edges2)
+        #self.beta = np.ones_like(weights.data) * beta
+        self.beta = beta
+        self.matched_rows = np.zeros(weights.shape[0], bool)
+
+    def _init_squares(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph) -> None:
         self.z = self.compute_squares(weights, edges1, edges2)
         self._zrownnz = np.diff(self.z.indptr)
         self._ztocol = np.argsort(self.z.indices, kind="mergesort")
-        self.beta = beta
 
     def _update_messages(self) -> None:
-        self.z.data = np.clip(self.z.data + self.beta, 0, self.beta)
         mz = self.weights + self.z.sum(0).getA1()
         self.x = mz - np.maximum(0, self._other_rowmax(self.y))
         self.y = mz - np.maximum(0, self._other_colmax(self.x))
         mxyz = self.x + self.y - mz
-        self.z.data = np.repeat(mxyz, self._zrownnz) - self.z.data[self._ztocol]
 
-        self.mates = mxyz >= 0
+        self._round_messages(mxyz >= 0)
+
+        self.z.data = np.repeat(mxyz + self.beta, self._zrownnz) - self.z.data[self._ztocol]
+        self.z.data = np.clip(self.z.data, 0, np.repeat(self.beta, self._zrownnz))
+
+    def _update_messages(self) -> None:
+        mz = self.weights + self.z.sum(0).getA1()
+        self.x = mz - np.maximum(0, self._other_rowmax(self.y))
+        self.y = mz - np.maximum(0, self._other_colmax(self.x))
+        mxyz = self.x + self.y - mz
+
+        self._round_messages(mxyz >= 0)
+
+        self.z.data = np.repeat(mxyz + self.beta, self._zrownnz) - self.z.data[self._ztocol]
+        self.z.data = np.clip(self.z.data, 0, self.beta)
+
+    def _round_messages(self, messages: Vector) -> None:
+        matchmask = np.add.reduceat(messages, self._rowmap[:-1]) == 1
+        messages &= np.repeat(matchmask, self._rownnz)
+        #self.beta += self.mates & messages
+        self.mates = messages
         self.objective.append(self._objective())
 
     def _objective(self) -> float:
         objective = super()._objective()
-        objective += self.beta * self.numsquares
+        objective += self.numsquares
         return objective
 
     @property
