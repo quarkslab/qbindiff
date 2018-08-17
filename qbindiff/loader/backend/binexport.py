@@ -112,7 +112,8 @@ class OperandBackendBinexport:
             logging.error("No type found for operand: %s" % str(self))
 
     def __str__(self):
-        return ''.join(self._program.proto.expression[idx].symbol for idx in self._me().expression_index)
+        return ''.join(self._program.proto.expression[idx].symbol for idx in self._me().expression_index if
+                       self._program.proto.expression[idx].type != BinExport2.Expression.SIZE_PREFIX)
 
     def __repr__(self):
         return "<Op:%s>" % str(self)
