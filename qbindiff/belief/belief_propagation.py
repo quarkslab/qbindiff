@@ -149,9 +149,8 @@ class BeliefNAQP(BeliefMWM):
         assert(beta >= 0)
         super().__init__(alpha * weights)
         self._init_squares(weights, edges1, edges2)
-        #self.beta = np.ones_like(weights.data) * beta
+        #self.beta = np.full_like(weights.data, beta)
         self.beta = beta
-        self.matched_rows = np.zeros(weights.shape[0], bool)
 
     def _init_squares(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph) -> None:
         self.z = self.compute_squares(weights, edges1, edges2)
@@ -167,17 +166,7 @@ class BeliefNAQP(BeliefMWM):
         self._round_messages(mxyz >= 0)
 
         self.z.data = np.repeat(mxyz + self.beta, self._zrownnz) - self.z.data[self._ztocol]
-        self.z.data = np.clip(self.z.data, 0, np.repeat(self.beta, self._zrownnz))
-
-    def _update_messages(self) -> None:
-        mz = self.weights + self.z.sum(0).getA1()
-        self.x = mz - np.maximum(0, self._other_rowmax(self.y))
-        self.y = mz - np.maximum(0, self._other_colmax(self.x))
-        mxyz = self.x + self.y - mz
-
-        self._round_messages(mxyz >= 0)
-
-        self.z.data = np.repeat(mxyz + self.beta, self._zrownnz) - self.z.data[self._ztocol]
+        #self.z.data = np.clip(self.z.data, 0, np.repeat(self.beta, self._zrownnz))
         self.z.data = np.clip(self.z.data, 0, self.beta)
 
     def _round_messages(self, messages: Vector) -> None:
