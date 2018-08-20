@@ -1,6 +1,5 @@
 import logging
 import networkx
-from pathlib import Path
 
 from qbindiff.loader.backend.binexport2_pb2 import BinExport2
 from qbindiff.loader.types import OperandType, FunctionType
@@ -264,7 +263,8 @@ class ProgramBackendBinExport(object):
     def __init__(self, program, file):
         self._program = program
         self._pb = BinExport2()
-        self._pb.ParseFromString(Path(file).read_bytes())
+        with open(file, 'rb') as f:
+            self._pb.ParseFromString(f.read())
         self._mask = 0xFFFFFFFF if self.architecture.endswith("32") else 0xFFFFFFFFFFFFFFFF
         self.fun_names = {}
 

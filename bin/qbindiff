@@ -2,8 +2,8 @@
 # coding: utf-8
 
 import logging
+import os.path
 import click
-from pathlib import Path
 from tqdm import tqdm
 import json
 import numpy
@@ -32,9 +32,8 @@ def configure_logging(verbose):
     logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
 
 
-def load_qbindiff_program(file_path):
-    p_path = Path(file_path)
-    p = Program(LoaderType.qbindiff.name, p_path / "data", p_path / "callgraph.json")
+def load_qbindiff_program(f_path):
+    p = Program(LoaderType.qbindiff.name, os.path.join(f_path, "data"), os.path.join(f_path, "callgraph.json"))
     logging.info("[+] %s loaded: %d functions" % (p.name, len(p)))
     return p
 
@@ -164,6 +163,7 @@ def main(output, loader, feature, distance, threshold, sparsity, maxiter, tradeo
         exit(0)
     else:
         exit(1)
+
 
 if __name__ == '__main__':
     main()
