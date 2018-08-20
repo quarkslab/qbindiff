@@ -147,7 +147,7 @@ class BeliefNAQP(BeliefMWM):
     Compute an approximate solution to **Network Alignement Quadratic Problem**.
     """
     def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, tradeoff: float=0.5, modular_beta=False):
-        super().__init__(tradeoff * weights)
+        super(BeliefNAQP, self).__init__(tradeoff * weights)
         self._init_squares(weights, edges1, edges2)
         self.modular_beta = modular_beta
         if modular_beta:
@@ -183,7 +183,7 @@ class BeliefNAQP(BeliefMWM):
         self.objective.append(self._objective())
 
     def _objective(self) -> float:
-        objective = super()._objective()
+        objective = super(BeliefNAQP, self)._objective()
         objective += self.numsquares
         return objective
 

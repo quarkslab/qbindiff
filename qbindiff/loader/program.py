@@ -12,7 +12,7 @@ class Program(OrderedDict):
     values are Function object.
     """
     def __init__(self, loader: str=None, *args):
-        super(dict, self).__init__()
+        OrderedDict.__init__(self)
         self._backend = None
         if loader is not None:
             loader = LoaderType[loader]
