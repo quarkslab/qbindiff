@@ -13,8 +13,7 @@ class QBinDiff:
 
     name = "QBinDiff"
 
-    def __init__(self, primary: Program, secondary: Program, distance: str="auto",
-                                                    threshold: float=0.0, sparsity: float=0.25, maxiter: int=100, tradeoff: float=0.5):
+    def __init__(self, primary: Program, secondary: Program, distance: str="auto", threshold: float=0.0, sparsity: float=0.25, maxiter: int=100, tradeoff: float=0.5):
         super().__init__()
         self.primary = primary
         self.secondary = secondary

@@ -73,11 +73,13 @@ class BeliefMWM(object):
         self.objective.append(self._objective())
 
     def _rowslice(self, vector: Vector) -> Iterator[Vector]:
-        def get_slice(x, y): return vector[x:y]
+        def get_slice(x, y):
+            return vector[x:y]
         return map(get_slice, self._rowmap[:-1], self._rowmap[1:])
 
     def _colslice(self, vector: Vector) -> Iterator[Vector]:
-        def get_slice(x, y): return vector[x:y]
+        def get_slice(x, y):
+            return vector[x:y]
         vector = vector[self._tocol]
         return map(get_slice, self._colmap[:-1], self._colmap[1:])
 

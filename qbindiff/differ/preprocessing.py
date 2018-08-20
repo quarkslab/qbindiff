@@ -84,8 +84,7 @@ def process_features(features1: DataFrame, features2: DataFrame) -> Tuple[DataFr
     return features1, features2
 
 
-def build_callgraphs(program1: Program, program2: Program, adds1: AddrIndex, adds2: AddrIndex) -> \
-                                                                                        Tuple[CallGraph, CallGraph]:
+def build_callgraphs(program1: Program, program2: Program, adds1: AddrIndex, adds2: AddrIndex) -> Tuple[CallGraph, CallGraph]:
     """
     Builds call-graph of functions selected for the matchings (subgraph)
     Converts address -> index
