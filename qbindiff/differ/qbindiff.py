@@ -14,7 +14,7 @@ class QBinDiff:
     name = "QBinDiff"
 
     def __init__(self, primary: Program, secondary: Program, distance: str="auto",
-                                                    threshold: float=0.0, sparsity: float=0.25, maxiter: int=100, alpha: int=1, beta: int=2):
+                                                    threshold: float=0.0, sparsity: float=0.25, maxiter: int=100, tradeoff: float=0.5):
         super().__init__()
         self.primary = primary
         self.secondary = secondary
@@ -24,8 +24,7 @@ class QBinDiff:
         self.distance = distance
         self.threshold = threshold
         self.maxiter = maxiter
-        self.alpha = alpha
-        self.beta = beta
+        self.tradeoff = tradeoff
         self.sparsity = sparsity
 
         # final values
@@ -98,7 +97,7 @@ class QBinDiff:
         :return: Generator of belief iterations
         """
         # Performing the matching
-        belief = BeliefNAQP(self.weight_matrix, self.callgraph1, self.callgraph2, self.alpha, self.beta)
+        belief = BeliefNAQP(self.weight_matrix, self.callgraph1, self.callgraph2, self.tradeoff)
         yield from belief.compute_matching(self.maxiter)
 
         logging.info("[+] squares number : %d" % belief.numsquares)

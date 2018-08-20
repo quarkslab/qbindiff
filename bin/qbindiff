@@ -77,8 +77,7 @@ DEFAULT_DISTANCE = "auto"
 DEFAULT_THRESHOLD_GLOBAL = 0.0
 DEFAULT_THRESHOLD_SPARSITY = 0.2
 DEFAULT_MAXITER = 80
-DEFAULT_ALPHA = 1
-DEFAULT_BETA = 2
+DEFAULT_TRADEOFF = 0.5
 
 help_features = """The following features are available:
 """+''.join("- %s, %s: %s\n" % (x.key, x.name, x.__doc__) for x in FEATURES)
@@ -101,15 +100,13 @@ help_distance = "Mathematical distance function between cosine and correlation [
               help="Row based sparsity threshold to keep matches between 0.0 to 1.0 [default: %.02f]" % DEFAULT_THRESHOLD_SPARSITY)
 @click.option('-i', '--maxiter', type=int, default=DEFAULT_MAXITER,
               help="Maximum number of iteration for belief propagation [default: %d]" % DEFAULT_MAXITER)
-@click.option('--msim', type=int, default=DEFAULT_ALPHA,
-              help="Maximize similarity matching (alpha for NAQP) [default: %d]" % DEFAULT_ALPHA)
-@click.option('--mcall', type=int, default=DEFAULT_BETA,
-              help='Maximize call graph matching (beta for NAQP) [default: %d]' % DEFAULT_BETA)
+@click.option('-tr', '--tradeoff', type=float, default=DEFAULT_TRADEOFF,
+              help="Tradeoff betwee callgraph (neat 0.0) and function content (near 1.0) [default: %d]" % DEFAULT_TRADEOFF)
 @click.option('--refine-match/--no-refine-match', default=True)
 @click.option('-v', '--verbose', count=True, help="Activate debugging messages")
 @click.argument("primary", type=click.Path(exists=True), metavar="<primary file>")
 @click.argument('secondary', type=click.Path(exists=True), metavar="<secondary file>")
-def main(output, loader, feature, distance, threshold, sparsity, maxiter, msim, mcall, refine_match, verbose, primary, secondary):
+def main(output, loader, feature, distance, threshold, sparsity, maxiter, tradeoff, refine_match, verbose, primary, secondary):
     """
     qBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
@@ -125,10 +122,9 @@ def main(output, loader, feature, distance, threshold, sparsity, maxiter, msim, 
         logging.warning("Sparsity threshold value should be within 0..1 (set it to %.2f)" % DEFAULT_THRESHOLD_SPARSITY)
         sparsity = DEFAULT_THRESHOLD_SPARSITY
 
-    if msim < 0 or mcall < 0:  # verify that alpha and beta are positive
-        logging.warning("Trade-off parameters should be positive (set negative to 0)")
-        msim = max(0, msim)
-        mcall = max(0, mcall)
+    if 0.0 > tradeoff > 1:  # verify that tradeoff
+        logging.warning("Trade-off parameter should be positive (set it to %.2f)" % DEFAULT_TRADEOFF)
+        tradeoff = DEFAULT_TRADEOFF
 
     # Preprocessing to extract features and filters functions
     logging.info("[+] loading programs")
@@ -147,7 +143,7 @@ def main(output, loader, feature, distance, threshold, sparsity, maxiter, msim, 
         logging.error("Diaphora loader not implemented yet..")
         exit(1)
 
-    differ = QBinDiff(p1, p2, distance=distance, maxiter=maxiter, threshold=threshold, sparsity=sparsity, alpha=msim, beta=mcall)
+    differ = QBinDiff(p1, p2, distance=distance, maxiter=maxiter, threshold=threshold, sparsity=sparsity, tradeoff=tradeoff)
     registered_ft = set()
     for name in feature:
         ft = FEATURES_KEYS[name]

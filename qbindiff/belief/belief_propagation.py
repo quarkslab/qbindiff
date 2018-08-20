@@ -144,14 +144,14 @@ class BeliefNAQP(BeliefMWM):
     """
     Compute an approximate solution to **Network Alignement Quadratic Problem**.
     """
-    def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, alpha: ℝ=1, beta: ℝ=5, evolv=False):
-        assert(alpha >= 0)
-        assert(beta >= 0)
-        super().__init__(alpha * weights)
+    def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, tradeoff: float=0.5, evolv=False):
+        super().__init__(tradeoff * weights)
         self._init_squares(weights, edges1, edges2)
         self.evolv = evolv
-        if evolv: self.beta = np.full_like(weights.data, beta)
-        else: self.beta = beta
+        if evolv:
+            self.beta = np.full_like(weights.data, 1 - tradeoff)
+        else:
+            self.beta = 1 - tradeoff
 
     def _init_squares(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph) -> None:
         self.z = self.compute_squares(weights, edges1, edges2)
@@ -175,7 +175,8 @@ class BeliefNAQP(BeliefMWM):
     def _round_messages(self, messages: Vector) -> None:
         matchmask = np.add.reduceat(messages, self._rowmap[:-1]) == 1
         messages &= np.repeat(matchmask, self._rownnz)
-        if self.evolv: self.beta += self.mates & messages
+        if self.evolv:
+            self.beta += self.mates & messages
         self.mates = messages
         self.objective.append(self._objective())
 
