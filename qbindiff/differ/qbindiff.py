@@ -43,7 +43,7 @@ class QBinDiff:
         """
         self.visitor.register_feature(ft)
 
-    def initialize(self) -> None:
+    def initialize(self) -> bool:
         """
         Initialize the diffing by extracting the features in the programs, computing
         the call graph as needed by the belief propagation and by applying the threshold
@@ -57,6 +57,12 @@ class QBinDiff:
         self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(
                                                         self.features1, self.features2, self.distance, self.threshold, self.sparsity)
         self.callgraph1, self.callgraph2 = build_callgraphs(self.primary, self.secondary, self.adds1, self.adds2)
+
+        if self.weight_matrix.shape[0] == 0:  # check the weight matrix size
+            # TODO: Elie: Improving warning message
+            logging.warning("No possible function match: empty weight matrix (you can retry lowering the threshold)")
+            return False
+        return True
 
     def check_distance_function(self):
         self.distance = 'cosine'  # TODO: Elie

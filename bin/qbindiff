@@ -6,6 +6,7 @@ import click
 from pathlib import Path
 from tqdm import tqdm
 import json
+import numpy
 
 # Pop the directory of the script (to avoid import conflict with qbindiff (same name)
 import sys
@@ -25,6 +26,7 @@ def configure_logging(verbose):
     logger = logging.getLogger('matplotlib')
     logger.setLevel(logging.WARNING)
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
+    numpy.warnings.filterwarnings('ignore')
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
@@ -155,21 +157,17 @@ def main(output, loader, feature, distance, threshold, sparsity, maxiter, msim, 
             differ.register_feature(ft())  # instanciate it
             registered_ft.add(ft)
 
-    differ.initialize()
+    if differ.initialize():
+        logging.info("[+] starts NAQP computation")
+        for _ in tqdm(differ.run_iter(match_refine=refine_match), total=maxiter):
+            pass
 
-    if differ.weight_matrix.shape[0] == 0: #  check the weight matrix size
-        logging.error("No possible function match (Empty weight matrix). \nYou can retry lowering the threshold.")
+        with open(str(output), 'w') as f_out:
+            json.dump(differ.matching, f_out)
+        logging.info("[+] matching successfully saved to: %s" % output)
+        exit(0)
+    else:
         exit(1)
-
-    logging.info("[+] starts NAQP computation")
-    for _ in tqdm(differ.run_iter(match_refine=refine_match), total=maxiter):
-        pass
-
-    with open(str(output), 'w') as f_out:
-        json.dump(differ.matching, f_out)
-    logging.info("[+] matching successfully saved to: %s" % output)
-    exit(0)
-
 
 if __name__ == '__main__':
     main()
