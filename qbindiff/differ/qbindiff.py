@@ -13,7 +13,7 @@ class QBinDiff:
 
     name = "QBinDiff"
 
-    def __init__(self, primary: Program, secondary: Program, distance: str="correlation",
+    def __init__(self, primary: Program, secondary: Program, distance: str="auto",
                                                     threshold: float=0.5, sparsity: float=0.25, maxiter: int=100, alpha: int=1, beta: int=2):
         super().__init__()
         self.primary = primary
@@ -53,9 +53,24 @@ class QBinDiff:
         # Preprocessing to extract features and filters functions
         logging.info("[+] extracting features")
         self.features1, self.features2 = load_features(self.primary, self.secondary, self.visitor)
+        self.check_distance_function()
         self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(
                                                         self.features1, self.features2, self.distance, self.threshold, self.sparsity)
         self.callgraph1, self.callgraph2 = build_callgraphs(self.primary, self.secondary, self.adds1, self.adds2)
+
+    def check_distance_function(self):
+        pass # TODO: Elie
+        '''
+        Si auto:
+            Si features de dimension 1:
+                euclidean
+            Si variance nulle:
+                cosine
+            sinon:
+                correlation
+        sinon:
+            ne fait rien
+        '''
 
     def run(self, match_refine: bool=True) -> None:
         """

@@ -64,14 +64,14 @@ FEATURES = {MnemonicSimple,
 
 FEATURES_KEYS = {x.name: x for x in FEATURES}
 FEATURES_KEYS.update({x.key: x for x in FEATURES})  # also add short keys as a valid feature
-DISTANCE = ['correlation', 'cosine']
+DISTANCE = ['auto', 'correlation', 'cosine', 'euclidean']
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
                         max_content_width=300)
 
 DEFAULT_LOADER = LoaderType.binexport.name
 DEFAULT_OUTPUT = "matching.json"
-DEFAULT_DISTANCE = "correlation"
+DEFAULT_DISTANCE = "auto"
 DEFAULT_THRESHOLD_GLOBAL = 0.5
 DEFAULT_THRESHOLD_SPARSITY = 0.2
 DEFAULT_MAXITER = 80
@@ -127,11 +127,6 @@ def main(output, loader, feature, distance, threshold, sparsity, maxiter, msim, 
         logging.warning("Trade-off parameters should be positive (set negative to 0)")
         msim = max(0, msim)
         mcall = max(0, mcall)
-
-    if len(feature) < 2:  # verify that the number of selected features suites with the selected similarity measure
-        if not(MnemonicSimple in feature or MnemonicTyped in feature) and distance == "correlation":
-            logging.warning("Can not compute correlation similarity with 1-dimensionnal vectors (set to absolute value")
-            distance = "euclidean"
 
     # Preprocessing to extract features and filters functions
     logging.info("[+] loading programs")
