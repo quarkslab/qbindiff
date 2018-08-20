@@ -94,7 +94,7 @@ help_distance = "Mathematical distance function between cosine and correlation [
 @click.option('-d', '--distance', type=click.Choice(DISTANCE), default=DEFAULT_DISTANCE,
               metavar="<function>", help=help_distance)
 @click.option('-t', '--threshold', type=float, default=DEFAULT_THRESHOLD_GLOBAL,
-              help="Distance threshold to keep matches between 0.0 to 1.0 [default: %.02f]" % DEFAULT_THRESHOLD_GLOBAL)
+              help="Global distance threshold to keep matches between 0.0 to 1.0 [default: %.02f]" % DEFAULT_THRESHOLD_GLOBAL)
 @click.option('-s', '--sparsity', type=float, default=DEFAULT_THRESHOLD_SPARSITY,
               help="Row based sparsity threshold to keep matches between 0.0 to 1.0 [default: %.02f]" % DEFAULT_THRESHOLD_SPARSITY)
 @click.option('-i', '--maxiter', type=int, default=DEFAULT_MAXITER,

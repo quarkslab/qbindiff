@@ -59,7 +59,7 @@ class QBinDiff:
         self.callgraph1, self.callgraph2 = build_callgraphs(self.primary, self.secondary, self.adds1, self.adds2)
 
     def check_distance_function(self):
-        pass # TODO: Elie
+        self.distance = 'cosine'  # TODO: Elie
         '''
         Si auto:
             Si features de dimension 1:
