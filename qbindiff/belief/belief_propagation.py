@@ -44,7 +44,7 @@ class BeliefMWM(object):
 
     @property
     def matching(self) -> BeliefMatching:
-        rows = np.where(np.add.reduceat(self.mates, self._rowmap[:-1]) == 1)[0]
+        rows = np.where(np.logical_or.reduceat(self.mates, self._rowmap[:-1]))[0]
         cols = self._colidx[self.mates]
         return zip(rows, cols)
 
@@ -144,13 +144,14 @@ class BeliefNAQP(BeliefMWM):
     """
     Compute an approximate solution to **Network Alignement Quadratic Problem**.
     """
-    def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, alpha: ℝ=1, beta: ℝ=5):
+    def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, alpha: ℝ=1, beta: ℝ=5, evolv=False):
         assert(alpha >= 0)
         assert(beta >= 0)
         super().__init__(alpha * weights)
         self._init_squares(weights, edges1, edges2)
-        #self.beta = np.full_like(weights.data, beta)
-        self.beta = beta
+        self.evolv = evolv
+        if evolv: self.beta = np.full_like(weights.data, beta)
+        else: self.beta = beta
 
     def _init_squares(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph) -> None:
         self.z = self.compute_squares(weights, edges1, edges2)
@@ -166,13 +167,15 @@ class BeliefNAQP(BeliefMWM):
         self._round_messages(mxyz >= 0)
 
         self.z.data = np.repeat(mxyz + self.beta, self._zrownnz) - self.z.data[self._ztocol]
-        #self.z.data = np.clip(self.z.data, 0, np.repeat(self.beta, self._zrownnz))
-        self.z.data = np.clip(self.z.data, 0, self.beta)
+        if self.evolv:
+            self.z.data = np.clip(self.z.data, 0, np.repeat(self.beta, self._zrownnz))
+        else:
+            self.z.data = np.clip(self.z.data, 0, self.beta)
 
     def _round_messages(self, messages: Vector) -> None:
         matchmask = np.add.reduceat(messages, self._rowmap[:-1]) == 1
         messages &= np.repeat(matchmask, self._rownnz)
-        #self.beta += self.mates & messages
+        if self.evolv: self.beta += self.mates & messages
         self.mates = messages
         self.objective.append(self._objective())
 
