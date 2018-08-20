@@ -59,7 +59,7 @@ CallGraph = List[List[Idx]]
 """
 Math set of natural positive integers
 """
-ℝ = Union[int, float]
+R = Union[int, float]
 
 """
 Features of a function. The type is a dictionnary of features

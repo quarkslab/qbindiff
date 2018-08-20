@@ -5,7 +5,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, diags
 from functools import reduce
 
-from qbindiff.types import Generator, ℝ, CallGraph, InputMatrix, Vector, BeliefMatching, Iterator
+from qbindiff.types import Generator, R, CallGraph, InputMatrix, Vector, BeliefMatching, Iterator
 
 
 class BeliefMatrixError(Exception):
