@@ -45,8 +45,7 @@ def _vectorize_features(program_features: dict, features_idx: dict) -> DataFrame
     return features
 
 
-def build_weight_matrix(features1: DataFrame, features2: DataFrame, distance: str="correlation",
-                        threshold: float=0.0, sparsity: float=0.25) -> Tuple[AddrIndex, AddrIndex, csr_matrix]:
+def build_weight_matrix(features1: DataFrame, features2: DataFrame, distance: str="correlation", threshold: float=0.0, sparsity: float=0.25) -> Tuple[AddrIndex, AddrIndex, csr_matrix]:
     """
     Processes features, then builds the weight matrix and applies the specified threshold
     Recall : the weights are to be MAXIMISED so they should computed according to a SIMILARITY measure (not a distance)

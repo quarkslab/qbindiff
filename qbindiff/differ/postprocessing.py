@@ -18,8 +18,7 @@ def convert_matching(adds1: AddrIndex, adds2: AddrIndex, matching: BeliefMatchin
     return dict(zip(madds1, madds2))
 
 
-def match_relatives(program1: Program, program2: Program, features1: DataFrame, features2: DataFrame,
-                    matching: Matching) -> Tuple[Matching, List[Addr]]:
+def match_relatives(program1: Program, program2: Program, features1: DataFrame, features2: DataFrame, matching: Matching) -> Tuple[Matching, List[Addr]]:
     """
     Matches primary unmatched functions according to their neighborhoods
     Matched if same parents and same children according to the current matching as well as same feature_vector
@@ -39,8 +38,7 @@ def match_relatives(program1: Program, program2: Program, features1: DataFrame, 
     return matching, lonely
 
 
-def match_lonely(program2: Program, features1: DataFrame, features2: DataFrame, matching: Matching,
-                 lonely: List[Addr]) -> Matching:
+def match_lonely(program2: Program, features1: DataFrame, features2: DataFrame, matching: Matching, lonely: List[Addr]) -> Matching:
     """
     Matches secondary lonely unmatched functions to primary ones
     Matched if same feature_vector
@@ -76,8 +74,7 @@ def get_candidates(address: int, program1: Program, program2: Program, matching:
     return candidates
 
 
-def compare_function(add1: Addr, add2: Addr,  program1: Program, program2: Program, features1: DataFrame,
-                     features2: DataFrame, matching: Matching) -> bool:
+def compare_function(add1: Addr, add2: Addr,  program1: Program, program2: Program, features1: DataFrame, features2: DataFrame, matching: Matching) -> bool:
     """
     True if adds1 and adds2 have the same parents and the same children according
     to the current matching as well as same feature_vector
