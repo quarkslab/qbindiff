@@ -14,7 +14,7 @@ class QBinDiff:
     name = "QBinDiff"
 
     def __init__(self, primary: Program, secondary: Program, distance: str="correlation",
-                                                    threshold: float=0.5, maxiter: int=100, alpha: int=1, beta: int=2):
+                                                    threshold: float=0.5, sparsity: float=0.25, maxiter: int=100, alpha: int=1, beta: int=2):
         super().__init__()
         self.primary = primary
         self.secondary = secondary
@@ -26,6 +26,7 @@ class QBinDiff:
         self.maxiter = maxiter
         self.alpha = alpha
         self.beta = beta
+        self.sparsity = sparsity
 
         # final values
         self._matching = None
@@ -53,7 +54,7 @@ class QBinDiff:
         logging.info("[+] extracting features")
         self.features1, self.features2 = load_features(self.primary, self.secondary, self.visitor)
         self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(
-                                                        self.features1, self.features2, self.distance, self.threshold)
+                                                        self.features1, self.features2, self.distance, self.threshold, self.sparsity)
         self.callgraph1, self.callgraph2 = build_callgraphs(self.primary, self.secondary, self.adds1, self.adds2)
 
     def run(self, match_refine: bool=True) -> None:
@@ -81,10 +82,6 @@ class QBinDiff:
 
         logging.info("[+] squares number : %d" % belief.numsquares)
         matching = belief.matching  # TODO: See what to do of intermediate matching
-
-        if all(map(lambda x: x[1] is None, matching))
-            logging.debug("No function match among %i / %i possibilities.\nYou can retry lowering the threshold." %self.weight_matrix.shape)
-            exit(0)
 
         self._matching = convert_matching(self.adds1, self.adds2, matching)
 

@@ -72,7 +72,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
 DEFAULT_LOADER = LoaderType.binexport.name
 DEFAULT_OUTPUT = "matching.json"
 DEFAULT_DISTANCE = "correlation"
-DEFAULT_THRESHOLD = 0.5
+DEFAULT_THRESHOLD_GLOBAL = 0.5
+DEFAULT_THRESHOLD_SPARSITY = 0.2
 DEFAULT_MAXITER = 80
 DEFAULT_ALPHA = 1
 DEFAULT_BETA = 2
@@ -92,8 +93,10 @@ help_distance = "Mathematical distance function between cosine and correlation [
               metavar="<feature>", help=help_features, required=True)
 @click.option('-d', '--distance', type=click.Choice(DISTANCE), default=DEFAULT_DISTANCE,
               metavar="<function>", help=help_distance)
-@click.option('-t', '--threshold', type=float, default=DEFAULT_THRESHOLD,
-              help="Distance treshold to keep matches between 0.0 to 1.0 [default: %.02f]" % DEFAULT_THRESHOLD)
+@click.option('-t', '--threshold', type=float, default=DEFAULT_THRESHOLD_GLOBAL,
+              help="Distance threshold to keep matches between 0.0 to 1.0 [default: %.02f]" % DEFAULT_THRESHOLD_GLOBAL)
+@click.option('-s', '--sparsity', type=float, default=DEFAULT_THRESHOLD_SPARSITY,
+              help="Row based sparsity threshold to keep matches between 0.0 to 1.0 [default: %.02f]" % DEFAULT_THRESHOLD_SPARSITY)
 @click.option('-i', '--maxiter', type=int, default=DEFAULT_MAXITER,
               help="Maximum number of iteration for belief propagation [default: %d]" % DEFAULT_MAXITER)
 @click.option('--msim', type=int, default=DEFAULT_ALPHA,
@@ -104,7 +107,7 @@ help_distance = "Mathematical distance function between cosine and correlation [
 @click.option('-v', '--verbose', count=True, help="Activate debugging messages")
 @click.argument("primary", type=click.Path(exists=True), metavar="<primary file>")
 @click.argument('secondary', type=click.Path(exists=True), metavar="<secondary file>")
-def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, refine_match, verbose, primary, secondary):
+def main(output, loader, feature, distance, threshold, sparsity, maxiter, msim, mcall, refine_match, verbose, primary, secondary):
     """
     qBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
@@ -115,6 +118,10 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
     if 0.0 > threshold > 1:  # check the threshold value to fit
         logging.warning("Threshold value should within 0..1 (set it to 1.0)")
         threshold = 1
+
+    if 0.0 > sparsity > 1:
+        logging.warning("Sparsity threshold value should be within 0..1 (set it to %.2f)" % DEFAULT_THRESHOLD_SPARSITY)
+        sparsity = DEFAULT_THRESHOLD_SPARSITY
 
     if msim < 0 or mcall < 0:  # verify that alpha and beta are positive
         logging.warning("Trade-off parameters should be positive (set negative to 0)")
@@ -143,7 +150,7 @@ def main(output, loader, feature, distance, threshold, maxiter, msim, mcall, ref
         logging.error("Diaphora loader not implemented yet..")
         exit(1)
 
-    differ = QBinDiff(p1, p2, distance=distance, maxiter=maxiter, threshold=threshold, alpha=msim, beta=mcall)
+    differ = QBinDiff(p1, p2, distance=distance, maxiter=maxiter, threshold=threshold, sparsity=sparsity, alpha=msim, beta=mcall)
     registered_ft = set()
     for name in feature:
         ft = FEATURES_KEYS[name]
