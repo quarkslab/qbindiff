@@ -62,12 +62,13 @@ def build_weight_matrix(features1: DataFrame, features2: DataFrame, distance: st
     threshmask &= weight_matrix > minrows                            # Apply threshold
     weight_matrix *= threshmask
     _compute_sparsity(threshmask)
-    colmask= threshmask.any(0)
-    adds1 = features1.index                                           # Keep vertex with at least
+    rowmask = threshmask.any(1)
+    colmask = threshmask.any(0)
+    adds1 = features1.index[rowmask]                                           # Keep vertex with at least
     adds2 = features2.index[colmask]                                  # one possible matching
     logging.debug("distance function pruning: p1: %d (after:%d), p2: %d (after: %d) [no match]" %
             (len(features1.index)-len(adds1), len(adds1), len(features2.index)-len(adds2), len(adds2)))
-    weight_matrix = csr_matrix(weight_matrix[:, colmask])
+    weight_matrix = csr_matrix(weight_matrix[np.ix_(rowmask, colmask)])
     return adds1, adds2, weight_matrix
 
 
