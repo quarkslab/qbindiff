@@ -52,6 +52,8 @@ def build_weight_matrix(features1: DataFrame, features2: DataFrame, distance: st
     """
     features1, features2 = process_features(features1, features2)
     weight_matrix = cdist(features1, features2, distance)            # Compute distance
+    if np.isnan(weight_matrix).any():
+        return None, None, None
     weight_matrix /=  weight_matrix.max()                            # Normalization
     weight_matrix = 1 - weight_matrix                                # Distance to similarity
     threshmask = weight_matrix >= threshold                          # apply global threshold

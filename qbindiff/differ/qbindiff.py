@@ -52,14 +52,14 @@ class QBinDiff:
         logging.info("[+] extracting features")
         self.features1, self.features2 = load_features(self.primary, self.secondary, self.visitor)
         self.check_distance_function()
-        self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(
-                                                        self.features1, self.features2, self.distance, self.threshold, self.sparsity)
-        self.callgraph1, self.callgraph2 = build_callgraphs(self.primary, self.secondary, self.adds1, self.adds2)
-
+        self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(self.features1, self.features2, self.distance, self.threshold, self.sparsity)
+        if self.weight_matrix is None:
+            logging.warning("Incompatibilty between distance and features (nan returned)")
+            return False
         if self.weight_matrix.shape[0] == 0:  # check the weight matrix size
-            # TODO: Elie: Improving warning message
             logging.warning("No possible function match: empty weight matrix (you can retry lowering the threshold)")
             return False
+        self.callgraph1, self.callgraph2 = build_callgraphs(self.primary, self.secondary, self.adds1, self.adds2)
         return True
 
     def check_distance_function(self):
