@@ -98,7 +98,8 @@ class QBinDiff:
         """
         # Performing the matching
         belief = BeliefNAQP(self.weight_matrix, self.callgraph1, self.callgraph2, self.tradeoff)
-        yield from belief.compute_matching(self.maxiter)
+        for it in belief.compute_matching(self.maxiter):  # push back yield from when IDA will be python3
+            yield it
 
         logging.info("[+] squares number : %d" % belief.numsquares)
         matching = belief.matching  # TODO: See what to do of intermediate matching

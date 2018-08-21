@@ -36,7 +36,8 @@ class OperandBackendQBinDiff(object):
 
     @property
     def expressions(self):
-        yield from self._data["expr"]
+        for e in self._data["expr"]:
+            yield e
 
     def __str__(self):
         return ''.join(y['value'] for y in self._data['expr'])

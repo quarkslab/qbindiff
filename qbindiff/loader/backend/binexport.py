@@ -25,7 +25,8 @@ class OperandBackendBinexport:
         return self._program.proto.operand[self._idx]
 
     def _pb_expressions(self):
-        yield from (self._program.proto.expression[idx] for idx in self._me().expression_index)
+        for it in (self._program.proto.expression[idx] for idx in self._me().expression_index):
+            yield it
 
     @property
     def expressions(self):
