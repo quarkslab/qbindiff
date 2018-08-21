@@ -18,6 +18,8 @@ class Operand(object):
             self.load_qbindiff(*args)
         elif loader == LoaderType.binexport:
             self.load_binexport(*args)
+        elif loader == LoaderType.ida:
+            self.load_ida(*args)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
@@ -38,6 +40,16 @@ class Operand(object):
         """
         from qbindiff.loader.backend.binexport import OperandBackendBinexport
         self._backend = OperandBackendBinexport(*args)
+
+    def load_ida(self, op_t, ea) -> None:
+        '''
+        Instanciate the operand using IDA API
+        :param op_t: op_t* as defined in the IDA SDK
+        :param ea: address of the instruction
+        :return: None
+        '''
+        from qbindiff.loader.backend.ida import OperandBackendIDA
+        self._backend = OperandBackendIDA(op_t, ea)
 
     @property
     def type(self) -> OperandType:

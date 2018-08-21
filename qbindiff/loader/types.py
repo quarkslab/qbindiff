@@ -8,6 +8,7 @@ class LoaderType(IntEnum):
     qbindiff = 0
     binexport = 1
     diaphora = 2
+    ida = 3
 
 
 class OperandType(IntEnum):

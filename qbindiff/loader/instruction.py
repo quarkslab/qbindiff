@@ -14,6 +14,8 @@ class Instruction(object):
             self.load_qbindiff(*args)
         elif loader == LoaderType.binexport:
             self.load_binexport(*args)
+        elif loader == LoaderType.ida:
+            self.load_ida(*args)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
@@ -34,6 +36,15 @@ class Instruction(object):
         """
         from qbindiff.loader.backend.binexport import InstructionBackendBinExport
         self._backend = InstructionBackendBinExport(*args)
+
+    def load_ida(self, addr) -> None:
+        """
+        Load the Instruction using the IDA backend, (only applies when running in IDA)
+        :param addr: Address of the instruction
+        :return: None
+        """
+        from qbindiff.loader.backend.ida import InstructionBackendIDA
+        self._backend = InstructionBackendIDA(addr)
 
     @property
     def addr(self) -> int:

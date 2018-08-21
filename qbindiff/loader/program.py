@@ -20,6 +20,8 @@ class Program(OrderedDict):
                 self.load_qbindiff(*args)
             elif loader == LoaderType.binexport:
                 self.load_binexport(*args)
+            elif loader == LoaderType.ida:
+                self.load_ida(*args)
             else:
                 raise NotImplementedError("Loader: %s not implemented" % loader)
 
@@ -41,6 +43,14 @@ class Program(OrderedDict):
         :return: None
         """
         self._backend = ProgramBackendQBinDiff(self, directory, call_graph)
+
+    def load_ida(self) -> None:
+        """
+        Load the program using the idapython API
+        :return: None
+        """
+        from qbindiff.loader.backend.ida import ProgramBackendIDA
+        self._backend = ProgramBackendIDA(self)
 
     def __repr__(self):
         return '<Program:%s>' % self.name
