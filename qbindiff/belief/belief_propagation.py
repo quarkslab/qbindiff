@@ -194,6 +194,12 @@ class BeliefNAQP(BeliefMWM):
         objective += self.numsquares
         return objective
 
+    def _checktradeoff(self, tradeoff):
+        if tradeoff == 0:
+            self.weights = np.zeros_like(self.weights)
+            tradeoff = .5
+        return 1 / tradeoff
+
     @property
     def numsquares(self) -> int:
         return self.z[self.mates][:, self.mates].nnz / 2
