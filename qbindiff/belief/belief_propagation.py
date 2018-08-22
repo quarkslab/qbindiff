@@ -24,7 +24,6 @@ class BeliefMWM(object):
         self.objective = []
         self._init_indices(weights)
         self._init_messages()
-        self._converged_iter = 0
 
     def compute_matching(self, maxiter: int=100) -> Generator[int, None, None]:
         niter = 0
@@ -38,9 +37,9 @@ class BeliefMWM(object):
                     niter += 1
                     yield niter
                 yield maxiter
-                logging.debug("converged after %d iterations" % niter)
+                logging.debug("Converged after %d iterations" % niter)
                 return
-        logging.debug("did not converged after %d iterations" % niter)
+        logging.debug("Did not converge after %d iterations" % niter)
 
     @property
     def matching(self) -> BeliefMatching:
@@ -148,17 +147,23 @@ class BeliefNAQP(BeliefMWM):
     def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, tradeoff: float=0.5, active_beta=False):
         super(BeliefNAQP, self).__init__(weights)
         self._init_squares(weights, edges1, edges2)
-        tradeoff = self._checktradeoff(tradeoff)
-        self.active_beta = active_beta
-        if active_beta:
-            self.beta = np.full_like(weights.data, 1 - tradeoff)
-        else:
-            self.beta = 1 - tradeoff
+        self._init_beta(tradeoff, active_beta)
 
     def _init_squares(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph) -> None:
         self.z = self.compute_squares(weights, edges1, edges2)
         self._zrownnz = np.diff(self.z.indptr)
         self._ztocol = np.argsort(self.z.indices, kind="mergesort")
+
+    def _init_beta(self, tradeoff, active_beta):
+        self.active_beta = active_beta
+        if tradeoff == 0:
+            self.weights = np.zeros_like(self.weights)
+            tradeoff = .5
+        tradeoff = 1 / tradeoff - 1
+        if active_beta:
+            self.beta = np.full_like(weights.data, tradeoff)
+        else:
+            self.beta = tradeoff
 
     def _update_messages(self) -> None:
         mz = self.weights + self.z.sum(0).getA1()
@@ -181,18 +186,12 @@ class BeliefNAQP(BeliefMWM):
             self.mates = messages
             self.objective.append(self._objective())
         else:
-            super()._round_messages(messages)
+            super(BeliefNAQP, self)._round_messages(messages)
 
     def _objective(self) -> float:
         objective = super(BeliefNAQP, self)._objective()
         objective += self.numsquares
         return objective
-
-    def _checktradeoff(self, tradeoff):
-        if tradeoff == 0:
-            self.weights = np.zeros_like(self.weights)
-            tradeoff = .5
-        return 1 / tradeoff
 
     @property
     def numsquares(self) -> int:
