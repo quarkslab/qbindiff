@@ -136,7 +136,7 @@ class Matching:
         for entry in data["matches"]:
             if entry['addr1'] is None:
                 self.add_unmatch_secondary(entry['addr2'])
-            if entry['addr2'] is None:
+            elif entry['addr2'] is None:
                 self.add_unmatch_primary(entry['addr1'])
             else:
                 addr1, addr2 = entry['addr1'], entry['addr2']
