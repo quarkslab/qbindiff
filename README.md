@@ -90,3 +90,23 @@ differ.register_feature(MnemonicSimple())
 differ.run(match_refine=True)
 matching = differ.matching
 ```
+
+qBinViz
+-------
+
+qBinViz helps vizualizing diffs in IDA as twin views. However using it requires
+a python2 version of qBinDiff. The only thing that prevent it to work out of the
+box with python2 are types on prototypes. The can be removed with the following
+command in the main project directory:
+
+```bash
+find . -name '*.py' -exec sed -i -e '/^\s*def/ s/: \?[^,=)]*\([,=)]\)/\1/g' -e '/^\s*def/ s/ -> .*:/:/g' '{}' \;
+```
+
+
+_(We recommend doing it in a separated dedicated branch)_
+
+Then the qbindiff module should be available in the pythonpath so that IDA qBinViz
+will find it. A simple solution is to create a symbolic link of qbindiff into $IDA_ROOT/python.
+qBinViz can then be triggered as a script with Ctrl+F7 or as a plugin by putting it
+in the $IDA_ROOT/plugins directory.
