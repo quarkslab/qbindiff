@@ -21,6 +21,7 @@ from qbindiff.differ.qbindiff import QBinDiff
 from qbindiff.loader.types import LoaderType
 from qbindiff.features.topology import NbChildren, NbParents, NbFamily
 
+
 def configure_logging(verbose):
     # first desactivate matplotlib logging
     logger = logging.getLogger('matplotlib')
