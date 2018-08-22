@@ -46,7 +46,8 @@ class BeliefMWM(object):
     def matching(self) -> BeliefMatching:
         rows = np.where(np.logical_or.reduceat(self.mates, self._rowmap[:-1]))[0]
         cols = self._colidx[self.mates]
-        return zip(rows, cols)
+        weights = self.weights[self.mates]
+        return zip(rows, cols, weights)
 
     def _init_indices(self, weights: csr_matrix) -> None:
         self.dims = weights.shape

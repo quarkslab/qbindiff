@@ -35,7 +35,7 @@ BeliefMatching = List[Tuple[Idx, Optional[Idx]]]
 """
 Final matching. List of pairs of function of both primary and secondary
 binary. One of the two can be None if it has not been matched. The length
-of the list is len_matched + len_unmatched_p1 + len_unmatched_p2 
+of the list is len_matched + len_unmatched_p1 + len_unmatched_p2
 """
 FinalMatching = List[Tuple[Optional[Addr], Optional[Addr]]]
 
@@ -43,6 +43,11 @@ FinalMatching = List[Tuple[Optional[Addr], Optional[Addr]]]
 1-Dimensional array. Use to represente slice of a matrix or function features
 """
 Vector = numpy.array
+
+"""
+2-Dimensional array. Use during the similarity matrix computation
+"""
+Matrix = numpy.array
 
 """
 2-D Matrix given to the belief propagation algorithm which represent distances
@@ -72,3 +77,8 @@ Features extracted from the program. This a dictionnary indexed by function addr
 wich contains a dictionnary of features
 """
 ProgramFeatures = Dict[Addr, FunctionFeatures]
+
+"""
+List of addresses of both programs to be anchored together
+"""
+Anchors = Tuple[List[Addr], List[Addr]]
