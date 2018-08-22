@@ -3,7 +3,7 @@ import logging
 
 from qbindiff.features.visitor import ProgramVisitor
 from qbindiff.features.visitor import FeatureExtractor
-from qbindiff.differ.preprocessing import load_features, build_weight_matrix, build_callgraphs
+from qbindiff.differ.preprocessing import load_features, build_weight_matrix, build_callgraphs, extract_anchors
 from qbindiff.differ.postprocessing import convert_matching, match_relatives, match_lonely, format_final_matching
 from qbindiff.belief.belief_propagation import BeliefMWM, BeliefNAQP
 from qbindiff.types import FinalMatching, Generator, Optional
@@ -52,7 +52,8 @@ class QBinDiff:
         logging.info("[+] extracting features")
         self.features1, self.features2 = load_features(self.primary, self.secondary, self.visitor)
         self.check_distance_function()
-        self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(self.features1, self.features2, self.distance, self.threshold, self.sparsity)
+        anchors = extract_anchors(self.primary, self.secondary)
+        self.adds1, self.adds2, self.weight_matrix = build_weight_matrix(self.features1, self.features2, self.distance, self.threshold, self.sparsity, anchors)
         if self.weight_matrix is None:
             logging.warning("Incompatibilty between distance and features (nan returned)")
             return False
