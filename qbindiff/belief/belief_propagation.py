@@ -3,7 +3,7 @@
 import logging
 import numpy as np
 from scipy.sparse import csr_matrix, diags
-from functools import reduce
+from itertools import chain
 
 from qbindiff.types import Generator, R, CallGraph, InputMatrix, Vector, BeliefMatching, Iterator
 
@@ -205,23 +205,28 @@ class BeliefNAQP(BeliefMWM):
         return self.z[self.mates][:, self.mates].nnz / 2
 
     @staticmethod
-    def compute_squares(weights: csr_matrix, edge1: CallGraph, edge2: CallGraph) -> csr_matrix:
-        L = weights.astype(bool).toarray()
-        cumsum = L.cumsum().reshape(L.shape) * L
-        colsum = np.hstack((0, cumsum.max(1)))
-        edgesum = [len(e) for e in edge2]
-        buildix = lambda x: [x[0]]*edgesum[x[1]]
+    def compute_squares(weights: csr_matrix, edges1: CallGraph, edges2: CallGraph) -> csr_matrix:
+        size = weights.nnz
+        bipartite = weights.astype(bool)
+        bipartite.data = np.arange(1, len(bipartite.data)+1, dtype=np.int32)
+        indices = bipartite.indices
+        indptr = bipartite.indptr
+        bipartite = bipartite.toarray()
+        edgenum = np.array(list(map(len, edges2)))
+        rowslice = map(indices.__getitem__, map(slice, indptr[:-1], indptr[1:]))
         idxx, idxy = [], []
-        for i, j in ((i, j.nonzero()[0]) for i, j in enumerate(L)):
-            edgesi = edge1[i]
-            edgesj = reduce(list.__add__, map(edge2.__getitem__,  j), [])
-            idxj = reduce(list.__add__, map(buildix,  enumerate(j)), [])
-            match = cumsum[edgesi][:, edgesj]
-            matched = match.nonzero()
-            idxx.extend(map(lambda idx: idxj[idx] + colsum[i], matched[1]))
-            idxy.extend(list(match[matched] - 1))
-        s = colsum.max()
-        boolean = np.ones(len(idxx), bool)
-        S = csr_matrix((boolean, (idxx, idxy)), shape=(s, s), dtype=float)
+        for i, j in enumerate(rowslice):
+            edgesi = edges1[i]
+            edgesj = list(chain(*map(edges2.__getitem__,  j)))
+            contacts = bipartite[np.ix_(edgesi, edgesj)]
+            contacted = contacts.nonzero()
+            #idx = indptr[i] + np.searchsorted(edgenum[j].cumsum(), contacted[1], side="right")
+            idx = indptr[i] + np.repeat(np.arange(len(j)), edgenum[j])[contacted[1]]
+            idy = contacts[contacted] - 1
+            idxx.extend(idx.tolist())
+            idxy.extend(idy.tolist())
+        boolean = np.ones_like(idxx, bool)
+        S = csr_matrix((boolean, (idxx, idxy)), shape=(size, size), dtype=float)
         S += S.T
         return S
+
