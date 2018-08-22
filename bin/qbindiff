@@ -19,7 +19,7 @@ from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanD
 from qbindiff.features.artefact import LibName, DatName, Constant, ImpName
 from qbindiff.differ.qbindiff import QBinDiff
 from qbindiff.loader.types import LoaderType
-
+from qbindiff.features.topology import NbChildren, NbParents, NbFamily
 
 def configure_logging(verbose):
     # first desactivate matplotlib logging
@@ -59,7 +59,10 @@ FEATURES = {MnemonicSimple,
             LibName,
             DatName,
             Constant,
-            ImpName
+            ImpName,
+            NbChildren,
+            NbParents, 
+            NbFamily
             # New features should be added here
             }
 
