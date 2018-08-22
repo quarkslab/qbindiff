@@ -157,8 +157,7 @@ def main(output, loader, feature, distance, threshold, sparsity, maxiter, tradeo
         for _ in tqdm(differ.run_iter(match_refine=refine_match), total=maxiter):
             pass
 
-        with open(str(output), 'w') as f_out:
-            json.dump(differ.matching, f_out)
+        differ.matching.write_file(output)
         logging.info("[+] matching successfully saved to: %s" % output)
         exit(0)
     else:

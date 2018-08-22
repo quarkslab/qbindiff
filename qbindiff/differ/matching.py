@@ -24,6 +24,10 @@ class Matching:
         if file:
             self.load_file(file)
 
+    def __iter__(self):
+        for i in self.primary_idx.values():
+            yield i
+
     @property
     def similarity(self) -> float:
         ''' Global similarity of the diff '''
@@ -45,7 +49,7 @@ class Matching:
         :param similarity: similarity metric as float
         :return: None
         """
-        match = Match(addr_p1, addr_p2, similarity)
+        match = Match(addr_p1, addr_p2, float("{0:.2f}".format(similarity)))
         self.primary_idx[addr_p1] = match
         self.secondary_idx[addr_p2] = match
 
@@ -144,8 +148,8 @@ class Matching:
                                     'addr2': match.addr_secondary,
                                     'similarity': match.similarity})
         for un_p1 in self.unmatched_primary:
-            data['matches'].append({'addr1': un_p1, 'addr2': None, 'similarity': None})
+            data['matches'].append({'addr1': un_p1, 'addr2': None, 'similarity': 0.0})
         for un_p2 in self.unmatched_secondary:
-            data['matches'].append({'addr1': None, 'addr2': un_p2, 'similarity': None})
+            data['matches'].append({'addr1': None, 'addr2': un_p2, 'similarity': 0.0})
         with open(out_file, "w") as out:
             json.dump(data, out)

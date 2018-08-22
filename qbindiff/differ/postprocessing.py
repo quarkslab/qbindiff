@@ -4,11 +4,12 @@ from functools import reduce
 
 # Imports for types
 from qbindiff.types import Tuple, List, Optional, Set
-from qbindiff.types import AddrIndex, BeliefMatching, Matching, DataFrame, Addr, FinalMatching
+from qbindiff.types import AddrIndex, BeliefMatching, PureMatching, DataFrame, Addr
 from qbindiff.loader.program import Program
+from qbindiff.differ.matching import Matching
 
 
-def convert_matching(adds1: AddrIndex, adds2: AddrIndex, matching: BeliefMatching) -> Tuple[Matching, dict]:
+def convert_matching(adds1: AddrIndex, adds2: AddrIndex, matching: BeliefMatching) -> Tuple[PureMatching, dict]:
     """
     Converts index matching of Belief propagation into matching of addresses.
     """
@@ -18,7 +19,7 @@ def convert_matching(adds1: AddrIndex, adds2: AddrIndex, matching: BeliefMatchin
     return dict(zip(matchadds1, matchadds2)), dict(zip(matchadds1, weights))
 
 
-def match_relatives(program1: Program, program2: Program, features1: DataFrame, features2: DataFrame, matching: Matching, score: float) -> Tuple[Matching, List[Addr]]:
+def match_relatives(program1: Program, program2: Program, features1: DataFrame, features2: DataFrame, matching: PureMatching, score: float) -> Tuple[PureMatching, List[Addr]]:
     """
     Matches primary unmatched functions according to their neighborhoods
     Matched if same parents and same children according to the current matching as well as same feature_vector
@@ -39,7 +40,7 @@ def match_relatives(program1: Program, program2: Program, features1: DataFrame, 
     return matching, lonely
 
 
-def match_lonely(program2: Program, features1: DataFrame, features2: DataFrame, matching: Matching, lonely: List[Addr], score: float) -> Matching:
+def match_lonely(program2: Program, features1: DataFrame, features2: DataFrame, matching: PureMatching, lonely: List[Addr], score: float) -> PureMatching:
     """
     Matches secondary lonely unmatched functions to primary ones
     Matched if same feature_vector
@@ -56,7 +57,7 @@ def match_lonely(program2: Program, features1: DataFrame, features2: DataFrame, 
     return matching
 
 
-def get_candidates(address: int, program1: Program, program2: Program, matching: Matching) -> Optional[Set[Addr]]:
+def get_candidates(address: int, program1: Program, program2: Program, matching: PureMatching) -> Optional[Set[Addr]]:
     """
     Extracts the candidate set of the function "address"
     Intersects the children sets of all secondary functions matched with parents of "address" in primay
@@ -76,7 +77,7 @@ def get_candidates(address: int, program1: Program, program2: Program, matching:
     return candidates
 
 
-def compare_function(add1: Addr, add2: Addr,  program1: Program, program2: Program, features1: DataFrame, features2: DataFrame, matching: Matching) -> bool:
+def compare_function(add1: Addr, add2: Addr,  program1: Program, program2: Program, features1: DataFrame, features2: DataFrame, matching: PureMatching) -> bool:
     """
     True if adds1 and adds2 have the same parents and the same children according
     to the current matching as well as same feature_vector
@@ -91,11 +92,13 @@ def compare_function(add1: Addr, add2: Addr,  program1: Program, program2: Progr
     return True
 
 
-def format_final_matching(primary: Program, secondary: Program, matching: Matching, similarity: dict, score: float) -> FinalMatching:
-    matching_ = [{"primary": adds1, "secondary": adds2, "similarity": similarity.get(adds1, 1.)} for adds1, adds2 in matching.items()]
-    unmatched1 = set(primary.keys()).difference(matching.keys())
-    unmatched2 = set(secondary.keys()).difference(matching.values())
-    matching_ += [{"primary": adds1, "secondary": None, "similarity": 0.} for adds1 in unmatched1]
-    matching_ += [{"primary": None, "secondary": adds2, "similarity": 0.} for adds2 in unmatched2]
-    output = {"score": score, "matching": matching_}
-    return output
+def format_final_matching(primary: Program, secondary: Program, matching: PureMatching, similarity: dict, score: float) -> Matching:
+    final_matching = Matching()
+    final_matching.similarity = score
+    for k, v in matching.items():
+        final_matching.add_match(k, v, similarity.get(k, 1.))
+    for un_p1 in set(primary.keys()).difference(matching.keys()):
+        final_matching.add_unmatch_primary(un_p1)
+    for un_p2 in set(secondary.keys()).difference(matching.values()):
+        final_matching.add_unmatch_secondary(un_p2)
+    return final_matching
