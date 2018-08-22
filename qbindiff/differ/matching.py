@@ -33,6 +33,10 @@ class Matching:
     def similarity(self, value: float) -> None:
         self.global_sim = value
 
+    @property
+    def matching(self):
+        return {x.addr_primary: x.addr_secondary for x in self.primary_idx.values()}
+
     def add_match(self, addr_p1: Addr, addr_p2: Addr, similarity: float=None) -> None:
         """
         Add the given match between the two function addresses
