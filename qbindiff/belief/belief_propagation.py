@@ -98,7 +98,7 @@ class BeliefMWM(object):
         """
         maxvec = np.zeros_like(vector)
         if len(vector) > 1:
-            max1, max2 = np.argpartition(vector, -2)[:-2]
+            max2, max1 = np.argpartition(vector, -2)[-2:]
             maxvec += vector[max1]
             maxvec[max1] = vector[max2]
         return maxvec
