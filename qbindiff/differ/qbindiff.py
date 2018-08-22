@@ -5,7 +5,7 @@ from qbindiff.features.visitor import ProgramVisitor
 from qbindiff.features.visitor import FeatureExtractor
 from qbindiff.differ.preprocessing import load_features, build_weight_matrix, build_callgraphs
 from qbindiff.differ.postprocessing import convert_matching, match_relatives, match_lonely, format_final_matching
-from qbindiff.belief.belief_propagation import BeliefNAQP
+from qbindiff.belief.belief_propagation import BeliefMWM, BeliefNAQP
 from qbindiff.types import FinalMatching, Generator, Optional
 from qbindiff.loader.program import Program
 
@@ -96,11 +96,16 @@ class QBinDiff:
         :return: Generator of belief iterations
         """
         # Performing the matching
-        belief = BeliefNAQP(self.weight_matrix, self.callgraph1, self.callgraph2, self.tradeoff)
+
+        if self.tradeoff == 1:
+            belief = BeliefMWM(self.weight_matrix)
+        else:
+            belief = BeliefNAQP(self.weight_matrix, self.callgraph1, self.callgraph2, self.tradeoff)
         for it in belief.compute_matching(self.maxiter):  # push back yield from when IDA will be python3
             yield it
 
-        logging.info("[+] squares number : %d" % belief.numsquares)
+        if self.tradeoff != 1:
+            logging.info("[+] squares number : %d" % belief.numsquares)
         matching = belief.matching  # TODO: See what to do of intermediate matching
 
         self._matching = convert_matching(self.adds1, self.adds2, matching)

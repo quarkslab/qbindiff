@@ -64,7 +64,6 @@ class BeliefMWM(object):
     def _update_messages(self) -> None:
         self.x = self.weights - np.maximum(0, self._other_rowmax(self.y))
         self.y = self.weights - np.maximum(0, self._other_colmax(self.x))
-
         self._round_messages((self.x + self.y - self.weights) > 0)
 
     def _round_messages(self, messages: Vector) -> None:
@@ -99,7 +98,7 @@ class BeliefMWM(object):
         """
         maxvec = np.zeros_like(vector)
         if len(vector) > 1:
-            max1, max2 = np.argpartition(-vector, 1)[:2]
+            max1, max2 = np.argpartition(vector, -2)[:-2]
             maxvec += vector[max1]
             maxvec[max1] = vector[max2]
         return maxvec
@@ -146,11 +145,12 @@ class BeliefNAQP(BeliefMWM):
     """
     Compute an approximate solution to **Network Alignement Quadratic Problem**.
     """
-    def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, tradeoff: float=0.5, modular_beta=False):
-        super(BeliefNAQP, self).__init__(tradeoff * weights)
+    def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, tradeoff: float=0.5, active_beta=False):
+        super(BeliefNAQP, self).__init__(weights)
         self._init_squares(weights, edges1, edges2)
-        self.modular_beta = modular_beta
-        if modular_beta:
+        tradeoff = self._checktradeoff(tradeoff)
+        self.active_beta = active_beta
+        if active_beta:
             self.beta = np.full_like(weights.data, 1 - tradeoff)
         else:
             self.beta = 1 - tradeoff
@@ -165,27 +165,34 @@ class BeliefNAQP(BeliefMWM):
         self.x = mz - np.maximum(0, self._other_rowmax(self.y))
         self.y = mz - np.maximum(0, self._other_colmax(self.x))
         mxyz = self.x + self.y - mz
-
         self._round_messages(mxyz >= 0)
 
         self.z.data = np.repeat(mxyz + self.beta, self._zrownnz) - self.z.data[self._ztocol]
-        if self.modular_beta:
+        if self.active_beta:
             self.z.data = np.clip(self.z.data, 0, np.repeat(self.beta, self._zrownnz))
         else:
             self.z.data = np.clip(self.z.data, 0, self.beta)
 
     def _round_messages(self, messages: Vector) -> None:
-        matchmask = np.add.reduceat(messages, self._rowmap[:-1]) == 1
-        messages &= np.repeat(matchmask, self._rownnz)
-        if self.modular_beta:
+        if self.active_beta:
+            matchmask = np.add.reduceat(messages, self._rowmap[:-1]) == 1
+            messages &= np.repeat(matchmask, self._rownnz)
             self.beta += self.mates & messages
-        self.mates = messages
-        self.objective.append(self._objective())
+            self.mates = messages
+            self.objective.append(self._objective())
+        else:
+            super()._round_messages(messages)
 
     def _objective(self) -> float:
         objective = super(BeliefNAQP, self)._objective()
         objective += self.numsquares
         return objective
+
+    def _checktradeoff(self, tradeoff):
+        if tradeoff == 0:
+            self.weights = np.zeros_like(self.weights)
+            tradeoff = .5
+        return 1 / tradeoff
 
     @property
     def numsquares(self) -> int:
