@@ -141,7 +141,7 @@ class VirtualFunctionViewer(ida_graph.GraphViewer):
         return True
 
     def OnClose(self):
-        print("Vizualizator closed!")
+        print("qBinViz closed!")
 
     def OnSelect(self, node_id):
         return True
@@ -234,7 +234,7 @@ QBinDiff vizualization configuration:
         return LoaderType[self.loader_items[self.iLoader.value]]
 
 
-class VizualizationPlugin(ida_idaapi.plugin_t):
+class QBinVizPlugin(ida_idaapi.plugin_t):
     wanted_name = "qBinViz"
     wanted_hotkey = "Shift-d"
     flags = 0
@@ -303,21 +303,21 @@ class VizualizationPlugin(ida_idaapi.plugin_t):
         ida_graph.viewer_fit_window(widget_b)
 
     def term(self):
-        print("Terminate Vizualizator")
+        print("Terminate qBinViz")
         self.hooker.unhook()
 
 
-Vizualizator = None
+qBinViz = None
 
 
 def PLUGIN_ENTRY():
-    global Vizualizator
-    Vizualizator = VizualizationPlugin()
-    return Vizualizator
+    global qBinViz
+    qBinViz = QBinVizPlugin()
+    return qBinViz
 
 
 # If the script is launched through Ctrl+F7
 if __name__ == "__main__":
-    Vizualizator = VizualizationPlugin()
-    Vizualizator.init()
-    Vizualizator.run([])
+    qBinViz = QBinVizPlugin()
+    qBinViz.init()
+    qBinViz.run([])
