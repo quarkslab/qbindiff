@@ -106,9 +106,10 @@ class QBinDiff:
 
         if self.tradeoff != 1:
             logging.info("[+] squares number : %d" % belief.numsquares)
-        matching = belief.matching  # TODO: See what to do of intermediate matching
 
-        self._matching = convert_matching(self.adds1, self.adds2, matching)
+        matching = belief.matching
+        score = belief.objective[-1]
+        self._matching, similarity = convert_matching(self.adds1, self.adds2, matching)
 
         # print stats about belief matching
         unmatched_p1 = set(self.adds1) - set(self._matching.keys())
@@ -116,27 +117,24 @@ class QBinDiff:
         logging.debug("belief unmatched functions: p1:%d, p2:%d" % (len(unmatched_p1), len(unmatched_p2)))
 
         if match_refine:
-            self.refine_matching()
+            self.refine_matching(score)
 
         min_fun_nb = min(len(self.primary), len(self.secondary))
         match_len = len(self._matching)
-        self._matching = format_final_matching(self.primary, self.secondary, self._matching)
+        self._matching = format_final_matching(self.primary, self.secondary, self._matching, similarity, score)
         logging.info("final unmatched p1:%d, p2:%d" % (len(self.primary)-match_len, len(self.secondary)-match_len))
         logging.info("final matched functions: %d / %d" % (match_len, min_fun_nb))
 
-    def refine_matching(self) -> None:
+    def refine_matching(self, score) -> None:
         """
         Postprocessing pass that tries to make small or excluded functions to match against
         each other to refine results and obtaining a better match.
         :return: None
         """
-        # Postprocessing to refine results
-        logging.info("[+] match refinement")
-
-        tmp_nb_match = len(self._matching)
-        matching, lonely = match_relatives(self.primary, self.secondary, self.features1, self.features2, self._matching)
-        self._matching = match_lonely(self.secondary, self.features1, self.features2, matching, lonely)
-        logging.info("[+] %d new matches found by refinement" % (len(self._matching) - tmp_nb_match))
+        len_tmp = len(self._matching)
+        matching, lonely = match_relatives(self.primary, self.secondary, self.features1, self.features2, self._matching, score)
+        self._matching = match_lonely(self.secondary, self.features1, self.features2, matching, lonely, score)
+        logging.info("[+] %d new matches found by refinement" % (len(self._matching) - len_tmp))
 
     @property
     def matching(self) -> Optional[FinalMatching]:
