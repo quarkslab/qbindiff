@@ -188,7 +188,7 @@ class FunctionBackendBinExport(object):
         self.addr = self._get_basic_block_addr(program, pb_fun.entry_basic_block_index)
 
         cur_addr = None
-
+        tmp_mapping = {}  # temporary mapping from bb idx -> addr
         # Load the different basic blocks
         for bb_idx in pb_fun.basic_block_index:
             bb = program.proto.basic_block[bb_idx]
@@ -225,6 +225,7 @@ class FunctionBackendBinExport(object):
 
                     cur_addr += len(pb_i.raw_bytes)
             self._function[bb_addr] = bb_data
+            tmp_mapping[bb_idx] = bb_addr
             self.graph.add_node(bb_addr)
 
         if len(pb_fun.basic_block_index) != len(self._function):
@@ -233,8 +234,8 @@ class FunctionBackendBinExport(object):
 
         # Load the edges between blocks
         for edge in pb_fun.edge:
-            bb_src = self._get_basic_block_addr(program, edge.source_basic_block_index)
-            bb_dst = self._get_basic_block_addr(program, edge.target_basic_block_index)
+            bb_src = tmp_mapping[edge.source_basic_block_index]
+            bb_dst = tmp_mapping[edge.target_basic_block_index]
             self.graph.add_edge(bb_src, bb_dst)
 
     @staticmethod
