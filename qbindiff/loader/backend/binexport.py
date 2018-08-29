@@ -180,7 +180,7 @@ class FunctionBackendBinExport(object):
         self.children = set()
         self.graph = networkx.DiGraph()
         self._pb_type = None  # Set by the Program constructor
-        self.name = None  # Set by the Program constructor (mangled name)
+        self._name = None  # Set by the Program constructor (mangled name)
 
         if is_import:
             return
@@ -245,6 +245,14 @@ class FunctionBackendBinExport(object):
     @property
     def function(self):
         return self._function
+
+    @property
+    def name(self):
+        return self._name if self._name else "sub_%X" % self.addr
+
+    @name.setter
+    def name(self, name):
+        self._name = name
 
     @property
     def type(self):
