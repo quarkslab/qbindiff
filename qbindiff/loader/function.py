@@ -108,3 +108,11 @@ class Function(dict):
 
     def __repr__(self):
         return '<Function: 0x%x>' % self.addr
+
+    @property
+    def name(self):
+        return self._backend.name
+
+    @name.setter
+    def name(self, name):
+        self._backend.name = name
