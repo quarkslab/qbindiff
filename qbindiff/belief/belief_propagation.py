@@ -1,4 +1,4 @@
-# coding: utf-8
+## coding: utf-8
 
 import logging
 import numpy as np
@@ -43,7 +43,7 @@ class BeliefMWM(object):
 
     @property
     def matching(self) -> BeliefMatching:
-        rows = np.where(np.logical_or.reduceat(self.mates, self._rowmap[:-1]))[0]
+        rows = np.logical_or.reduceat(self.mates, self._rowmap[:-1]).nonzero()[0]
         cols = self._colidx[self.mates]
         weights = self.weights[self.mates]
         return zip(rows, cols, weights)
@@ -52,56 +52,71 @@ class BeliefMWM(object):
         self.dims = weights.shape
         self._colidx = weights.indices
         self._rowmap = weights.indptr
-        self._colmap = np.hstack((0, np.bincount(self._colidx).cumsum()))
-        self._tocol = self._colidx.argsort(kind="mergesort")
-        self._torow = self._tocol.argsort(kind="mergesort")
+        self._colmap = np.hstack((0, np.bincount(self._colidx).cumsum(dtype=np.int32)))
+        self._tocol = self._colidx.argsort(kind="mergesort").astype(np.int32)
+        self._torow = np.zeros_like(self._tocol)
+        self._torow[self._tocol] = np.arange(weights.size, dtype=np.int32)
         self._rownnz = np.diff(weights.indptr)
 
     def _init_messages(self) -> None:
-        self.x = self.weights.copy()
-        self.y = self.weights.copy()
+        self.x = self.weights.astype(np.float32)
+        self.y = self.weights.astype(np.float32)
+        self.messages = np.zeros_like(self.weights, np.float32)
 
     def _update_messages(self) -> None:
-        self.x = self.weights - np.maximum(0, self._other_rowmax(self.y))
-        self.y = self.weights - np.maximum(0, self._other_colmax(self.x))
-        self._round_messages((self.x + self.y - self.weights) > 0)
+        self.x[:] = self.weights + self._other_rowmax(self.y)
+        self.messages[:] = self.x
+        self.y[:] = self.weights + self._other_colmax(self.x)
+        self.messages += self.x
+        self._round_messages()
 
-    def _round_messages(self, messages: Vector) -> None:
-        matchmask = np.add.reduceat(messages, self._rowmap[:-1]) == 1
-        self.mates = messages & np.repeat(matchmask, self._rownnz)
+    def _round_messages(self) -> None:
+        self.mates[:]= self.messages >= 0
+        matchmask = np.add.reduceat(self.mates, self._rowmap[:-1]) == 1
+        self.mates[:] &= np.repeat(matchmask, self._rownnz)
         self.objective.append(self._objective())
 
-    def _rowslice(self, vector: Vector) -> Iterator[Vector]:
-        def get_slice(x, y):
-            return vector[x:y]
-        return map(get_slice, self._rowmap[:-1], self._rowmap[1:])
+    @property
+    def _rowslice(self):
+        return map(slice, self._rowmap[:-1], self._rowmap[1:])
 
-    def _colslice(self, vector: Vector) -> Iterator[Vector]:
-        def get_slice(x, y):
-            return vector[x:y]
-        vector = vector[self._tocol]
-        return map(get_slice, self._colmap[:-1], self._colmap[1:])
+    @property
+    def _colslice(self):
+        return map(slice, self._colmap[:-1], self._colmap[1:])
+    """
+    def _rowsum(self, vector, values):
+        for row, value in zip(self._rowslice, values):
+            vector[row] += value
 
+    def _rowand(self, vector, values):
+        for row, value in zip(self._rowslice, values):
+            vector[row] &= value
+    """
     def _other_rowmax(self, vector: Vector) -> Vector:
-        maxvec = map(self._othermax_, self._rowslice(vector))
-        return np.hstack(maxvec)
+        for row in self._rowslice:
+            self._othermax(vector[row])
+        return vector
 
     def _other_colmax(self, vector: Vector) -> Vector:
-        maxvec = map(self._othermax_, self._colslice(vector))
-        return np.hstack(maxvec)[self._torow]
+        vector.take(self._tocol, out=vector)
+        for col in self._colslice:
+            self._othermax(vector[col])
+        vector.take(self._torow, out=vector)
+        return vector
 
     @staticmethod
-    def _othermax_(vector: Vector) -> Vector:
+    def _othermax(vector: Vector) -> None:
         """
         Compute the maximum value for all elements except (for the maxmimum value)
         $$x_i = max_{j!=i}{x_j}$$
         """
-        maxvec = np.zeros_like(vector)
         if len(vector) > 1:
-            max2, max1 = np.argpartition(vector, -2)[-2:]
-            maxvec += vector[max1]
-            maxvec[max1] = vector[max2]
-        return maxvec
+            arg2, arg1 = np.argpartition(vector, -2)[-2:]
+            max2, max1 = - np.maximum(0, vector[[arg2, arg1]])
+            vector[:] = max1
+            vector[arg1] = max2
+        else:
+            vector[:] = 0
 
     def _objective(self) -> float:
         return self.weights[self.mates].sum()
@@ -152,6 +167,7 @@ class BeliefNAQP(BeliefMWM):
 
     def _init_squares(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph) -> None:
         self.z = self.compute_squares(weights, edges1, edges2)
+        self.mz = np.zeros_like(self.weights, np.float32)
         self._zrownnz = np.diff(self.z.indptr)
         self._ztocol = np.argsort(self.z.indices, kind="mergesort")
 
@@ -167,38 +183,42 @@ class BeliefNAQP(BeliefMWM):
             self.beta = tradeoff
 
     def _update_messages(self) -> None:
-        mz = self.weights + self.z.sum(0).getA1()
-        self.x = mz - np.maximum(0, self._other_rowmax(self.y))
-        self.y = mz - np.maximum(0, self._other_colmax(self.x))
-        mxyz = self.x + self.y - mz
-        self._round_messages(mxyz >= 0)
+        self.mz[:] = self.weights + self.z.sum(0).getA1()
+        self.x[:] = self.mz + self._other_rowmax(self.y)
+        self.messages[:] = self.x
+        self.y[:] = self.mz + self._other_colmax(self.x)
+        self.messages += self.x
+        self._round_messages()
 
-        self.z.data = np.repeat(mxyz + self.beta, self._zrownnz) - self.z.data[self._ztocol]
+        self._clip_beta()
+
+    def _clip_beta(self):
         if self.active_beta:
-            self.z.data = np.clip(self.z.data, 0, np.repeat(self.beta, self._zrownnz))
+            beta = np.repeat(self.beta, self._zrownnz)
         else:
-            self.z.data = np.clip(self.z.data, 0, self.beta)
+            beta = self.beta
+        self.messages += beta
+        #self.z.data[self._ztocol] = - self.z.data
+        np.take(self.z.data, self._ztocol, out=self.z.data)
+        np.negative(self.z.data, out=self.z.data)
+        self.z.data += np.repeat(self.messages, self._zrownnz)
+        np.clip(self.z.data, 0, beta, out=self.z.data)
 
-    def _round_messages(self, messages: Vector) -> None:
+    def _round_messages(self) -> None:
         if self.active_beta:
+            messages = self.messages >= 0
             matchmask = np.add.reduceat(messages, self._rowmap[:-1]) == 1
             messages &= np.repeat(matchmask, self._rownnz)
             self.beta += self.mates & messages
             self.mates = messages
             self.objective.append(self._objective())
         else:
-            super(BeliefNAQP, self)._round_messages(messages)
+            super(BeliefNAQP, self)._round_messages()
 
     def _objective(self) -> float:
         objective = super(BeliefNAQP, self)._objective()
         objective += self.numsquares
         return objective
-
-    def _checktradeoff(self, tradeoff):
-        if tradeoff == 0:
-            self.weights = np.zeros_like(self.weights)
-            tradeoff = .5
-        return 1 / tradeoff
 
     @property
     def numsquares(self) -> int:
@@ -226,7 +246,7 @@ class BeliefNAQP(BeliefMWM):
             idxx.extend(idx.tolist())
             idxy.extend(idy.tolist())
         boolean = np.ones_like(idxx, bool)
-        S = csr_matrix((boolean, (idxx, idxy)), shape=(size, size), dtype=float)
+        S = csr_matrix((boolean, (idxx, idxy)), shape=(size, size), dtype=np.float32)
         S += S.T
         return S
 
