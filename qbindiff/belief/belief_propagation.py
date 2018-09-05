@@ -1,23 +1,23 @@
-## coding: utf-8
-
+from __future__ import absolute_import
 import logging
-import numpy as np
-from scipy.sparse import csr_matrix, diags
-from itertools import chain
 
-from qbindiff.types import Generator, R, CallGraph, InputMatrix, Vector, BeliefMatching, Iterator
+import numpy as np
+from scipy.sparse import csr_matrix
+
+# Import for types
+from qbindiff.types import Iterator, Generator, Ratio, InputMatrix, Vector, BeliefMatching
 
 
 class BeliefMatrixError(Exception):
     pass
 
 
-class BeliefMWM(object):
+class BeliefMWM:
     """
     Compute the **Maxmimum Weight Matching** of the matrix of weights (similarity).
     Returns the *real* maximum assignement.
     """
-    def __init__(self, weights: csr_matrix):
+    def __init__(self, weights: InputMatrix):
         weights = self._checkmatrix(weights)
         self.weights = weights.data
         self.mates = np.zeros_like(self.weights, dtype=bool)
@@ -77,11 +77,11 @@ class BeliefMWM(object):
         self.objective.append(self._objective())
 
     @property
-    def _rowslice(self):
+    def _rowslice(self) -> Iterator[slice]:
         return map(slice, self._rowmap[:-1], self._rowmap[1:])
 
     @property
-    def _colslice(self):
+    def _colslice(self) -> Iterator[slice]:
         return map(slice, self._colmap[:-1], self._colmap[1:])
     """
     def _rowsum(self, vector, values):
@@ -151,8 +151,8 @@ class BeliefMWM(object):
             matrix = csr_matrix(matrix)
         except Exception:
             raise BeliefMatrixError("Unknown matrix type: %s" % str(type(matrix)))
-        if not (matrix.getnnz(0).all() and matrix.getnnz(1).all()):
-            raise BeliefMatrixError("Incomplete bipartite, (isolated nodes)")
+        #if not (matrix.getnnz(0).all() and matrix.getnnz(1).all()):
+        #    raise BeliefMatrixError("Incomplete bipartite, (isolated nodes)")
         return matrix
 
 
@@ -160,18 +160,18 @@ class BeliefNAQP(BeliefMWM):
     """
     Compute an approximate solution to **Network Alignement Quadratic Problem**.
     """
-    def __init__(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph, tradeoff: float=0.5, active_beta=False):
+    def __init__(self, weights: InputMatrix, squares: csr_matrix, tradeoff: Ratio=0.5, active_beta: bool=False):
         super(BeliefNAQP, self).__init__(weights)
-        self._init_squares(weights, edges1, edges2)
+        self._init_squares(squares)
         self._init_beta(tradeoff, active_beta)
 
-    def _init_squares(self, weights: InputMatrix, edges1: CallGraph, edges2: CallGraph) -> None:
-        self.z = self.compute_squares(weights, edges1, edges2)
+    def _init_squares(self, squares: csr_matrix) -> None:
+        self.z = squares.astype(np.float32)
         self.mz = np.zeros_like(self.weights, np.float32)
-        self._zrownnz = np.diff(self.z.indptr)
+        self._zrownnz = np.diff(squares.indptr)
         self._ztocol = np.argsort(self.z.indices, kind="mergesort")
 
-    def _init_beta(self, tradeoff, active_beta):
+    def _init_beta(self, tradeoff: Ratio, active_beta: bool) -> None:
         self.active_beta = active_beta
         if tradeoff == 0:
             self.weights = np.zeros_like(self.weights)
@@ -192,7 +192,7 @@ class BeliefNAQP(BeliefMWM):
 
         self._clip_beta()
 
-    def _clip_beta(self):
+    def _clip_beta(self) -> None:
         if self.active_beta:
             beta = np.repeat(self.beta, self._zrownnz)
         else:
@@ -223,30 +223,4 @@ class BeliefNAQP(BeliefMWM):
     @property
     def numsquares(self) -> int:
         return self.z[self.mates][:, self.mates].nnz / 2
-
-    @staticmethod
-    def compute_squares(weights: csr_matrix, edges1: CallGraph, edges2: CallGraph) -> csr_matrix:
-        size = weights.nnz
-        bipartite = weights.astype(bool)
-        bipartite.data = np.arange(1, len(bipartite.data)+1, dtype=np.int32)
-        indices = bipartite.indices
-        indptr = bipartite.indptr
-        bipartite = bipartite.toarray()
-        edgenum = np.array(list(map(len, edges2)))
-        rowslice = map(indices.__getitem__, map(slice, indptr[:-1], indptr[1:]))
-        idxx, idxy = [], []
-        for i, j in enumerate(rowslice):
-            edgesi = edges1[i]
-            edgesj = list(chain(*map(edges2.__getitem__,  j)))
-            contacts = bipartite[np.ix_(edgesi, edgesj)]
-            contacted = contacts.nonzero()
-            #idx = indptr[i] + np.searchsorted(edgenum[j].cumsum(), contacted[1], side="right")
-            idx = indptr[i] + np.repeat(np.arange(len(j)), edgenum[j])[contacted[1]]
-            idy = contacts[contacted] - 1
-            idxx.extend(idx.tolist())
-            idxy.extend(idy.tolist())
-        boolean = np.ones_like(idxx, bool)
-        S = csr_matrix((boolean, (idxx, idxy)), shape=(size, size), dtype=np.float32)
-        S += S.T
-        return S
 

@@ -67,6 +67,11 @@ Math set of natural positive integers
 R = Union[int, float]
 
 """
+Float bewteen 0 and 1
+"""
+Ratio = float
+
+"""
 Features of a function. The type is a dictionnary of features
 keys to their occurence or value
 """
@@ -82,4 +87,3 @@ ProgramFeatures = Dict[Addr, FunctionFeatures]
 List of addresses of both programs to be anchored together
 """
 Anchors = Tuple[List[Addr], List[Addr]]
-
