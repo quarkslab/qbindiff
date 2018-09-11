@@ -136,62 +136,68 @@ class PreProcessor:
             self.sim_matrix[:,idx2] = 0
             self.sim_matrix[idx1, idx2] = 1
 
-    def _build_matrices(self, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio, sq_ratio: Ratio) -> None:
-        mask = self._compute_sim_mask(sim_ratio)
-        mask[:] = self._compute_mask(affinity1, affinity2, mask, sq_ratio)
-        sim_matrix_data = self.sim_matrix[mask]
-        self.sim_matrix = csr_matrix(mask, dtype=np.float32)
-        self.sim_matrix.data = sim_matrix_data
+    def _build_matrices(self, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> None:
+        self.sim_matrix, self.square_matrix = self.build_matrices(self.sim_matrix, affinity1=affinity1, affinity2=affinity2, sim_ratio=sim_ratio, sq_ratio=sq_ratio)
 
-    def _compute_sim_mask(self, sim_ratio: Ratio) -> Matrix:
-        sim_ratio = int(sim_ratio * self.sim_matrix.size)
-        threshold = np.partition(self.sim_matrix.reshape(-1), sim_ratio)[sim_ratio]
-        sim_mask = self.sim_matrix >= threshold
-        return sim_mask
+    @staticmethod
+    def build_matrices(sim_matrix:Matrix, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
 
-    def _compute_mask(self, affinity1: Matrix, affinity2: Matrix, mask: Matrix, sqratio: Ratio=.6) -> Matrix:
+        def _compute_sim_mask(sim_matrix, sim_ratio: Ratio=.7) -> Matrix:
+            sim_ratio = int(sim_ratio * sim_matrix.size)
+            threshold = np.partition(sim_matrix.reshape(-1), sim_ratio)[sim_ratio]
+            sim_mask = sim_matrix >= threshold
+            return sim_mask
 
-        def _build_squares(affinity1: Matrix, affinity2: Matrix, shape: int) -> csr_matrix:
-            row, col = _kronecker(affinity1, affinity2)
-            data = np.ones_like(row, dtype=bool)
-            squares = csr_matrix((data, (row, col)), shape=2*(shape,), copy=False)
-            squares += squares.T
-            return squares
+        def _compute_mask(affinity1: Matrix, affinity2: Matrix, mask: Matrix, sqratio: Ratio=.6) -> Matrix:
 
-        def _kronecker(affinity1: Matrix, affinity2: Matrix) -> Tuple[Vector, Vector]:
-            row1, col1 = map(np.uint32, affinity1.nonzero())
-            row2, col2 = map(np.uint32, affinity2.nonzero())
-            row = np.add.outer(row1 * affinity2.shape[0], row2)
-            col = np.add.outer(col1 * affinity2.shape[0], col2)
-            row, col = row.reshape(-1), col.reshape(-1)
-            return row, col
+            def _build_squares(affinity1: Matrix, affinity2: Matrix, shape: int) -> csr_matrix:
+                row, col = _kronecker(affinity1, affinity2)
+                data = np.ones_like(row, dtype=bool)
+                squares = csr_matrix((data, (row, col)), shape=2*(shape,), copy=False)
+                squares += squares.T
+                return squares
 
-        def _compute_sq_mask(squares: csr_matrix, sim_mask: Matrix, sqratio: Ratio=.6) -> None:
-            sim_mask = sim_mask.reshape(-1)
-            sq_mask = squares[sim_mask].sum(0, dtype=np.float32).getA1()
-            tot_squares = squares.sum(1, dtype=np.float32).getA1()
-            tot_squares[tot_squares==0] = 1
-            sq_mask /= tot_squares
-            sq_mask = sq_mask  >= sqratio
-            sim_mask |= sq_mask
+            def _kronecker(affinity1: Matrix, affinity2: Matrix) -> Tuple[Vector, Vector]:
+                row1, col1 = map(np.uint32, affinity1.nonzero())
+                row2, col2 = map(np.uint32, affinity2.nonzero())
+                row = np.add.outer(row1 * affinity2.shape[0], row2)
+                col = np.add.outer(col1 * affinity2.shape[0], col2)
+                row, col = row.reshape(-1), col.reshape(-1)
+                return row, col
 
-        def _mask_squares(squares: csr_matrix, mask: Matrix) -> csr_matrix:
-            mask = mask.reshape(-1)
-            squares = squares[mask]
-            squares = squares[:,mask]
-            return squares
+            def _compute_sq_mask(squares: csr_matrix, sim_mask: Matrix, sqratio: Ratio=.6) -> None:
+                sim_mask = sim_mask.reshape(-1)
+                sq_mask = squares[sim_mask].sum(0, dtype=np.float32).getA1()
+                tot_squares = squares.sum(1, dtype=np.float32).getA1()
+                tot_squares[tot_squares==0] = 1
+                sq_mask /= tot_squares
+                sq_mask = sq_mask  >= sqratio
+                sim_mask |= sq_mask
 
-        #from time import time
-        #t = time()
-        squares = _build_squares(affinity1, affinity2, mask.size)
-        #print("build from list: %f"%(time()-t))
-        #t = time()
-        _compute_sq_mask(squares, mask, sqratio)
-        #print("square mask: %f"%(time()-t))
-        #t = time()
-        self.square_matrix = _mask_squares(squares, mask)
-        #print("build from mask: %f"%(time()-t))
-        return mask
+            def _mask_squares(squares: csr_matrix, mask: Matrix) -> csr_matrix:
+                mask = mask.reshape(-1)
+                squares = squares[mask]
+                squares = squares[:,mask]
+                return squares
+
+            #from time import time
+            #t = time()
+            squares = _build_squares(affinity1, affinity2, mask.size)
+            #print("build from list: %f"%(time()-t))
+            #t = time()
+            _compute_sq_mask(squares, mask, sqratio)
+            #print("square mask: %f"%(time()-t))
+            #t = time()
+            square_matrix = _mask_squares(squares, mask)
+            #print("build from mask: %f"%(time()-t))
+            return square_matrix
+
+        mask = _compute_sim_mask(sim_matrix, sim_ratio)
+        square_matrix = _compute_mask(affinity1, affinity2, mask, sq_ratio)
+        sim_matrix_data = sim_matrix[mask]
+        sim_matrix = csr_matrix(mask, dtype=np.float32)
+        sim_matrix.data = sim_matrix_data
+        return sim_matrix, square_matrix
 
     def _check_matrix(self) -> bool:
         if np.isnan(self.sim_matrix).any():

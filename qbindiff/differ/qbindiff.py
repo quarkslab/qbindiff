@@ -31,7 +31,8 @@ class QBinDiff:
 
     def compute(self, tradeoff: Ratio=0.5, maxiter: int=100,) -> None:
 
-        if tradeoff == 1:
+        if tradeoff == 0:
+            logging.info("[+] switching to Maximum Weight Matching (tradeoff is 0)")
             belief = BeliefMWM(weights=self.data.sim_matrix)
         else:
             belief = BeliefNAQP(weights=self.data.sim_matrix, squares=self.data.square_matrix, tradeoff=tradeoff)

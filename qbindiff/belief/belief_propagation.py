@@ -44,6 +44,7 @@ class BeliefMWM:
     @property
     def matching(self) -> BeliefMatching:
         rows = np.logical_or.reduceat(self.mates, self._rowmap[:-1]).nonzero()[0]
+        #rows = np.searchsorted(self._rowmap[1:], self.mates.nonzero()[0], side="right")
         cols = self._colidx[self.mates]
         weights = self.weights[self.mates]
         return zip(rows, cols, weights)
@@ -135,7 +136,7 @@ class BeliefMWM:
             return obj[-2*idx:-idx] == obj[-idx:]
         patterns = self.objective[-w:-m]
         actual = self.objective[-1]
-        if actual in patterns:
+        if actual and actual in patterns:
             pivot = patterns[::-1].index(actual) + m
             if _converged_(self.objective, pivot):
                 self._converged_iter = np.argmax(self.objective[-pivot:]) + 1
@@ -173,10 +174,12 @@ class BeliefNAQP(BeliefMWM):
 
     def _init_beta(self, tradeoff: Ratio, active_beta: bool) -> None:
         self.active_beta = active_beta
-        if tradeoff == 0:
+        if tradeoff == 1:
             self.weights = np.zeros_like(self.weights)
             tradeoff = .5
-        tradeoff = 1 / tradeoff - 1
+        elif tradeoff == 0:
+            logging.warning("[+] Meaningless tradeoff for NAQP (set to 1)")
+        tradeoff = 1 / (1 - tradeoff) - 1
         if active_beta:
             self.beta = np.full_like(weights.data, tradeoff)
         else:

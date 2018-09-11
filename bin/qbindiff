@@ -94,9 +94,9 @@ help_distance = "Mathematical distance function between cosine and correlation [
 @click.option('-d', '--distance', type=click.Choice(DISTANCE), default=DEFAULT_DISTANCE,
               metavar="<function>", help=help_distance)
 @click.option('-si', '--sim_ratio', type=float, default=DEFAULT_SIM_RATIO,
-              help="Ratio of matches to remove based on content similarity. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SIM_RATIO)
+              help="Minimum function-based similarity ratio of matches to be considered. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SIM_RATIO)
 @click.option('-sq', '--sq_ratio', type=float, default=DEFAULT_SQ_RATIO,
-              help="Ratio of shared squares for a new match to be considered based on callgraph informations. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SQ_RATIO)
+              help="Minimum call-graph-based similarity ratio of matches to be considered. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SQ_RATIO)
 @click.option('-i', '--maxiter', type=int, default=DEFAULT_MAXITER,
               help="Maximum number of iteration for belief propagation [default: %d]" % DEFAULT_MAXITER)
 @click.option('-t', '--tradeoff', type=float, default=DEFAULT_TRADEOFF,
