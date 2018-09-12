@@ -1,18 +1,16 @@
-from collections import OrderedDict
-
 from qbindiff.loader.types import LoaderType
 from qbindiff.loader.backend.binexport import ProgramBackendBinExport
 from qbindiff.loader.backend.qbindiff import ProgramBackendQBinDiff
 
 
-class Program(OrderedDict):
+class Program(dict):
     """
     Program class that shoadows the underlying program backend used.
-    It inherits from OrderedDict which keys are function addresses and
+    It inherits from dict which keys are function addresses and
     values are Function object.
     """
     def __init__(self, loader: str=None, *args):
-        OrderedDict.__init__(self)
+        dict.__init__(self)
         self._backend = None
         if loader is not None:
             loader = LoaderType[loader]

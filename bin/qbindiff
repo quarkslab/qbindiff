@@ -5,7 +5,7 @@ import logging
 import os.path
 import click
 from tqdm import tqdm
-import json
+from json import dump
 import numpy
 
 # Pop the directory of the script (to avoid import conflict with qbindiff (same name)
@@ -13,11 +13,13 @@ import sys
 del sys.path[0]
 
 from qbindiff.loader.program import Program
+from qbindiff.differ.qbindiff import QBinDiff
+
 from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCategory
 from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanDegree, \
         GraphDensity, GraphNbComponents, GraphDiameter, GraphTransitivity, GraphCommunities
 from qbindiff.features.artefact import LibName, DatName, Constant, ImpName
-from qbindiff.differ.qbindiff import QBinDiff
+
 from qbindiff.loader.types import LoaderType
 
 
@@ -126,7 +128,7 @@ def main(output, loader, feature, distance, sim_ratio, sq_ratio, maxiter, tradeo
         tradeoff = DEFAULT_TRADEOFF
 
     # Preprocessing to extract features and filters functions
-    logging.info("[+] Loading programs")
+    logging.info("[+] loading programs")
     p1, p2 = None, None
     if loader == "qbindiff":
         p1 = load_qbindiff_program(primary)
@@ -146,19 +148,20 @@ def main(output, loader, feature, distance, sim_ratio, sq_ratio, maxiter, tradeo
 
     differ = QBinDiff(p1, p2)
 
-    logging.info("[+] Initialize messages")
+    logging.info("[+] initialize messages")
     differ.initialize(features=features, distance=distance, sim_ratio=sim_ratio, sq_ratio=sq_ratio)
 
-    logging.info("[+] Compute messages")
+    logging.info("[+] compute messages")
     for _ in tqdm(differ.compute(tradeoff=tradeoff, maxiter=maxiter), total=maxiter):
         pass
 
-    logging.info("[+] Refine matching")
-    differ.refine()
+    if refine_match:
+        logging.info("[+] refine matching")
+        differ.refine()
 
     with open(str(output), 'w') as f_out:
-        json.dump(differ.matching, f_out)
-    logging.info("[+] Matching successfully saved to: %s" % output)
+        dump(differ.matching, f_out)
+    logging.info("[+] matching successfully saved to: %s" % output)
     exit(0)
 
 if __name__ == '__main__':

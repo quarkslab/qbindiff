@@ -30,14 +30,14 @@ Matching = Dict[Addr, Addr]
 Low-level matching on matrix indexes computed by
 the belief propagation algorithm. (Internal type)
 """
-BeliefMatching = List[Tuple[Idx, Optional[Idx]]]
+BeliefMatching = Generator[Tuple[Idx, Idx, float], None, None]
 
 """
 Final matching. List of pairs of function of both primary and secondary
 binary. One of the two can be None if it has not been matched. The length
 of the list is len_matched + len_unmatched_p1 + len_unmatched_p2
 """
-FinalMatching = List[Tuple[Optional[Addr], Optional[Addr]]]
+FinalMatching = dict
 
 """
 1-Dimensional array. Use to represente slice of a matrix or function features
@@ -86,4 +86,4 @@ ProgramFeatures = Dict[Addr, FunctionFeatures]
 """
 List of addresses of both programs to be anchored together
 """
-Anchors = Tuple[List[Addr], List[Addr]]
+Anchors = Tuple[Optional[List[Addr]], Optional[List[Addr]]]

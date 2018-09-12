@@ -13,33 +13,26 @@ from qbindiff.features.visitor import FeatureExtractor
 from qbindiff.types import Tuple, AddrIndex, Vector, Matrix, Anchors, Ratio
 
 
-class PreProcessor:
+class Preprocessor:
     """docstring for Preprocessor"""
     def __init__(self, primary: Program, secondary: Program) -> None:
         self.primary = primary
         self.secondary = secondary
+        self.primary_features = None
+        self.secondary_features = None
 
-    def process(self, features: FeatureExtractor=[], distance: str ="cosine", sim_ratio: Ratio=.9, sq_ratio: Ratio=.6) -> None:
-
-        affinity1, affinity2 = self._prepare_matrices(features=features, distance=distance)
-        if self._check_matrix():
-            self._build_matrices(affinity1=affinity1, affinity2=affinity2, sim_ratio=sim_ratio, sq_ratio=sq_ratio)
-
-    def _prepare_matrices(self, features: FeatureExtractor=[], distance: str ="cosine") -> Tuple[Matrix, Matrix]:
+    def extract_features(self, features: FeatureExtractor=[], distance: str ="cosine") -> Tuple[Matrix, Matrix, Matrix]:
         self._load_features(features)
         self._process_features()
         anchors = self._set_anchors()
-        self._compute_sim_matrix(distance)
-        affinity1, affinity2 = self._build_affinity(anchors)
-        self._apply_anchors(anchors)
-        return affinity1, affinity2
+        sim_matrix = self._compute_sim_matrix(distance)
+        primary_affinity, secondary_affinity = self._build_affinity(anchors)
+        self._apply_anchors(sim_matrix, anchors)
+        return sim_matrix, primary_affinity, secondary_affinity
 
-    def _build_matrices(self, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio, sq_ratio: Ratio) -> None:
-        mask = self._compute_sim_mask(sim_ratio)
-        mask[:] = self._compute_mask(affinity1, affinity2, mask, sq_ratio)
-        sim_matrix_data = self.sim_matrix[mask]
-        self.sim_matrix = csr_matrix(mask, dtype=np.float32)
-        self.sim_matrix.data = sim_matrix_data
+    def filter_matrices(self,sim_matrix: Matrix, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
+        sim_matrix, square_matrix = self._filter_matrices(sim_matrix, affinity1, affinity2, sim_ratio, sq_ratio)
+        return sim_matrix, square_matrix
 
     def _load_features(self, features: FeatureExtractor) -> None:
 
@@ -98,12 +91,13 @@ class PreProcessor:
         except NotImplementedError:
             return [None, None]
 
-    def _compute_sim_matrix(self, distance: str) -> None:
-        self.sim_matrix = cdist(self.primary_features, self.secondary_features, distance).astype(np.float32)
-        self.sim_matrix[np.isnan(self.sim_matrix)] = 0
-        self.sim_matrix /= self.sim_matrix.max()
-        np.negative(self.sim_matrix, out=self.sim_matrix)
-        self.sim_matrix += 1
+    def _compute_sim_matrix(self, distance: str) -> Matrix:
+        sim_matrix = cdist(self.primary_features, self.secondary_features, distance).astype(np.float32)
+        sim_matrix[np.isnan(sim_matrix)] = 0
+        sim_matrix /= sim_matrix.max()
+        np.negative(sim_matrix, out=sim_matrix)
+        sim_matrix += 1
+        return sim_matrix
 
     def _build_affinity(self, anchors: Anchors) -> Tuple[Matrix, Matrix]:
         """
@@ -125,30 +119,27 @@ class PreProcessor:
                 affinity[:,anchors] = False
             return affinity
 
-        affinity1 = _build_affinity_(self.primary, self.primary_features.index, anchors[0])
-        affinity2 = _build_affinity_(self.secondary, self.secondary_features.index, anchors[1])
-        return affinity1, affinity2
+        primary_affinity = _build_affinity_(self.primary, self.primary_features.index, anchors[0])
+        secondary_affinity = _build_affinity_(self.secondary, self.secondary_features.index, anchors[1])
+        return primary_affinity, secondary_affinity
 
-    def _apply_anchors(self, anchors: Anchors) -> None:
+    def _apply_anchors(self, sim_matrix: Matrix, anchors: Anchors) -> None:
         if anchors[0] is not None:
             idx1, idx2 = anchors
-            self.sim_matrix[idx1] = 0
-            self.sim_matrix[:,idx2] = 0
-            self.sim_matrix[idx1, idx2] = 1
-
-    def _build_matrices(self, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> None:
-        self.sim_matrix, self.square_matrix = self.build_matrices(self.sim_matrix, affinity1=affinity1, affinity2=affinity2, sim_ratio=sim_ratio, sq_ratio=sq_ratio)
+            sim_matrix[idx1] = 0
+            sim_matrix[:,idx2] = 0
+            sim_matrix[idx1, idx2] = 1
 
     @staticmethod
-    def build_matrices(sim_matrix:Matrix, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
+    def _filter_matrices(sim_matrix: Matrix, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
 
-        def _compute_sim_mask(sim_matrix, sim_ratio: Ratio=.7) -> Matrix:
+        def _compute_sim_mask(sim_matrix: Matrix, sim_ratio: Ratio=.7) -> Matrix:
             sim_ratio = int(sim_ratio * sim_matrix.size)
             threshold = np.partition(sim_matrix.reshape(-1), sim_ratio)[sim_ratio]
             sim_mask = sim_matrix >= threshold
             return sim_mask
 
-        def _compute_mask(affinity1: Matrix, affinity2: Matrix, mask: Matrix, sqratio: Ratio=.6) -> Matrix:
+        def _compute_mask(affinity1: Matrix, affinity2: Matrix, mask: Matrix, sqratio: Ratio=.6) -> csr_matrix:
 
             def _build_squares(affinity1: Matrix, affinity2: Matrix, shape: int) -> csr_matrix:
                 row, col = _kronecker(affinity1, affinity2)
@@ -199,11 +190,12 @@ class PreProcessor:
         sim_matrix.data = sim_matrix_data
         return sim_matrix, square_matrix
 
-    def _check_matrix(self) -> bool:
-        if np.isnan(self.sim_matrix).any():
+    @staticmethod
+    def check_matrix(sim_matrix: Matrix) -> bool:
+        if np.isnan(sim_matrix).any():
             logging.warning("Incompatibilty between distance and features (nan returned)")
             return False
-        if self.sim_matrix.shape[0] == 0:  # check the weight matrix size
+        if sim_matrix.shape[0] == 0:  # check the weight matrix size
             logging.warning("No possible function match: empty weight matrix (you can retry lowering the threshold)")
             return False
         return True

@@ -37,9 +37,9 @@ class BeliefMWM:
                     niter += 1
                     yield niter
                 yield maxiter
-                logging.debug("Converged after %d iterations" % niter)
+                logging.debug("[+] converged after %d iterations" % niter)
                 return
-        logging.debug("Did not converge after %d iterations" % niter)
+        logging.debug("[+] did not converge after %d iterations" % niter)
 
     @property
     def matching(self) -> BeliefMatching:
@@ -178,8 +178,8 @@ class BeliefNAQP(BeliefMWM):
             self.weights = np.zeros_like(self.weights)
             tradeoff = .5
         elif tradeoff == 0:
-            logging.warning("[+] Meaningless tradeoff for NAQP (set to 1)")
-        tradeoff = 1 / (1 - tradeoff) - 1
+            logging.warning("[+] meaningless tradeoff for NAQP (set to 1)")
+        tradeoff = tradeoff / (1 - tradeoff)
         if active_beta:
             self.beta = np.full_like(weights.data, tradeoff)
         else:
