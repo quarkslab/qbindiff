@@ -64,7 +64,11 @@ FEATURES = {MnemonicSimple,
             Constant,
             ImpName,
             NbChildren,
+<<<<<<< HEAD
             NbParents,
+=======
+            NbParents, 
+>>>>>>> 48744100df99b0df758fda8acb3176a99e335ccb
             NbFamily
             # New features should be added here
             }
