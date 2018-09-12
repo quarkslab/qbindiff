@@ -21,6 +21,7 @@ from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanD
 from qbindiff.features.artefact import LibName, DatName, Constant, ImpName
 
 from qbindiff.loader.types import LoaderType
+from qbindiff.features.topology import NbChildren, NbParents, NbFamily
 
 
 def configure_logging(verbose):
@@ -61,7 +62,10 @@ FEATURES = {MnemonicSimple,
             LibName,
             DatName,
             Constant,
-            ImpName
+            ImpName,
+            NbChildren,
+            NbParents,
+            NbFamily
             # New features should be added here
             }
 
@@ -158,6 +162,12 @@ def main(output, loader, feature, distance, sim_ratio, sq_ratio, maxiter, tradeo
     if refine_match:
         logging.info("[+] refine matching")
         differ.refine()
+
+        #differ.matching.write_file(output)
+        #logging.info("[+] matching successfully saved to: %s" % output)
+        #exit(0)
+    #else:
+        #exit(1)
 
     with open(str(output), 'w') as f_out:
         dump(differ.matching, f_out)

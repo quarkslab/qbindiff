@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import json
 from collections import namedtuple
 
@@ -24,6 +26,10 @@ class Matching:
         if file:
             self.load_file(file)
 
+    def __iter__(self):
+        for i in self.primary_idx.values():
+            yield i
+
     @property
     def similarity(self) -> float:
         ''' Global similarity of the diff '''
@@ -33,6 +39,10 @@ class Matching:
     def similarity(self, value: float) -> None:
         self.global_sim = value
 
+    @property
+    def matching(self):
+        return {x.addr_primary: x.addr_secondary for x in self.primary_idx.values()}
+
     def add_match(self, addr_p1: Addr, addr_p2: Addr, similarity: float=None) -> None:
         """
         Add the given match between the two function addresses
@@ -41,7 +51,7 @@ class Matching:
         :param similarity: similarity metric as float
         :return: None
         """
-        match = Match(addr_p1, addr_p2, similarity)
+        match = Match(addr_p1, addr_p2, float("{0:.2f}".format(similarity)))
         self.primary_idx[addr_p1] = match
         self.secondary_idx[addr_p2] = match
 
@@ -126,7 +136,7 @@ class Matching:
         for entry in data["matches"]:
             if entry['addr1'] is None:
                 self.add_unmatch_secondary(entry['addr2'])
-            if entry['addr2'] is None:
+            elif entry['addr2'] is None:
                 self.add_unmatch_primary(entry['addr1'])
             else:
                 addr1, addr2 = entry['addr1'], entry['addr2']
@@ -140,8 +150,8 @@ class Matching:
                                     'addr2': match.addr_secondary,
                                     'similarity': match.similarity})
         for un_p1 in self.unmatched_primary:
-            data['matches'].append({'addr1': un_p1, 'addr2': None, 'similarity': None})
+            data['matches'].append({'addr1': un_p1, 'addr2': None, 'similarity': 0.0})
         for un_p2 in self.unmatched_secondary:
-            data['matches'].append({'addr1': None, 'addr2': un_p2, 'similarity': None})
+            data['matches'].append({'addr1': None, 'addr2': un_p2, 'similarity': 0.0})
         with open(out_file, "w") as out:
             json.dump(data, out)

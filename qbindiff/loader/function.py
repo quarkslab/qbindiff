@@ -35,6 +35,10 @@ class Function(dict):
         self._backend = FunctionBackendIDA(self, addr)
 
     @property
+    def edges(self):
+        return list(self.graph.edges)
+
+    @property
     def addr(self) -> Addr:
         """
         Address of the function

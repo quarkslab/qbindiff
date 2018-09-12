@@ -5,12 +5,12 @@ from itertools import chain
 
 # Imports for types
 from qbindiff.loader.program import Program
-from qbindiff.types import Set, Optional, Addr, DataFrame, BeliefMatching
+from qbindiff.types import Set, Optional, Addr, DataFrame, PureMatching
 
 
 class Postprocessor:
     """docstring for PostProcessor"""
-    def __init__(self, primary: Program, secondary: Program, primary_features: DataFrame, secondary_features: DataFrame, matchindex: BeliefMatching) -> None:
+    def __init__(self, primary: Program, secondary: Program, primary_features: DataFrame, secondary_features: DataFrame, matchindex: PureMatching) -> None:
         self.primary = primary
         self.secondary = secondary
         self.primary_features = primary_features

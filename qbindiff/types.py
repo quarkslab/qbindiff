@@ -24,7 +24,7 @@ AddrIndex = Index
 Matching of functions as a dictionnary from primary
 function addresses to secondary function addresses
 """
-Matching = Dict[Addr, Addr]
+PureMatching = Dict[Addr, Addr]
 
 """
 Low-level matching on matrix indexes computed by
@@ -43,6 +43,11 @@ FinalMatching = dict
 1-Dimensional array. Use to represente slice of a matrix or function features
 """
 Vector = numpy.array
+
+"""
+2-Dimensional array. Use during the similarity matrix computation
+"""
+Matrix = numpy.array
 
 """
 2-Dimensional array. Use during the similarity matrix computation
