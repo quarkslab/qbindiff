@@ -12,7 +12,7 @@ class BeliefMatrixError(Exception):
     pass
 
 
-class BeliefMWM:
+class BeliefMWM:    
     """
     Compute the **Maxmimum Weight Matching** of the matrix of weights (similarity).
     Returns the *real* maximum assignement.
@@ -163,14 +163,8 @@ class BeliefNAQP(BeliefMWM):
     """
     def __init__(self, weights: InputMatrix, squares: csr_matrix, tradeoff: Ratio=0.5, active_beta: bool=False):
         super(BeliefNAQP, self).__init__(weights)
-        self._init_squares(squares)
         self._init_beta(tradeoff, active_beta)
-
-    def _init_squares(self, squares: csr_matrix) -> None:
-        self.z = squares.astype(np.float32)
-        self.mz = np.zeros_like(self.weights, np.float32)
-        self._zrownnz = np.diff(squares.indptr)
-        self._ztocol = np.argsort(self.z.indices, kind="mergesort")
+        self._init_squares(squares)
 
     def _init_beta(self, tradeoff: Ratio, active_beta: bool) -> None:
         self.active_beta = active_beta
@@ -184,6 +178,16 @@ class BeliefNAQP(BeliefMWM):
             self.beta = np.full_like(weights.data, tradeoff)
         else:
             self.beta = tradeoff
+
+    def _init_squares(self, squares: csr_matrix) -> None:
+        self.z = squares.astype(np.float32)
+        self.mz = np.zeros_like(self.weights, np.float32)
+        self._zrownnz = np.diff(squares.indptr)
+        self._ztocol = np.argsort(self.z.indices, kind="mergesort")
+        if self.active_beta:
+            np.clip(self.z.data, 0, np.repeat(self.beta, self._zrownnz), out=self.z.data)
+        else:
+            np.clip(self.z.data, 0, self.beta, out=self.z.data)
 
     def _update_messages(self) -> None:
         self.mz[:] = self.weights + self.z.sum(0).getA1()

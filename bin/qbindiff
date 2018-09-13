@@ -64,11 +64,8 @@ FEATURES = {MnemonicSimple,
             Constant,
             ImpName,
             NbChildren,
-<<<<<<< HEAD
             NbParents,
-=======
-            NbParents, 
->>>>>>> 48744100df99b0df758fda8acb3176a99e335ccb
+            NbParents,
             NbFamily
             # New features should be added here
             }
@@ -157,7 +154,8 @@ def main(output, loader, feature, distance, sim_ratio, sq_ratio, maxiter, tradeo
     differ = QBinDiff(p1, p2)
 
     logging.info("[+] initialize messages")
-    differ.initialize(features=features, distance=distance, sim_ratio=sim_ratio, sq_ratio=sq_ratio)
+    if not differ.initialize(features=features, distance=distance, sim_ratio=sim_ratio, sq_ratio=sq_ratio):
+        exit(1)
 
     logging.info("[+] compute messages")
     for _ in tqdm(differ.compute(tradeoff=tradeoff, maxiter=maxiter), total=maxiter):
@@ -167,14 +165,10 @@ def main(output, loader, feature, distance, sim_ratio, sq_ratio, maxiter, tradeo
         logging.info("[+] refine matching")
         differ.refine()
 
-        #differ.matching.write_file(output)
-        #logging.info("[+] matching successfully saved to: %s" % output)
-        #exit(0)
-    #else:
-        #exit(1)
-
     with open(str(output), 'w') as f_out:
         dump(differ.matching, f_out)
+
+    #differ.matching.write_file(output)
     logging.info("[+] matching successfully saved to: %s" % output)
     exit(0)
 

@@ -28,7 +28,7 @@ class QBinDiff:
         self.objective = .0
         self._sim_index = dict()
 
-    def initialize(self, features: FeatureExtractor=[], distance: str ="cosine", sim_ratio: Ratio=.9, sq_ratio: Ratio=.6) ->  None:
+    def initialize(self, features: FeatureExtractor=[], distance: str ="cosine", sim_ratio: Ratio=.9, sq_ratio: Ratio=.6) ->  bool:
         """
         Initialize the diffing by extracting the features in the programs, computing
         the call graph as needed by the belief propagation and by applying the threshold
@@ -47,8 +47,8 @@ class QBinDiff:
             self.square_matrix = square_matrix
             size = self.sim_matrix.shape[0] * self.sim_matrix.shape[1]
             logging.debug("[+] preprocessing sparseness : %f (%d/%d)" %(self.sim_matrix.size/size, self.sim_matrix.size, size))
-        else:
-            exit(1)
+            return True
+        return False
 
     def compute(self, tradeoff: Ratio=0.5, maxiter: int=100,) -> None:
         """
