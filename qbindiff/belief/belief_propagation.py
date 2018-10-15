@@ -12,7 +12,7 @@ class BeliefMatrixError(Exception):
     pass
 
 
-class BeliefMWM:    
+class BeliefMWM:
     """
     Compute the **Maxmimum Weight Matching** of the matrix of weights (similarity).
     Returns the *real* maximum assignement.
@@ -53,7 +53,8 @@ class BeliefMWM:
         self.dims = weights.shape
         self._colidx = weights.indices
         self._rowmap = weights.indptr
-        self._colmap = np.hstack((0, np.bincount(self._colidx).cumsum(dtype=np.int32)))
+        self._colmap = np.zeros(weights.shape[1]+1, dtype=np.int32)
+        self._colmap[1:] = np.bincount(self._colidx).cumsum(dtype=np.int32)
         self._tocol = self._colidx.argsort(kind="mergesort").astype(np.int32)
         self._torow = np.zeros_like(self._tocol)
         self._torow[self._tocol] = np.arange(weights.size, dtype=np.int32)
@@ -72,7 +73,7 @@ class BeliefMWM:
         self._round_messages()
 
     def _round_messages(self) -> None:
-        self.mates[:]= self.messages >= 0
+        self.mates[:] = self.messages >= 0
         matchmask = np.add.reduceat(self.mates, self._rowmap[:-1]) == 1
         self.mates[:] &= np.repeat(matchmask, self._rownnz)
         self.objective.append(self._objective())
@@ -122,7 +123,7 @@ class BeliefMWM:
     def _objective(self) -> float:
         return self.weights[self.mates].sum()
 
-    def _converged(self, m: int=5, w: int=50) -> bool:
+    def _converged(self, m: int=10, w: int=50) -> bool:
         """
         Decide whether or not the algorithm have converged
 
