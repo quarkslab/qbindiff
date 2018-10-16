@@ -9,6 +9,7 @@ from qbindiff.belief.belief_propagation import BeliefMWM, BeliefNAQP
 from qbindiff.types import Tuple, Set, Ratio, BeliefMatching, FinalMatching
 from qbindiff.loader.program import Program
 from qbindiff.features.visitor import FeatureExtractor
+from typing import List
 
 
 class QBinDiff:
@@ -20,6 +21,7 @@ class QBinDiff:
         self.secondary = secondary
         self.primary_features = None
         self.secondary_features = None
+        self.matching = None  # final matching filled after computation
 
         self.sim_matrix = None
         self.square_matrix = None
@@ -28,7 +30,7 @@ class QBinDiff:
         self.objective = .0
         self._sim_index = dict()
 
-    def initialize(self, features: FeatureExtractor=[], distance: str ="cosine", sim_ratio: Ratio=.9, sq_ratio: Ratio=.6) ->  bool:
+    def initialize(self, features: List[FeatureExtractor]=[], distance: str ="cosine", sim_threshold: Ratio=.9, sq_threshold: Ratio=.6) -> bool:
         """
         Initialize the diffing by extracting the features in the programs, computing
         the call graph as needed by the belief propagation and by applying the threshold
@@ -42,7 +44,7 @@ class QBinDiff:
         self.secondary_features = preprocessor.secondary_features
 
         if preprocessor.check_matrix(sim_matrix):
-            sim_matrix, square_matrix = preprocessor.filter_matrices(sim_matrix, affinity1, affinity2, sim_ratio, sq_ratio)
+            sim_matrix, square_matrix = preprocessor.filter_matrices(sim_matrix, affinity1, affinity2, sim_threshold, sq_threshold)
             self.sim_matrix = sim_matrix
             self.square_matrix = square_matrix
             size = self.sim_matrix.shape[0] * self.sim_matrix.shape[1]

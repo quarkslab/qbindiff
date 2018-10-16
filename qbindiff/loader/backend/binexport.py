@@ -259,7 +259,7 @@ class FunctionBackendBinExport(object):
     @name.setter
     def name(self, name):
         self._name = name
-&
+
     @property
     def type(self):
         return {BinExport2.CallGraph.Vertex.NORMAL: FunctionType.normal,

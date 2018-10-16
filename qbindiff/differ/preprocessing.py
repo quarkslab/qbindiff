@@ -11,6 +11,7 @@ from qbindiff.features.visitor import ProgramVisitor
 from qbindiff.loader.program import Program
 from qbindiff.features.visitor import FeatureExtractor
 from qbindiff.types import Tuple, AddrIndex, Vector, Matrix, Anchors, Ratio
+from typing import List
 
 
 class Preprocessor:
@@ -34,47 +35,45 @@ class Preprocessor:
         sim_matrix, square_matrix = self._filter_matrices(sim_matrix, affinity1, affinity2, sim_ratio, sq_ratio)
         return sim_matrix, square_matrix
 
-    def _load_features(self, features: FeatureExtractor) -> None:
+    @staticmethod
+    def _build_visitor(features: List[FeatureExtractor]) -> ProgramVisitor:
+        visitor = ProgramVisitor()
+        for feature in features:
+            visitor.register_feature(feature())
+        return visitor
 
-        def _build_visitor(features: FeatureExtractor) -> ProgramVisitor:
-            visitor = ProgramVisitor()
-            if not isinstance(features, list):
-                visitor.register_feature(features())
-            else:
-                for feature in features:
-                    visitor.register_feature(feature())
-            return visitor
+    @staticmethod
+    def _build_feature_idx(primary_features: dict, secondary_features: dict) -> dict:
+        """
+        Builds a set a all existing features in both programs
+        """
+        features_names = set()
+        for p_features in [primary_features, secondary_features]:
+            for fun in p_features.values():
+                features_names.update(fun.keys())
+        return dict(zip(features_names, range(len(features_names))))
 
-        def _build_feature_idx(primary_features: dict, secondary_features: dict) -> dict:
-            """
-            Builds a set a all existing features in both programs
-            """
-            features_names = set()
-            for p_features in [primary_features, secondary_features]:
-                for fun in p_features.values():
-                    features_names.update(fun.keys())
-            return dict(zip(features_names, range(len(features_names))))
+    @staticmethod
+    def _vectorize_features(program_features: dict, features_idx: dict, dtype=np.float32) -> DataFrame:
+        """
+        Converts function features into vector forms (DataFrame)
+        """
+        features = np.zeros((len(program_features), len(features_idx)), dtype=dtype)
+        for funid, pfeatures in enumerate(program_features.values()):
+            if pfeatures:  # if the function have features (otherwise array cells are already zeroes
+                opid, count = zip(*((features_idx[opc], count) for opc, count in pfeatures.items() if opc in features_idx))
+                features[funid, opid] = count
+        features = DataFrame(features, index=program_features.keys())
+        return features
 
-        def _vectorize_features(program_features: dict, features_idx: dict, dtype=np.float32) -> DataFrame:
-            """
-            Converts function features into vector forms (DataFrame)
-            """
-            features = np.zeros((len(program_features), len(features_idx)), dtype=dtype)
-            for funid, pfeatures in enumerate(program_features.values()):
-                if pfeatures:  # if the function have features (otherwise array cells are already zeroes
-                    opid, count = zip(*((features_idx[opc], count) for opc, count in pfeatures.items() if opc in features_idx))
-                    features[funid, opid] = count
-            features = DataFrame(features, index=program_features.keys())
-            return features
-
-        visitor = _build_visitor(features)
+    def _load_features(self, features: List[FeatureExtractor]) -> None:
+        visitor = self._build_visitor(features)
 
         primary_features, secondary_features = (visitor.visit_program(p) for p in (self.primary, self.secondary))
+        features_idx = self._build_feature_idx(primary_features, secondary_features)
 
-        features_idx = _build_feature_idx(primary_features, secondary_features)
-
-        self.primary_features = _vectorize_features(primary_features, features_idx)
-        self.secondary_features = _vectorize_features(secondary_features, features_idx)
+        self.primary_features = self._vectorize_features(primary_features, features_idx)
+        self.secondary_features = self._vectorize_features(secondary_features, features_idx)
 
     def _process_features(self) -> None:
         opcsum = self.primary_features.sum(0) + self.secondary_features.sum(0)

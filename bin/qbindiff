@@ -80,8 +80,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
 DEFAULT_LOADER = LoaderType.binexport.name
 DEFAULT_OUTPUT = "matching.json"
 DEFAULT_DISTANCE = "auto"
-DEFAULT_SIM_RATIO = .9
-DEFAULT_SQ_RATIO = .75
+DEFAULT_SIM_THRESHOLD = .9
+DEFAULT_SQUARE_THRESHOLD = .75
 DEFAULT_MAXITER = 80
 DEFAULT_TRADEOFF = 0.5
 
@@ -100,10 +100,10 @@ help_distance = "Mathematical distance function between cosine and correlation [
               metavar="<feature>", help=help_features, required=True)
 @click.option('-d', '--distance', type=click.Choice(DISTANCE), default=DEFAULT_DISTANCE,
               metavar="<function>", help=help_distance)
-@click.option('-si', '--sim_ratio', type=float, default=DEFAULT_SIM_RATIO,
-              help="Minimum function-based similarity ratio of matches to be considered. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SIM_RATIO)
-@click.option('-sq', '--sq_ratio', type=float, default=DEFAULT_SQ_RATIO,
-              help="Minimum call-graph-based similarity ratio of matches to be considered. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SQ_RATIO)
+@click.option('-sit', '--sim_threshold', type=float, default=DEFAULT_SIM_THRESHOLD,
+              help="Minimum function-based similarity ratio of matches to be considered. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SIM_THRESHOLD)
+@click.option('-sqt', '--sq_threshold', type=float, default=DEFAULT_SQUARE_THRESHOLD,
+              help="Minimum call-graph-based similarity ratio of matches to be considered. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SQUARE_THRESHOLD)
 @click.option('-i', '--maxiter', type=int, default=DEFAULT_MAXITER,
               help="Maximum number of iteration for belief propagation [default: %d]" % DEFAULT_MAXITER)
 @click.option('-t', '--tradeoff', type=float, default=DEFAULT_TRADEOFF,
@@ -112,7 +112,7 @@ help_distance = "Mathematical distance function between cosine and correlation [
 @click.option('-v', '--verbose', count=True, help="Activate debugging messages")
 @click.argument("primary", type=click.Path(exists=True), metavar="<primary file>")
 @click.argument('secondary', type=click.Path(exists=True), metavar="<secondary file>")
-def main(output, loader, feature, distance, sim_ratio, sq_ratio, maxiter, tradeoff, refine_match, verbose, primary, secondary):
+def main(output, loader, feature, distance, sim_threshold, sq_threshold, maxiter, tradeoff, refine_match, verbose, primary, secondary):
     """
     qBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
@@ -120,13 +120,13 @@ def main(output, loader, feature, distance, sim_ratio, sq_ratio, maxiter, tradeo
 
     configure_logging(verbose)
 
-    if 0.0 > sim_ratio > 1:
-        logging.warning("Similarity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SIM_RATIO)
-        threshold = 1
+    if 0.0 > sim_threshold > 1:
+        logging.warning("Similarity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SIM_THRESHOLD)
+        sim_threshold = 1
 
-    if 0.0 > sq_ratio > 1:
-        logging.warning("Square ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SQ_RATIO)
-        sparsity = DEFAULT_THRESHOLD_SPARSITY
+    if 0.0 > sq_threshold > 1:
+        logging.warning("Square ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SQUARE_THRESHOLD)
+        sq_threshold = DEFAULT_SQUARE_THRESHOLD
 
     if 0.0 > tradeoff > 1:  # verify that tradeoff
         logging.warning("Trade-off parameter should be within 0..1 (set it to %.2f)" % DEFAULT_TRADEOFF)
@@ -149,15 +149,22 @@ def main(output, loader, feature, distance, sim_ratio, sq_ratio, maxiter, tradeo
         logging.error("Diaphora loader not implemented yet..")
         exit(1)
 
-    features = [FEATURES_KEYS[name] for name in feature]
+    features = []
+    ft_seen = set()
+    for ft_name in feature:
+        if ft_name in ft_seen:
+            logging.warning("Feature %s already registered (skip it)" % ft_name)
+        else:
+            features.append(FEATURES_KEYS[ft_name])
+            ft_seen.add(ft_name)
 
     differ = QBinDiff(p1, p2)
 
-    logging.info("[+] initialize messages")
-    if not differ.initialize(features=features, distance=distance, sim_ratio=sim_ratio, sq_ratio=sq_ratio):
+    logging.info("[+] initialize NAQP computation")
+    if not differ.initialize(features=features, distance=distance, sim_threshold=sim_threshold, sq_threshold=sq_threshold):
         exit(1)
 
-    logging.info("[+] compute messages")
+    logging.info("[+] starts NAQP computation")
     for _ in tqdm(differ.compute(tradeoff=tradeoff, maxiter=maxiter), total=maxiter):
         pass
 
@@ -165,12 +172,10 @@ def main(output, loader, feature, distance, sim_ratio, sq_ratio, maxiter, tradeo
         logging.info("[+] refine matching")
         differ.refine()
 
-    with open(str(output), 'w') as f_out:
-        dump(differ.matching, f_out)
-
-    #differ.matching.write_file(output)
+    differ.matching.write_file(output)
     logging.info("[+] matching successfully saved to: %s" % output)
     exit(0)
+
 
 if __name__ == '__main__':
     main()
