@@ -148,7 +148,7 @@ class Matching:
 
     def write_file(self, out_file: str) -> None:
         """ Output the matching to a json file """
-        data = {'similarity': self.similarity, 'matches': []}
+        data = {'similarity': float("{0:.2f}".format(self.similarity)), 'matches': []}
         for match in self.primary_idx.values():
             data['matches'].append({'addr1': match.addr_primary,
                                     'addr2': match.addr_secondary,
@@ -157,5 +157,6 @@ class Matching:
             data['matches'].append({'addr1': un_p1, 'addr2': None, 'similarity': 0.0})
         for un_p2 in self.unmatched_secondary:
             data['matches'].append({'addr1': None, 'addr2': un_p2, 'similarity': 0.0})
+
         with open(out_file, "w") as out:
             json.dump(data, out)

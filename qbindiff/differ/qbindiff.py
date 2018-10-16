@@ -110,7 +110,7 @@ class QBinDiff:
         for idx1, idx2, sim in belief_matching:
             addr1 = self.primary_features.index[idx1]  # TODO: check
             addr2 = self.secondary_features.index[idx2]
-            self._matching.add_match(addr1, addr2, sim)
+            self._matching.add_match(int(addr1), int(addr2), sim)
         self._matching.similarity = belief_objective
 
 # ================ POST PROCESSOR ====================
@@ -152,7 +152,7 @@ class QBinDiff:
     def _get_candidates(self, addr: Addr) -> Optional[Set[Addr]]:
         """
         Extracts the candidate set of the function "address"
-        Intersects the children sets of all secondary functions matched with parents of "address" in primay
+        Intersects the children sets of all secondary functions matched with parents of "address" in primary
         Do the same for parents of functions coupled with children of "address"
         Return the union of both sets
         """
@@ -162,14 +162,15 @@ class QBinDiff:
 
         for x in self.primary[addr].parents:  # get parents of the unmatch function in primary
             if self._matching.is_match_primary(x):  # if the parent is matched
-                for parentmatch in self._matching.match_primary(x).addr_secondary:  # retrieve parent's match addr
-                    candidates.update(self.secondary[parentmatch].children)   # in secondary and get its child
+                parentmatch_addr = self._matching.match_primary(x).addr_secondary  # retrieve parent's match addr
+                candidates.update(self.secondary[parentmatch_addr].children)   # in secondary and get its child
 
         for x in self.primary[addr].children:  # get parents of the unmatch function in primary
             if self._matching.is_match_primary(x):  # if the parent is matched
-                for childrenmatch in self._matching.match_primary(x).addr_secondary:  # retrieve parent's match addr
-                    candidates.update(self.secondary[childrenmatch].parents)   # in secondary and get its child
-        return candidates
+                childrenmatch_addr = self._matching.match_primary(x).addr_secondary  # retrieve parent's match addr
+                candidates.update(self.secondary[childrenmatch_addr].parents)   # in secondary and get its child
+
+        return candidates.intersection(self._matching.unmatched_secondary)  # only keep secondary that are not yet matched
 
     def _compare_function(self, addr1: Addr, addr2: Addr, lone: bool=False) -> bool:
         """
