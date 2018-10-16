@@ -195,21 +195,13 @@ class FunctionBackendBinExport(object):
             bb_addr = None
             bb_data = []
             for rng in bb.instruction_index:
-                for idx in range(rng.begin_index, rng.end_index if rng.end_index else rng.begin_index+1):
+                for idx in range(rng.begin_index, (rng.end_index if rng.end_index else rng.begin_index+1)):
                     pb_i = program.proto.instruction[idx]
 
                     # addresses computation
                     if cur_addr is None:  # once per function in theory
                         if pb_i.address == 0:
-                            tmp_sz = 0
-                            tmp_idx = idx
-                            while True:
-                                tmp_idx -= 1
-                                tmp_sz += len(program.proto.instruction[tmp_idx].raw_bytes)
-                                if program.proto.instruction[tmp_idx].address != 0:
-                                    break
-                            cur_addr = program.proto.instruction[tmp_idx].address + tmp_sz
-                            # logging.debug("address unset: backtracked 0x%x up to: 0x%x" % (cur_addr, cur_addr-tmp_sz))
+                            cur_addr = self._backtrack_instruction_address(program.proto, idx)
                     if pb_i.address != 0:
                         cur_addr = pb_i.address
                     if bb_addr is None:
@@ -224,6 +216,9 @@ class FunctionBackendBinExport(object):
                         inst._backend.addr_refs = addr_refs[idx]
 
                     cur_addr += len(pb_i.raw_bytes)
+
+            if bb_addr in self._function:
+                logging.error("0x%x basic block address (0x%x) already in(idx:%d)" % (self.addr, bb_addr, bb_idx))
             self._function[bb_addr] = bb_data
             tmp_mapping[bb_idx] = bb_addr
             self.graph.add_node(bb_addr)
@@ -237,6 +232,17 @@ class FunctionBackendBinExport(object):
             bb_src = tmp_mapping[edge.source_basic_block_index]
             bb_dst = tmp_mapping[edge.target_basic_block_index]
             self.graph.add_edge(bb_src, bb_dst)
+
+    @staticmethod
+    def _backtrack_instruction_address(pb, idx):
+        tmp_sz = 0
+        tmp_idx = idx
+        while True:
+            tmp_idx -= 1
+            tmp_sz += len(pb.instruction[tmp_idx].raw_bytes)
+            if pb.instruction[tmp_idx].address != 0:
+                break
+        return pb.instruction[tmp_idx].address + tmp_sz
 
     @staticmethod
     def _get_basic_block_addr(program, idx):
@@ -253,7 +259,7 @@ class FunctionBackendBinExport(object):
     @name.setter
     def name(self, name):
         self._name = name
-
+&
     @property
     def type(self):
         return {BinExport2.CallGraph.Vertex.NORMAL: FunctionType.normal,
