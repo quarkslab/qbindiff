@@ -173,6 +173,8 @@ def main(output, loader, feature, distance, sim_threshold, sq_threshold, maxiter
         differ.refine()
 
     differ.matching.write_file(output)
+    min_fun_nb = min(differ.matching.nb_function_primary, differ.matching.nb_function_secondary)
+    logging.info("final matched functions: %d / %d" % (differ.matching.nb_match, min_fun_nb))
     logging.info("[+] matching successfully saved to: %s" % output)
     exit(0)
 

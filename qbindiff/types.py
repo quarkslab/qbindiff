@@ -45,14 +45,15 @@ FinalMatching = dict
 Vector = numpy.array
 
 """
-2-Dimensional array. Use during the similarity matrix computation
+2-Dimensional float array. Represent the matrix of weights between functions
+which represent similarity between functions
 """
-Matrix = numpy.array
+SimMatrix = numpy.array
 
 """
-2-Dimensional array. Use during the similarity matrix computation
+Matrix based representation of the call graph. Boolean 2-D array
 """
-Matrix = numpy.array
+CallMatrix = numpy.array
 
 """
 2-D Matrix given to the belief propagation algorithm which represent distances
@@ -89,6 +90,7 @@ wich contains a dictionnary of features
 ProgramFeatures = Dict[Addr, FunctionFeatures]
 
 """
-List of addresses of both programs to be anchored together
+List of addresses of both programs to be anchored together.
+For these function the match is fixed
 """
 Anchors = Tuple[Optional[List[Addr]], Optional[List[Addr]]]

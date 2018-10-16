@@ -11,6 +11,7 @@ from qbindiff.features.visitor import FeatureExtractor
 from typing import List, Optional
 from qbindiff.differ.matching import Matching
 
+
 class QBinDiff:
 
     name = "QBinDiff"
@@ -38,6 +39,7 @@ class QBinDiff:
         """
         preprocessor = Preprocessor(self.primary, self.secondary)
         distance = self._check_distance(distance)
+
         sim_matrix, affinity1, affinity2 = preprocessor.extract_features(features, distance)
         self.primary_features = preprocessor.primary_features
         self.secondary_features = preprocessor.secondary_features

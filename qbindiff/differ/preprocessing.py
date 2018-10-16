@@ -10,7 +10,7 @@ from qbindiff.features.visitor import ProgramVisitor
 # Import for types
 from qbindiff.loader.program import Program
 from qbindiff.features.visitor import FeatureExtractor
-from qbindiff.types import Tuple, AddrIndex, Vector, Matrix, Anchors, Ratio
+from qbindiff.types import Tuple, AddrIndex, Vector, Anchors, Ratio, SimMatrix, CallMatrix
 from typing import List
 
 
@@ -22,7 +22,14 @@ class Preprocessor:
         self.primary_features = None
         self.secondary_features = None
 
-    def extract_features(self, features: FeatureExtractor=[], distance: str ="cosine") -> Tuple[Matrix, Matrix, Matrix]:
+    def extract_features(self, features: FeatureExtractor=[], distance: str ="cosine") -> Tuple[SimMatrix, CallMatrix, CallMatrix]:
+        """
+        Extract features of the two programs and apply the distance function to weight
+        similarity matrix. Then computes call graph matrix of both programs.
+        :param features: list of FeatureExtractor to apply on program
+        :param distance: distance function to apply
+        :return: tuple of similarity matrrix and the two call graphs
+        """
         self._load_features(features)
         self._process_features()
         anchors = self._set_anchors()
@@ -31,7 +38,7 @@ class Preprocessor:
         self._apply_anchors(sim_matrix, anchors)
         return sim_matrix, primary_affinity, secondary_affinity
 
-    def filter_matrices(self,sim_matrix: Matrix, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
+    def filter_matrices(self, sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
         sim_matrix, square_matrix = self._filter_matrices(sim_matrix, affinity1, affinity2, sim_ratio, sq_ratio)
         return sim_matrix, square_matrix
 
@@ -63,7 +70,7 @@ class Preprocessor:
             if pfeatures:  # if the function have features (otherwise array cells are already zeroes
                 opid, count = zip(*((features_idx[opc], count) for opc, count in pfeatures.items() if opc in features_idx))
                 features[funid, opid] = count
-        features = DataFrame(features, index=program_features.keys())
+        features = DataFrame(features, index=program_features.keys(), columns=features_idx)
         return features
 
     def _load_features(self, features: List[FeatureExtractor]) -> None:
@@ -90,7 +97,7 @@ class Preprocessor:
         except NotImplementedError:
             return [None, None]
 
-    def _compute_sim_matrix(self, distance: str) -> Matrix:
+    def _compute_sim_matrix(self, distance: str) -> SimMatrix:
         sim_matrix = cdist(self.primary_features, self.secondary_features, distance).astype(np.float32)
         sim_matrix[np.isnan(sim_matrix)] = 0
         sim_matrix /= sim_matrix.max()
@@ -98,12 +105,12 @@ class Preprocessor:
         sim_matrix += 1
         return sim_matrix
 
-    def _build_affinity(self, anchors: Anchors) -> Tuple[Matrix, Matrix]:
+    def _build_affinity(self, anchors: Anchors) -> Tuple[CallMatrix, CallMatrix]:
         """
         Builds affinity matrix based on the call-graph of functions selected for the matchings (subgraph)
         Converts addrress -> index
         """
-        def _build_affinity_(program: Program, addrs: AddrIndex, anchors: Anchors=None) -> Matrix:
+        def _build_affinity_(program: Program, addrs: AddrIndex, anchors: Anchors=None) -> CallMatrix:
             n = len(addrs)
             affinity = np.zeros((n, n), bool)
             addrindex = dict(zip(addrs, range(n)))
@@ -122,32 +129,33 @@ class Preprocessor:
         secondary_affinity = _build_affinity_(self.secondary, self.secondary_features.index, anchors[1])
         return primary_affinity, secondary_affinity
 
-    def _apply_anchors(self, sim_matrix: Matrix, anchors: Anchors) -> None:
+    @staticmethod
+    def _apply_anchors(sim_matrix: SimMatrix, anchors: Anchors) -> None:
         if anchors[0] is not None:
             idx1, idx2 = anchors
             sim_matrix[idx1] = 0
-            sim_matrix[:,idx2] = 0
+            sim_matrix[:, idx2] = 0
             sim_matrix[idx1, idx2] = 1
 
     @staticmethod
-    def _filter_matrices(sim_matrix: Matrix, affinity1: Matrix, affinity2: Matrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
+    def _filter_matrices(sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
 
-        def _compute_sim_mask(sim_matrix: Matrix, sim_ratio: Ratio=.7) -> Matrix:
+        def _compute_sim_mask(sim_matrix: SimMatrix, sim_ratio: Ratio=.7) -> SimMatrix:
             sim_ratio = int(sim_ratio * sim_matrix.size)
             threshold = np.partition(sim_matrix.reshape(-1), sim_ratio)[sim_ratio]
             sim_mask = sim_matrix >= threshold
             return sim_mask
 
-        def _compute_mask(affinity1: Matrix, affinity2: Matrix, mask: Matrix, sqratio: Ratio=.6) -> csr_matrix:
+        def _compute_mask(affinity1: CallMatrix, affinity2: CallMatrix, mask: SimMatrix, sqratio: Ratio=.6) -> csr_matrix:
 
-            def _build_squares(affinity1: Matrix, affinity2: Matrix, shape: int) -> csr_matrix:
+            def _build_squares(affinity1: CallMatrix, affinity2: CallMatrix, shape: int) -> csr_matrix:
                 row, col = _kronecker(affinity1, affinity2)
                 data = np.ones_like(row, dtype=bool)
                 squares = csr_matrix((data, (row, col)), shape=2*(shape,), copy=False)
                 squares += squares.T
                 return squares
 
-            def _kronecker(affinity1: Matrix, affinity2: Matrix) -> Tuple[Vector, Vector]:
+            def _kronecker(affinity1: CallMatrix, affinity2: CallMatrix) -> Tuple[Vector, Vector]:
                 row1, col1 = map(np.uint32, affinity1.nonzero())
                 row2, col2 = map(np.uint32, affinity2.nonzero())
                 row = np.add.outer(row1 * affinity2.shape[0], row2)
@@ -155,7 +163,7 @@ class Preprocessor:
                 row, col = row.reshape(-1), col.reshape(-1)
                 return row, col
 
-            def _compute_sq_mask(squares: csr_matrix, sim_mask: Matrix, sqratio: Ratio=.6) -> None:
+            def _compute_sq_mask(squares: csr_matrix, sim_mask: SimMatrix, sqratio: Ratio=.6) -> None:
                 sim_mask = sim_mask.reshape(-1)
                 sq_mask = squares[sim_mask].sum(0, dtype=np.float32).getA1()
                 tot_squares = squares.sum(1, dtype=np.float32).getA1()
@@ -164,22 +172,15 @@ class Preprocessor:
                 sq_mask = sq_mask  >= sqratio
                 sim_mask |= sq_mask
 
-            def _mask_squares(squares: csr_matrix, mask: Matrix) -> csr_matrix:
+            def _mask_squares(squares: csr_matrix, mask: SimMatrix) -> csr_matrix:
                 mask = mask.reshape(-1)
                 squares = squares[mask]
                 squares = squares[:,mask]
                 return squares
 
-            #from time import time
-            #t = time()
             squares = _build_squares(affinity1, affinity2, mask.size)
-            #print("build from list: %f"%(time()-t))
-            #t = time()
             _compute_sq_mask(squares, mask, sqratio)
-            #print("square mask: %f"%(time()-t))
-            #t = time()
             square_matrix = _mask_squares(squares, mask)
-            #print("build from mask: %f"%(time()-t))
             return square_matrix
 
         mask = _compute_sim_mask(sim_matrix, sim_ratio)
@@ -190,7 +191,7 @@ class Preprocessor:
         return sim_matrix, square_matrix
 
     @staticmethod
-    def check_matrix(sim_matrix: Matrix) -> bool:
+    def check_matrix(sim_matrix: SimMatrix) -> bool:
         if np.isnan(sim_matrix).any():
             logging.warning("Incompatibilty between distance and features (nan returned)")
             return False
