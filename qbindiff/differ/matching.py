@@ -4,7 +4,7 @@ import json
 from collections import namedtuple
 
 from qbindiff.types import Addr
-from typing import Optional
+from typing import Optional, Set
 
 '''
 Match represent the matching between two functions and can hold the similarity between the two
@@ -16,11 +16,11 @@ class Matching:
     '''
     Matching hold all the match data between the two analysed programs
     '''
-    def __init__(self, file: str=None):
+    def __init__(self, primary_set: Set[Addr]=None, secondary_set: Set[Addr]=None, file: str=None, ):
         self.primary_idx = {}
         self.secondary_idx = {}
-        self.unmatched_primary = set()
-        self.unmatched_secondary = set()
+        self.unmatched_primary = primary_set if primary_set else set()
+        self.unmatched_secondary = secondary_set if secondary_set else set()
         self.global_sim = 0
 
         if file:
@@ -54,6 +54,8 @@ class Matching:
         match = Match(addr_p1, addr_p2, float("{0:.2f}".format(similarity)))
         self.primary_idx[addr_p1] = match
         self.secondary_idx[addr_p2] = match
+        self.unmatched_primary.remove(addr_p1)
+        self.unmatched_secondary.remove(addr_p2)
 
     def remove_match(self, match: Match) -> None:
         """
@@ -62,8 +64,18 @@ class Matching:
         :return: None
         """
         self.primary_idx.pop(match.addr_primary)
+        self.unmatched_primary.add(match.addr_primary)
         self.secondary_idx.pop(match.addr_secondary)
+        self.unmatched_secondary.add(match.addr_secondary)
         del match
+
+    @property
+    def primary_address_matched(self):
+        return self.primary_idx.keys()
+
+    @property
+    def secondary_address_matched(self):
+        return self.secondary_idx.keys()
 
     @property
     def nb_match(self) -> int:
@@ -120,14 +132,6 @@ class Matching:
         """ Returns true if the address is an unmatched function in secondary """
         return addr in self.unmatched_secondary
 
-    def add_unmatch_primary(self, addr: Addr) -> None:
-        """ Add the given address as an unmatched function address of primary """
-        self.unmatched_primary.add(addr)
-
-    def add_unmatch_secondary(self, addr: Addr) -> None:
-        """ Add the given address as an unmatched function address of secondary """
-        self.unmatched_secondary.add(addr)
-
     def load_file(self, file: str) -> None:
         """ Load the given JSON file which contains matching data """
         with open(file, 'r') as f:
@@ -135,9 +139,9 @@ class Matching:
         self.global_sim = data['similarity']
         for entry in data["matches"]:
             if entry['addr1'] is None:
-                self.add_unmatch_secondary(entry['addr2'])
+                self.unmatched_secondary(entry['addr2'])
             elif entry['addr2'] is None:
-                self.add_unmatch_primary(entry['addr1'])
+                self.unmatched_primary(entry['addr1'])
             else:
                 addr1, addr2 = entry['addr1'], entry['addr2']
                 self.add_match(addr1, addr2, entry['similarity'])

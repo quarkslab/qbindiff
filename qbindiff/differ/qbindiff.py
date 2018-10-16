@@ -2,15 +2,14 @@ from __future__ import absolute_import
 import logging
 
 from qbindiff.differ.preprocessing import Preprocessor
-from qbindiff.differ.postprocessing import Postprocessor
 from qbindiff.belief.belief_propagation import BeliefMWM, BeliefNAQP
 
 # Import for types
-from qbindiff.types import Tuple, Set, Ratio, BeliefMatching, FinalMatching
+from qbindiff.types import Tuple, Set, Ratio, BeliefMatching, FinalMatching, Addr
 from qbindiff.loader.program import Program
 from qbindiff.features.visitor import FeatureExtractor
-from typing import List
-
+from typing import List, Optional
+from qbindiff.differ.matching import Matching
 
 class QBinDiff:
 
@@ -21,7 +20,7 @@ class QBinDiff:
         self.secondary = secondary
         self.primary_features = None
         self.secondary_features = None
-        self.matching = None  # final matching filled after computation
+        self._matching = None  # final matching filled after computation
 
         self.sim_matrix = None
         self.square_matrix = None
@@ -71,9 +70,9 @@ class QBinDiff:
 
         if isinstance(belief, BeliefNAQP):
             logging.debug("[+] squares number : %d" % belief.numsquares)
-        unmatched1, unmatched2 = self._get_unmatched()
         logging.debug("[+] unmatched functions before refinement | p1 : %d/%d, p2 : %d/%d"
-                      %(len(unmatched1),len(self.primary), len(unmatched2), len(self.secondary)))
+                      % (self._matching.nb_unmatched_primary, len(self.primary),
+                         self._matching.nb_unmatched_secondary, len(self.secondary)))
 
     def refine(self) -> None:
         """
@@ -81,13 +80,11 @@ class QBinDiff:
         each other to refine results and obtaining a better match.
         :return: None
         """
-        postprocessor = Postprocessor(self.primary, self.secondary, self.primary_features, self.secondary_features, self.matchindex)
-        postprocessor.match_relatives()
-        postprocessor.match_lonely()
-        self.objective += postprocessor.add_objective
-        unmatched1, unmatched2 = self._get_unmatched()
+        self._match_relatives()
+        self._match_lonely()
         logging.debug("[+] unmatched functions after refinement | p1 : %d/%d, p2 : %d/%d"
-                      %(len(unmatched1),len(self.primary), len(unmatched2), len(self.secondary)))
+                      % (self._matching.nb_unmatched_primary, len(self.primary),
+                         self._matching.nb_unmatched_secondary, len(self.secondary)))
 
     def _check_distance(self, distance:str) -> str:
         distance = 'cosine'  # TODO: Elie
@@ -104,44 +101,99 @@ class QBinDiff:
             ne fait rien
         '''
 
-    def _convert_matching(self, belief_matching:BeliefMatching, belief_objective:float) -> None:
+    def _convert_matching(self, belief_matching: BeliefMatching, belief_objective: float) -> None:
         """
         Converts index matching of Belief propagation into matching of addresses.
         :return: None
         """
-        idx1, idx2, weights = zip(*belief_matching)
-        adds1 = self.primary_features.index[list(idx1)]
-        adds2 = self.secondary_features.index[list(idx2)]
-        self.matchindex = dict(zip(adds1, adds2))
-        self.objective = belief_objective
-        self._sim_index = dict(zip(adds1, weights))
+        self._matching = Matching(set(self.primary.keys()), set(self.secondary.keys()))
+        for idx1, idx2, sim in belief_matching:
+            addr1 = self.primary_features.index[idx1]  # TODO: check
+            addr2 = self.secondary_features.index[idx2]
+            self._matching.add_match(addr1, addr2, sim)
+        self._matching.similarity = belief_objective
 
-    def _get_unmatched(self) -> Tuple[Set, Set]:
-        """
-        Extract the set of adddresses of yet unmatched functions.
-        :return: set of yet unmatched function in primary, set of yet unmatched function in secondary
-        """
-        matched1, matched2 = set(self.matchindex), set(self.matchindex.values())
-        unmatched1 = set(self.primary).difference(self.matchindex)
-        unmatched2 = set(self.secondary).difference(self.matchindex.values())
-        return unmatched1, unmatched2
+# ================ POST PROCESSOR ====================
 
-    def _format_matching(self) -> FinalMatching:
+    def _match_relatives(self)-> None:
         """
-        Convert mathindex into the final matching format.
-        :return: dict containing the final matching
+        Matches primary unmatched functions according to their neighborhoods
+        Matched if same parents and same children according to the current matchindex as well as same feature_vector
+        Lonely functions are recorded for future matchindex
         """
-        matching = [{"primary": adds1, "secondary": adds2, "similarity": float(self._sim_index.get(adds1, 1.))} for adds1, adds2 in self.matchindex.items()]
-        unmatched1, unmatched2 = self._get_unmatched()
-        matching += [{"primary": adds1, "secondary": None, "similarity": 0.} for adds1 in unmatched1]
-        matching += [{"primary": None, "secondary": adds2, "similarity": 0.} for adds2 in unmatched2]
-        return {"score": self.objective, "matching": matching}
+        unmatched = set(self.primary.keys()).difference(self._matching.primary_address_matched)
+        self.lonely = []
+        for addr in unmatched:
+            candidates = self._get_candidates(addr)
+            if candidates is None:
+                self.lonely.append(addr)
+            else:
+                for candidate in candidates:
+                    if self._compare_function(addr, candidate):
+                        self._matching.similarity += 1. + len(self.primary[addr].parents) + len(self.primary[addr].children)
+                        self._matching.add_match(addr, candidate, 1.0)
+                        break
+
+    def _match_lonely(self) -> None:
+        """
+        Matches secondary lonely unmatched functions to primary ones
+        Matched if same feature_vector
+        """
+        unmatched = set(self.secondary.keys()).difference(self._matching.secondary_address_matched)
+        lone_candidates = list(filter(lambda addr: self.secondary[addr].is_alone(), unmatched))
+        for addr in self.lonely:
+            for candidate in lone_candidates:
+                if self._compare_function(addr, candidate, lone=True):
+                    self._matching.similarity += 1.
+                    self._matching.add_match(addr, candidate, 1.0)
+                    lone_candidates.remove(candidate)
+                    break
+
+    def _get_candidates(self, addr: Addr) -> Optional[Set[Addr]]:
+        """
+        Extracts the candidate set of the function "address"
+        Intersects the children sets of all secondary functions matched with parents of "address" in primay
+        Do the same for parents of functions coupled with children of "address"
+        Return the union of both sets
+        """
+        if self.primary[addr].is_alone():
+            return None
+        candidates = set()
+
+        for x in self.primary[addr].parents:  # get parents of the unmatch function in primary
+            if self._matching.is_match_primary(x):  # if the parent is matched
+                for parentmatch in self._matching.match_primary(x).addr_secondary:  # retrieve parent's match addr
+                    candidates.update(self.secondary[parentmatch].children)   # in secondary and get its child
+
+        for x in self.primary[addr].children:  # get parents of the unmatch function in primary
+            if self._matching.is_match_primary(x):  # if the parent is matched
+                for childrenmatch in self._matching.match_primary(x).addr_secondary:  # retrieve parent's match addr
+                    candidates.update(self.secondary[childrenmatch].parents)   # in secondary and get its child
+        return candidates
+
+    def _compare_function(self, addr1: Addr, addr2: Addr, lone: bool=False) -> bool:
+        """
+        True if adds1 and adds2 have the same parents and the same children according
+        to the current matchindex as well as same feature_vector
+        """
+        if (self.primary_features.loc[addr1] != self.secondary_features.loc[addr2]).any():
+            return False
+        if lone:
+            return True
+
+        par_primary = {self._matching.match_primary(x).addr_secondary for x in self.primary[addr1].parents if self._matching.is_match_primary(x)}
+        par_secondary = {self._matching.match_primary(x).addr_secondary for x in self.primary[addr1].children if self._matching.is_match_primary(x)}
+        if self.secondary[addr2].parents != par_primary or self.secondary[addr2].children != par_secondary:
+            return False
+        return True
+
+# =========================================================
 
     @property
-    def matching(self) -> FinalMatching:
+    def matching(self) -> Matching:
         """
         Returns the matching or None if it has not been computed yet.
         :return: final matching
         """
-        return self._format_matching()
+        return self._matching
 
