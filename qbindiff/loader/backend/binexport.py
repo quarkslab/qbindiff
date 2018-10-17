@@ -10,6 +10,36 @@ from qbindiff.loader.operand import Operand
 from qbindiff.loader.types import LoaderType
 
 
+# === General purpose binexport functions ===
+def _get_instruction_address(pb, inst_idx):
+    inst = pb.instruction[inst_idx]
+    if inst.HasField('address'):
+        return inst.address
+    else:
+        return _backtrack_instruction_address(pb, inst_idx)
+
+
+def _backtrack_instruction_address(pb, idx):
+    tmp_sz = 0
+    tmp_idx = idx
+    if tmp_idx == 0:
+        return pb.instruction[tmp_idx].address
+    while True:
+        tmp_idx -= 1
+        tmp_sz += len(pb.instruction[tmp_idx].raw_bytes)
+        if pb.instruction[tmp_idx].HasField('address'):
+            break
+    return pb.instruction[tmp_idx].address + tmp_sz
+
+
+def _get_basic_block_addr(pb, bb_idx):
+    inst = pb.basic_block[bb_idx].instruction_index[0].begin_index
+    return _get_instruction_address(pb, inst)
+
+
+# ===========================================
+
+
 class OperandBackendBinexport:
 
     __sz_lookup = {'b1': 1, 'b2': 2, 'b4': 4, 'b8': 8, 'b10': 10, 'b16': 16, 'b32': 32, 'b64': 64}
@@ -185,43 +215,54 @@ class FunctionBackendBinExport(object):
         if is_import:
             return
 
-        self.addr = self._get_basic_block_addr(program, pb_fun.entry_basic_block_index)
+        self.addr = _get_basic_block_addr(program.proto, pb_fun.entry_basic_block_index)
 
         cur_addr = None
-        tmp_mapping = {}  # temporary mapping from bb idx -> addr
-        # Load the different basic blocks
+        prev_idx = -2
+        tmp_mapping = {}
         for bb_idx in pb_fun.basic_block_index:
-            bb = program.proto.basic_block[bb_idx]
             bb_addr = None
             bb_data = []
-            for rng in bb.instruction_index:
+            for rng in program.proto.basic_block[bb_idx].instruction_index:
                 for idx in range(rng.begin_index, (rng.end_index if rng.end_index else rng.begin_index+1)):
-                    pb_i = program.proto.instruction[idx]
 
-                    # addresses computation
-                    if cur_addr is None:  # once per function in theory
-                        if pb_i.address == 0:
-                            cur_addr = self._backtrack_instruction_address(program.proto, idx)
-                    if pb_i.address != 0:
-                        cur_addr = pb_i.address
-                    if bb_addr is None:
+                    if idx != prev_idx+1:  # if the current idx is different from the previous range or bb
+                        cur_addr = None  # reset the addr has we have no guarantee on the continuity of the address
+
+                    pb_inst = program.proto.instruction[idx]
+
+                    if pb_inst.HasField('address'):  # If the instruction have an address set (can be 0)
+                        if cur_addr is not None and cur_addr != pb_inst.address:
+                            # logging.warning("cur_addr different from inst address: %x != %x (%d) (%d->%d)" %
+                            #                                    (cur_addr, pb_inst.address, bb_idx, prev_idx, idx))
+                            pass    # might be legit if within the basic block there is data
+                                    # thus within the same range not contiguous address can co-exists
+                        cur_addr = pb_inst.address  # set the address to the one of inst regardless cur_addr was set
+                    else:
+                        if not cur_addr:  # if cur_addr_not set backtrack to get it
+                            cur_addr = _get_instruction_address(program.proto, idx)
+
+                    # At this point we should have a cur_addr correctly set to the right instruction address
+                    if not bb_addr:
                         bb_addr = cur_addr
 
+                    # At this point do the instruction initialization
                     inst = Instruction(LoaderType.binexport, program, self, cur_addr, idx)
-
                     bb_data.append(inst)
                     if idx in data_refs:  # Add some
                         inst._backend.data_refs = data_refs[idx]
                     if idx in addr_refs:
                         inst._backend.addr_refs = addr_refs[idx]
 
-                    cur_addr += len(pb_i.raw_bytes)
+                    cur_addr += len(pb_inst.raw_bytes)  # increment the cur_addr with the address size
+                    prev_idx = idx
 
             if bb_addr in self._function:
                 logging.error("0x%x basic block address (0x%x) already in(idx:%d)" % (self.addr, bb_addr, bb_idx))
             self._function[bb_addr] = bb_data
             tmp_mapping[bb_idx] = bb_addr
             self.graph.add_node(bb_addr)
+        #'''
 
         if len(pb_fun.basic_block_index) != len(self._function):
             logging.error("Wrong basic block number %x, bb:%d, self:%d" %
@@ -233,20 +274,6 @@ class FunctionBackendBinExport(object):
             bb_dst = tmp_mapping[edge.target_basic_block_index]
             self.graph.add_edge(bb_src, bb_dst)
 
-    @staticmethod
-    def _backtrack_instruction_address(pb, idx):
-        tmp_sz = 0
-        tmp_idx = idx
-        while True:
-            tmp_idx -= 1
-            tmp_sz += len(pb.instruction[tmp_idx].raw_bytes)
-            if pb.instruction[tmp_idx].address != 0:
-                break
-        return pb.instruction[tmp_idx].address + tmp_sz
-
-    @staticmethod
-    def _get_basic_block_addr(program, idx):
-        return program.proto.instruction[program.proto.basic_block[idx].instruction_index[0].begin_index].address
 
     @property
     def function(self):
@@ -305,6 +332,7 @@ class ProgramBackendBinExport(object):
         coll = 0
         # Load all the functions
         for i, pb_fun in enumerate(self.proto.flow_graph):
+            #logging.warning("Parse function idx: %d" % i)
             f = Function(LoaderType.binexport, self, data_refs, addr_refs, pb_fun)
             if f.addr in self._program:
                 logging.error("Address collision for 0x%x" % f.addr)
