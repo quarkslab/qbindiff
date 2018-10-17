@@ -220,10 +220,12 @@ class FunctionBackendBinExport(object):
         cur_addr = None
         prev_idx = -2
         tmp_mapping = {}
+        bb_count = 0
         for bb_idx in pb_fun.basic_block_index:
-            bb_addr = None
-            bb_data = []
-            for rng in program.proto.basic_block[bb_idx].instruction_index:
+            for rng in program.proto.basic_block[bb_idx].instruction_index:  # Ranges are in fact the true basic blocks!
+                bb_count += 1
+                bb_addr = None
+                bb_data = []
                 for idx in range(rng.begin_index, (rng.end_index if rng.end_index else rng.begin_index+1)):
 
                     if idx != prev_idx+1:  # if the current idx is different from the previous range or bb
@@ -257,14 +259,13 @@ class FunctionBackendBinExport(object):
                     cur_addr += len(pb_inst.raw_bytes)  # increment the cur_addr with the address size
                     prev_idx = idx
 
-            if bb_addr in self._function:
-                logging.error("0x%x basic block address (0x%x) already in(idx:%d)" % (self.addr, bb_addr, bb_idx))
-            self._function[bb_addr] = bb_data
-            tmp_mapping[bb_idx] = bb_addr
-            self.graph.add_node(bb_addr)
-        #'''
+                if bb_addr in self._function:
+                    logging.error("0x%x basic block address (0x%x) already in(idx:%d)" % (self.addr, bb_addr, bb_idx))
+                self._function[bb_addr] = bb_data
+                tmp_mapping[bb_idx] = bb_addr
+                self.graph.add_node(bb_addr)
 
-        if len(pb_fun.basic_block_index) != len(self._function):
+        if bb_count != len(self._function):
             logging.error("Wrong basic block number %x, bb:%d, self:%d" %
                           (self.addr, len(pb_fun.basic_block_index), len(self._function)))
 
