@@ -21,23 +21,10 @@ Set of address indexes, as pandas Index
 AddrIndex = Index
 
 """
-Matching of functions as a dictionnary from primary
-function addresses to secondary function addresses
-"""
-PureMatching = Dict[Addr, Addr]
-
-"""
 Low-level matching on matrix indexes computed by
 the belief propagation algorithm. (Internal type)
 """
 BeliefMatching = Generator[Tuple[Idx, Idx, float], None, None]
-
-"""
-Final matching. List of pairs of function of both primary and secondary
-binary. One of the two can be None if it has not been matched. The length
-of the list is len_matched + len_unmatched_p1 + len_unmatched_p2
-"""
-FinalMatching = dict
 
 """
 1-Dimensional array. Use to represente slice of a matrix or function features

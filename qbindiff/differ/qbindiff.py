@@ -2,10 +2,10 @@ from __future__ import absolute_import
 import logging
 
 from qbindiff.differ.preprocessing import Preprocessor
-from qbindiff.belief.belief_propagation import BeliefMWM, BeliefNAQP
+from qbindiff.belief.belief_propagation import BeliefMWM, BeliefNAQP, BeliefMatrixError
 
 # Import for types
-from qbindiff.types import Tuple, Set, Ratio, BeliefMatching, FinalMatching, Addr
+from qbindiff.types import Set, Ratio, BeliefMatching, Addr
 from qbindiff.loader.program import Program
 from qbindiff.features.visitor import FeatureExtractor
 from typing import List, Optional
@@ -13,6 +13,9 @@ from qbindiff.differ.matching import Matching
 
 
 class QBinDiff:
+    """
+    QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
+    """
 
     name = "QBinDiff"
 
@@ -30,12 +33,16 @@ class QBinDiff:
         self.objective = .0
         self._sim_index = dict()
 
-    def initialize(self, features: List[FeatureExtractor]=[], distance: str ="cosine", sim_threshold: Ratio=.9, sq_threshold: Ratio=.6) -> bool:
+    def initialize(self, features: List[FeatureExtractor], distance: str ="cosine", sim_threshold: Ratio=.9, sq_threshold: Ratio=.6) -> bool:
         """
         Initialize the diffing by extracting the features in the programs, computing
         the call graph as needed by the belief propagation and by applying the threshold
         to produce the distance matrix.
-        :return: None
+        :param features: list of features extractors to apply
+        :param distance: distance function to apply
+        :param sim_threshold: threshold of similarity (for the data)
+        :param sq_threshold: threshold of similarity (for the call graph)
+        :return: boolean on whether or not the initialization succeeded
         """
         preprocessor = Preprocessor(self.primary, self.secondary)
         distance = self._check_distance(distance)
@@ -53,7 +60,7 @@ class QBinDiff:
             return True
         return False
 
-    def compute(self, tradeoff: Ratio=0.5, maxiter: int=100,) -> None:
+    def compute(self, tradeoff: Ratio=0.5, maxiter: int=100) -> None:
         """
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is then converted into a binary-based format
@@ -68,7 +75,7 @@ class QBinDiff:
         for it in belief.compute_matching(maxiter=maxiter):
             yield it
 
-        self._convert_matching(belief.matching, belief.objective[-1])
+        self._matching = self._convert_matching(belief.matching, belief.objective[-1])
 
         if isinstance(belief, BeliefNAQP):
             logging.debug("[+] squares number : %d" % belief.numsquares)
@@ -104,21 +111,22 @@ class QBinDiff:
             ne fait rien
         '''
 
-    def _convert_matching(self, belief_matching: BeliefMatching, belief_objective: float) -> None:
+    def _convert_matching(self, belief_matching: BeliefMatching, belief_objective: float) -> Matching:
         """
         Converts index matching of Belief propagation into matching of addresses.
         :return: None
         """
-        self._matching = Matching(set(self.primary.keys()), set(self.secondary.keys()))
+        matching = Matching(set(self.primary.keys()), set(self.secondary.keys()))
         for idx1, idx2, sim in belief_matching:
-            addr1 = self.primary_features.index[idx1]  # TODO: check
+            addr1 = self.primary_features.index[idx1]
             addr2 = self.secondary_features.index[idx2]
-            self._matching.add_match(int(addr1), int(addr2), sim)
-        self._matching.similarity = belief_objective
+            matching.add_match(int(addr1), int(addr2), sim)
+        matching.similarity = belief_objective
+        return matching
 
-# ================ POST PROCESSOR ====================
+    # ================ POST PROCESSOR ====================
 
-    def _match_relatives(self)-> None:
+    def _match_relatives(self) -> None:
         """
         Matches primary unmatched functions according to their neighborhoods
         Matched if same parents and same children according to the current matchindex as well as same feature_vector
@@ -191,7 +199,7 @@ class QBinDiff:
             return False
         return True
 
-# =========================================================
+    # =========================================================
 
     @property
     def matching(self) -> Matching:

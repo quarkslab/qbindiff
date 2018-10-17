@@ -15,14 +15,18 @@ from typing import List
 
 
 class Preprocessor:
-    """docstring for Preprocessor"""
+    """
+    Preprocessor class. Peform all the preprocessing steps required to get a similarity (weighted) matrix.
+    The class goal is first to extract features from programs, and the apply the thresholds on the similarity
+    matrix obtained to filter potential matches
+    """
     def __init__(self, primary: Program, secondary: Program) -> None:
         self.primary = primary
         self.secondary = secondary
         self.primary_features = None
         self.secondary_features = None
 
-    def extract_features(self, features: FeatureExtractor=[], distance: str ="cosine") -> Tuple[SimMatrix, CallMatrix, CallMatrix]:
+    def extract_features(self, features: List[FeatureExtractor], distance: str ="cosine") -> Tuple[SimMatrix, CallMatrix, CallMatrix]:
         """
         Extract features of the two programs and apply the distance function to weight
         similarity matrix. Then computes call graph matrix of both programs.
@@ -38,7 +42,17 @@ class Preprocessor:
         self._apply_anchors(sim_matrix, anchors)
         return sim_matrix, primary_affinity, secondary_affinity
 
-    def filter_matrices(self, sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
+    def filter_matrices(self, sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix,
+                        sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
+        """
+        Apply all the preprocessing steps on the raw similarity matrix.
+        :param sim_matrix: Similarity matrix obtained after feature extraction
+        :param affinity1: Call graph matrix of primary
+        :param affinity2: Call graph matrix of secondary
+        :param sim_ratio: Similarity threshold to apply on the features
+        :param sq_ratio: Similarity threshold to apply on the call graph
+        :return: a tuple of the Similarity matrix and the square matrix (call graph similarity)
+        """
         sim_matrix, square_matrix = self._filter_matrices(sim_matrix, affinity1, affinity2, sim_ratio, sq_ratio)
         return sim_matrix, square_matrix
 
@@ -93,7 +107,7 @@ class Preprocessor:
             imports2 = {fun.name: addr for addr, fun in self.secondary.items() if fun.is_import()}
             anchors = ((addr, imports2[fun.name]) for addr, fun in self.primary.items() if fun.name in imports2)
             anchors = zip(*anchors)
-            return [list(anchor) for anchor in anchors]
+            return tuple(list(anchor) for anchor in anchors)
         except NotImplementedError:
             return [None, None]
 
@@ -115,7 +129,6 @@ class Preprocessor:
             affinity = np.zeros((n, n), bool)
             addrindex = dict(zip(addrs, range(n)))
             edges = ((addrindex[addr], [addrindex[caddr] for caddr in fun.children if caddr in addrindex]) for addr, fun in program.items()) # if full graph
-            #edges = [(index, [addrindex[naddr] for naddr in program[addr].children if naddr in addrs]) for addr, index in addrindex.items()] # if subgraph
             for idx, idy in edges:
                 affinity[idx, idy] = True
             np.fill_diagonal(affinity, False)
@@ -138,7 +151,8 @@ class Preprocessor:
             sim_matrix[idx1, idx2] = 1
 
     @staticmethod
-    def _filter_matrices(sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
+    def _filter_matrices(sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix,
+                         sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
 
         def _compute_sim_mask(sim_matrix: SimMatrix, sim_ratio: Ratio=.7) -> SimMatrix:
             sim_ratio = int(sim_ratio * sim_matrix.size)

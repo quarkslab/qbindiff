@@ -44,7 +44,6 @@ class BeliefMWM:
     @property
     def matching(self) -> BeliefMatching:
         rows = np.logical_or.reduceat(self.mates, self._rowmap[:-1]).nonzero()[0]
-        #rows = np.searchsorted(self._rowmap[1:], self.mates.nonzero()[0], side="right")
         cols = self._colidx[self.mates]
         weights = self.weights[self.mates]
         return zip(rows, cols, weights)
@@ -150,12 +149,9 @@ class BeliefMWM:
         Normalize the weight values into something homogenous
         """
         try:
-            matrix = csr_matrix(matrix)
+            return csr_matrix(matrix)
         except Exception:
-            raise BeliefMatrixError("Unknown matrix type: %s" % str(type(matrix)))
-        #if not (matrix.getnnz(0).all() and matrix.getnnz(1).all()):
-        #    raise BeliefMatrixError("Incomplete bipartite, (isolated nodes)")
-        return matrix
+            raise BeliefMatrixError("[-] unknown matrix type: %s" % str(type(matrix)))
 
 
 class BeliefNAQP(BeliefMWM):
@@ -206,7 +202,6 @@ class BeliefNAQP(BeliefMWM):
         else:
             beta = self.beta
         self.messages += beta
-        #self.z.data[self._ztocol] = - self.z.data
         np.take(self.z.data, self._ztocol, out=self.z.data)
         np.negative(self.z.data, out=self.z.data)
         self.z.data += np.repeat(self.messages, self._zrownnz)

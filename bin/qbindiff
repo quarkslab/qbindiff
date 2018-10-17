@@ -19,12 +19,13 @@ from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCate
 from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanDegree, \
         GraphDensity, GraphNbComponents, GraphDiameter, GraphTransitivity, GraphCommunities
 from qbindiff.features.artefact import LibName, DatName, Constant, ImpName
+from qbindiff.belief.belief_propagation import BeliefMatrixError
 
 from qbindiff.loader.types import LoaderType
 from qbindiff.features.topology import NbChildren, NbParents, NbFamily
 
 
-def configure_logging(verbose):
+def configure_logging(verbose: int) -> None:
     # first desactivate matplotlib logging
     logger = logging.getLogger('matplotlib')
     logger.setLevel(logging.WARNING)
@@ -121,15 +122,15 @@ def main(output, loader, feature, distance, sim_threshold, sq_threshold, maxiter
     configure_logging(verbose)
 
     if 0.0 > sim_threshold > 1:
-        logging.warning("Similarity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SIM_THRESHOLD)
+        logging.warning("[-] Similarity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SIM_THRESHOLD)
         sim_threshold = 1
 
     if 0.0 > sq_threshold > 1:
-        logging.warning("Square ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SQUARE_THRESHOLD)
+        logging.warning("[-] Square ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SQUARE_THRESHOLD)
         sq_threshold = DEFAULT_SQUARE_THRESHOLD
 
     if 0.0 > tradeoff > 1:  # verify that tradeoff
-        logging.warning("Trade-off parameter should be within 0..1 (set it to %.2f)" % DEFAULT_TRADEOFF)
+        logging.warning("[-] Trade-off parameter should be within 0..1 (set it to %.2f)" % DEFAULT_TRADEOFF)
         tradeoff = DEFAULT_TRADEOFF
 
     # Preprocessing to extract features and filters functions
@@ -142,11 +143,11 @@ def main(output, loader, feature, distance, sim_threshold, sq_threshold, maxiter
         # checks here that selected features are supported
         unsupported_fts = [GroupsCategory.name]
         if [x for x in feature if x in unsupported_fts]:
-            logging.warning("Useless feature %s for the binexport loader" % str(unsupported_fts))
+            logging.warning("[-] Useless feature %s for the binexport loader" % str(unsupported_fts))
         p1 = load_binexport_program(primary)
         p2 = load_binexport_program(secondary)
     else:
-        logging.error("Diaphora loader not implemented yet..")
+        logging.error("[-] Diaphora loader not implemented yet..")
         exit(1)
 
     features = []
@@ -165,8 +166,12 @@ def main(output, loader, feature, distance, sim_threshold, sq_threshold, maxiter
         exit(1)
 
     logging.info("[+] starts NAQP computation")
-    for _ in tqdm(differ.compute(tradeoff=tradeoff, maxiter=maxiter), total=maxiter):
-        pass
+    try:
+        for _ in tqdm(differ.compute(tradeoff=tradeoff, maxiter=maxiter), total=maxiter):
+            pass
+    except BeliefMatrixError as e:
+        logging.error("[-] invalid matrix type: %s" % str(e))
+        exit(1)
 
     if refine_match:
         logging.info("[+] refine matching")

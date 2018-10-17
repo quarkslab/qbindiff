@@ -37,10 +37,15 @@ class Matching:
 
     @similarity.setter
     def similarity(self, value: float) -> None:
+        ''' Setter for the global similarity '''
         self.global_sim = value
 
     @property
     def matching(self):
+        """
+        Provide the matching as a dictionnary from primary addresses to secondary addresses
+        :return: dict
+        """
         return {x.addr_primary: x.addr_secondary for x in self.primary_idx.values()}
 
     def add_match(self, addr_p1: Addr, addr_p2: Addr, similarity: float=None) -> None:
@@ -70,12 +75,20 @@ class Matching:
         del match
 
     @property
-    def primary_address_matched(self):
-        return self.primary_idx.keys()
+    def primary_address_matched(self) -> Set[Addr]:
+        '''
+        Provide the set of addresses matched in primary
+        :return: set of addresses in primary
+        '''
+        return set(self.primary_idx.keys())
 
     @property
-    def secondary_address_matched(self):
-        return self.secondary_idx.keys()
+    def secondary_address_matched(self) -> Set[Addr]:
+        '''
+        Provide the set of addresses matched in the secondary binary
+        :return: set of addresses in secondary
+        '''
+        return set(self.secondary_idx.keys())
 
     @property
     def nb_match(self) -> int:
@@ -139,9 +152,9 @@ class Matching:
         self.global_sim = data['similarity']
         for entry in data["matches"]:
             if entry['addr1'] is None:
-                self.unmatched_secondary(entry['addr2'])
+                self.unmatched_secondary.add(entry['addr2'])
             elif entry['addr2'] is None:
-                self.unmatched_primary(entry['addr1'])
+                self.unmatched_primary.add(entry['addr1'])
             else:
                 addr1, addr2 = entry['addr1'], entry['addr2']
                 self.add_match(addr1, addr2, entry['similarity'])
