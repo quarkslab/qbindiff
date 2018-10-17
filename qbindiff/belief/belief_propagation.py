@@ -226,4 +226,3 @@ class BeliefNAQP(BeliefMWM):
     @property
     def numsquares(self) -> int:
         return self.z[self.mates][:, self.mates].nnz / 2
-

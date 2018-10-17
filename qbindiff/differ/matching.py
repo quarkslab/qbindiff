@@ -13,9 +13,9 @@ Match = namedtuple("Match", "addr_primary addr_secondary similarity")
 
 
 class Matching:
-    '''
+    """
     Matching hold all the match data between the two analysed programs
-    '''
+    """
     def __init__(self, primary_set: Set[Addr]=None, secondary_set: Set[Addr]=None, file: str=None, ):
         self.primary_idx = {}
         self.secondary_idx = {}
@@ -32,12 +32,12 @@ class Matching:
 
     @property
     def similarity(self) -> float:
-        ''' Global similarity of the diff '''
+        """ Global similarity of the diff """
         return self.global_sim
 
     @similarity.setter
     def similarity(self, value: float) -> None:
-        ''' Setter for the global similarity '''
+        """ Setter for the global similarity """
         self.global_sim = value
 
     @property
@@ -76,18 +76,18 @@ class Matching:
 
     @property
     def primary_address_matched(self) -> Set[Addr]:
-        '''
+        """
         Provide the set of addresses matched in primary
         :return: set of addresses in primary
-        '''
+        """
         return set(self.primary_idx.keys())
 
     @property
     def secondary_address_matched(self) -> Set[Addr]:
-        '''
+        """
         Provide the set of addresses matched in the secondary binary
         :return: set of addresses in secondary
-        '''
+        """
         return set(self.secondary_idx.keys())
 
     @property
@@ -122,7 +122,7 @@ class Matching:
         except KeyError:
             return None
 
-    def match_secondary(self, addr: Addr) -> Match:
+    def match_secondary(self, addr: Addr) -> Optional[Match]:
         """ Returns the match object associated with the given secondary function address """
         try:
             return self.secondary_idx[addr]

@@ -26,7 +26,8 @@ class Preprocessor:
         self.primary_features = None
         self.secondary_features = None
 
-    def extract_features(self, features: List[FeatureExtractor], distance: str ="cosine") -> Tuple[SimMatrix, CallMatrix, CallMatrix]:
+    def extract_features(self, features: List[FeatureExtractor], distance: str ="cosine") -> \
+                                                                            Tuple[SimMatrix, CallMatrix, CallMatrix]:
         """
         Extract features of the two programs and apply the distance function to weight
         similarity matrix. Then computes call graph matrix of both programs.
@@ -82,7 +83,7 @@ class Preprocessor:
         features = np.zeros((len(program_features), len(features_idx)), dtype=dtype)
         for funid, pfeatures in enumerate(program_features.values()):
             if pfeatures:  # if the function have features (otherwise array cells are already zeroes
-                opid, count = zip(*((features_idx[opc], count) for opc, count in pfeatures.items() if opc in features_idx))
+                opid, count = zip(*((features_idx[opc], ct) for opc, ct in pfeatures.items() if opc in features_idx))
                 features[funid, opid] = count
         features = DataFrame(features, index=program_features.keys(), columns=features_idx)
         return features
@@ -98,7 +99,7 @@ class Preprocessor:
 
     def _process_features(self) -> None:
         opcsum = self.primary_features.sum(0) + self.secondary_features.sum(0)
-        opcsum[opcsum==0] = 1
+        opcsum[opcsum == 0] = 1
         self.primary_features /= opcsum  # feature ponderation via total
         self.secondary_features /= opcsum  # number of appearance per features
 
@@ -128,7 +129,7 @@ class Preprocessor:
             n = len(addrs)
             affinity = np.zeros((n, n), bool)
             addrindex = dict(zip(addrs, range(n)))
-            edges = ((addrindex[addr], [addrindex[caddr] for caddr in fun.children if caddr in addrindex]) for addr, fun in program.items()) # if full graph
+            edges = ((addrindex[addr], [addrindex[caddr] for caddr in fun.children if caddr in addrindex]) for addr, fun in program.items())
             for idx, idy in edges:
                 affinity[idx, idy] = True
             np.fill_diagonal(affinity, False)
@@ -213,4 +214,3 @@ class Preprocessor:
             logging.warning("No possible function match: empty weight matrix (you can retry lowering the threshold)")
             return False
         return True
-

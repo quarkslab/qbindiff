@@ -33,7 +33,8 @@ class QBinDiff:
         self.objective = .0
         self._sim_index = dict()
 
-    def initialize(self, features: List[FeatureExtractor], distance: str ="cosine", sim_threshold: Ratio=.9, sq_threshold: Ratio=.6) -> bool:
+    def initialize(self, features: List[FeatureExtractor], distance: str ="cosine", sim_threshold: Ratio=.9,
+                                                                                        sq_threshold: Ratio=.6) -> bool:
         """
         Initialize the diffing by extracting the features in the programs, computing
         the call graph as needed by the belief propagation and by applying the threshold
@@ -52,11 +53,13 @@ class QBinDiff:
         self.secondary_features = preprocessor.secondary_features
 
         if preprocessor.check_matrix(sim_matrix):
-            sim_matrix, square_matrix = preprocessor.filter_matrices(sim_matrix, affinity1, affinity2, sim_threshold, sq_threshold)
+            sim_matrix, square_matrix = preprocessor.filter_matrices(sim_matrix, affinity1, affinity2,
+                                                                     sim_threshold, sq_threshold)
             self.sim_matrix = sim_matrix
             self.square_matrix = square_matrix
             size = self.sim_matrix.shape[0] * self.sim_matrix.shape[1]
-            logging.debug("[+] preprocessing sparseness : %f (%d/%d)" %(self.sim_matrix.size/size, self.sim_matrix.size, size))
+            logging.debug("[+] preprocessing sparseness : %f (%d/%d)" %
+                          (self.sim_matrix.size/size, self.sim_matrix.size, size))
             return True
         return False
 
@@ -181,7 +184,7 @@ class QBinDiff:
                 childrenmatch_addr = self._matching.match_primary(x).addr_secondary  # retrieve parent's match addr
                 candidates.update(self.secondary[childrenmatch_addr].parents)   # in secondary and get its child
 
-        return candidates.intersection(self._matching.unmatched_secondary)  # only keep secondary that are not yet matched
+        return candidates.intersection(self._matching.unmatched_secondary)  # only keep secondary not yet matched
 
     def _compare_function(self, addr1: Addr, addr2: Addr, lone: bool=False) -> bool:
         """
@@ -193,8 +196,10 @@ class QBinDiff:
         if lone:
             return True
 
-        par_primary = {self._matching.match_primary(x).addr_secondary for x in self.primary[addr1].parents if self._matching.is_match_primary(x)}
-        par_secondary = {self._matching.match_primary(x).addr_secondary for x in self.primary[addr1].children if self._matching.is_match_primary(x)}
+        par_primary = {self._matching.match_primary(x).addr_secondary for x in self.primary[addr1].parents
+                                                                                if self._matching.is_match_primary(x)}
+        par_secondary = {self._matching.match_primary(x).addr_secondary for x in self.primary[addr1].children
+                                                                                if self._matching.is_match_primary(x)}
         if self.secondary[addr2].parents != par_primary or self.secondary[addr2].children != par_secondary:
             return False
         return True
@@ -208,4 +213,3 @@ class QBinDiff:
         :return: final matching
         """
         return self._matching
-

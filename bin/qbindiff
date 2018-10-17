@@ -5,7 +5,6 @@ import logging
 import os.path
 import click
 from tqdm import tqdm
-from json import dump
 import numpy
 
 # Pop the directory of the script (to avoid import conflict with qbindiff (same name)
@@ -14,13 +13,11 @@ del sys.path[0]
 
 from qbindiff.loader.program import Program
 from qbindiff.differ.qbindiff import QBinDiff
-
 from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCategory
 from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanDegree, \
-        GraphDensity, GraphNbComponents, GraphDiameter, GraphTransitivity, GraphCommunities
+                                    GraphDensity, GraphNbComponents, GraphDiameter, GraphTransitivity, GraphCommunities
 from qbindiff.features.artefact import LibName, DatName, Constant, ImpName
 from qbindiff.belief.belief_propagation import BeliefMatrixError
-
 from qbindiff.loader.types import LoaderType
 from qbindiff.features.topology import NbChildren, NbParents, NbFamily
 
