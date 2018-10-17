@@ -72,7 +72,7 @@ class QBinDiff:
 
         if isinstance(belief, BeliefNAQP):
             logging.debug("[+] squares number : %d" % belief.numsquares)
-        logging.debug("[+] unmatched functions before refinement | p1 : %d/%d, p2 : %d/%d"
+        logging.debug("[+] unmatched functions before refinement primary: %d/%d, secondary: %d/%d"
                       % (self._matching.nb_unmatched_primary, len(self.primary),
                          self._matching.nb_unmatched_secondary, len(self.secondary)))
 
@@ -82,11 +82,12 @@ class QBinDiff:
         each other to refine results and obtaining a better match.
         :return: None
         """
+        nu_p_b, nu_s_b = self._matching.nb_unmatched_primary, self._matching.nb_unmatched_secondary
         self._match_relatives()
         self._match_lonely()
-        logging.debug("[+] unmatched functions after refinement | p1 : %d/%d, p2 : %d/%d"
-                      % (self._matching.nb_unmatched_primary, len(self.primary),
-                         self._matching.nb_unmatched_secondary, len(self.secondary)))
+        nu_p_a, nu_s_a = self._matching.nb_unmatched_primary, self._matching.nb_unmatched_secondary
+        logging.debug("[+] unmatched functions after refinement primary: %d/%d (+%d), secondary: %d/%d (+%d)"
+                      % (nu_p_a, len(self.primary), nu_p_b-nu_p_a, nu_s_a, len(self.secondary), nu_s_b-nu_s_a))
 
     def _check_distance(self, distance:str) -> str:
         distance = 'cosine'  # TODO: Elie
