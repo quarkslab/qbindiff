@@ -16,7 +16,7 @@ class Matching:
     """
     Matching hold all the match data between the two analysed programs
     """
-    def __init__(self, primary_set: Set[Addr]=None, secondary_set: Set[Addr]=None, file: str=None, ):
+    def __init__(self, primary_set: Set[Addr]=None, secondary_set: Set[Addr]=None, file: str=None):
         self.primary_idx = {}
         self.secondary_idx = {}
         self.unmatched_primary = primary_set if primary_set else set()

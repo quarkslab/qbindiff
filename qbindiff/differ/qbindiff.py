@@ -33,8 +33,7 @@ class QBinDiff:
         self.objective = .0
         self._sim_index = dict()
 
-    def initialize(self, features: List[FeatureExtractor], distance: str ="cosine", sim_threshold: Ratio=.9,
-                                                                                        sq_threshold: Ratio=.6) -> bool:
+    def initialize(self, features: List[FeatureExtractor], distance: str ="cosine", sim_threshold: Ratio=.9, sq_threshold: Ratio=.6) -> bool:
         """
         Initialize the diffing by extracting the features in the programs, computing
         the call graph as needed by the belief propagation and by applying the threshold

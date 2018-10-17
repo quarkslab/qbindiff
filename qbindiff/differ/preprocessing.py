@@ -26,8 +26,7 @@ class Preprocessor:
         self.primary_features = None
         self.secondary_features = None
 
-    def extract_features(self, features: List[FeatureExtractor], distance: str ="cosine") -> \
-                                                                            Tuple[SimMatrix, CallMatrix, CallMatrix]:
+    def extract_features(self, features: List[FeatureExtractor], distance: str ="cosine") -> Tuple[SimMatrix, CallMatrix, CallMatrix]:
         """
         Extract features of the two programs and apply the distance function to weight
         similarity matrix. Then computes call graph matrix of both programs.
@@ -43,8 +42,7 @@ class Preprocessor:
         self._apply_anchors(sim_matrix, anchors)
         return sim_matrix, primary_affinity, secondary_affinity
 
-    def filter_matrices(self, sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix,
-                        sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
+    def filter_matrices(self, sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
         """
         Apply all the preprocessing steps on the raw similarity matrix.
         :param sim_matrix: Similarity matrix obtained after feature extraction
@@ -152,8 +150,7 @@ class Preprocessor:
             sim_matrix[idx1, idx2] = 1
 
     @staticmethod
-    def _filter_matrices(sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix,
-                         sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
+    def _filter_matrices(sim_matrix: SimMatrix, affinity1: CallMatrix, affinity2: CallMatrix, sim_ratio: Ratio=.7, sq_ratio: Ratio=.6) -> Tuple[csr_matrix, csr_matrix]:
 
         def _compute_sim_mask(sim_matrix: SimMatrix, sim_ratio: Ratio=.7) -> SimMatrix:
             sim_ratio = int(sim_ratio * sim_matrix.size)
