@@ -46,7 +46,8 @@ class BeliefMWM:
         rows = np.logical_or.reduceat(self.mates, self._rowmap[:-1]).nonzero()[0]
         cols = self._colidx[self.mates]
         weights = self.weights[self.mates]
-        return zip(rows, cols, weights)
+        mask_1to1 = np.sort(np.unique(cols, return_index=True)[1])
+        return zip(rows[mask_1to1], cols[mask_1to1], weights[mask_1to1])
 
     def _init_indices(self, weights: csr_matrix) -> None:
         self.dims = weights.shape
