@@ -117,7 +117,7 @@ class FunctionBackendIDA(object):
         self._load_basic_blocks()
 
     def _load_basic_blocks(self):
-        cfg = ida_gdl.FlowChart(self.pfn)
+        cfg = ida_gdl.FlowChart(self.pfn, flags=ida_gdl.FC_NOEXT)
         for idabb in cfg:  # First pass to create basic blocks
             bb = []
             cur_addr = idabb.start_ea
