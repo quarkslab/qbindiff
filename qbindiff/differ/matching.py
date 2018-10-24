@@ -151,12 +151,12 @@ class Matching:
             data = json.load(f)
         self.global_sim = data['similarity']
         for entry in data["matches"]:
-            if entry['addr1'] is None:
+            addr1, addr2 = entry['addr1'], entry['addr2']
+            if addr1 is not None:  # add all addresses in unmatched (will be removed by add_match)
                 self.unmatched_secondary.add(entry['addr2'])
-            elif entry['addr2'] is None:
+            if addr2 is not None:
                 self.unmatched_primary.add(entry['addr1'])
-            else:
-                addr1, addr2 = entry['addr1'], entry['addr2']
+            if addr1 and addr2:
                 self.add_match(addr1, addr2, entry['similarity'])
 
     def write_file(self, out_file: str) -> None:
