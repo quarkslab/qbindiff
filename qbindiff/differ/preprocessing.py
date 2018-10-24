@@ -205,9 +205,9 @@ class Preprocessor:
     @staticmethod
     def check_matrix(sim_matrix: SimMatrix) -> bool:
         if np.isnan(sim_matrix).any():
-            logging.warning("Incompatibilty between distance and features (nan returned)")
+            logging.error("Incompatibility between distance and features (NaN returned)")
             return False
         if sim_matrix.shape[0] == 0:  # check the weight matrix size
-            logging.warning("No possible function match: empty weight matrix (you can retry lowering the threshold)")
+            logging.error("No possible function match: empty weight matrix (you can retry lowering the threshold)")
             return False
         return True
