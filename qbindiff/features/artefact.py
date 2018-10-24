@@ -1,6 +1,7 @@
 
-from qbindiff.features.visitor import OperandFeatureExtractor, Environment
+from qbindiff.features.visitor import OperandFeatureExtractor, Environment, InstructionFeatureExtractor
 from qbindiff.loader.operand import Operand, Expr
+from qbindiff.loader.instruction import Instruction
 
 
 class LibName(OperandFeatureExtractor):
@@ -49,3 +50,12 @@ class ImpName(OperandFeatureExtractor):
     def call(self, env: Environment, expr: Expr, full_op: Operand=None):
         if expr['type'] == 'impname':
             env.inc_feature(expr['value'])
+
+
+class Address(InstructionFeatureExtractor):
+    """ Address of the function as a feature"""
+    name = 'address'
+    key = 'addr'
+
+    def call(self, env: Environment, inst: Instruction):
+        env.add_feature("addr", inst.addr)
