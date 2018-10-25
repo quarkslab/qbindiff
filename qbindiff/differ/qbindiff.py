@@ -98,8 +98,8 @@ class QBinDiff:
         logging.debug("[+] unmatched functions after refinement primary: %d/%d (+%d), secondary: %d/%d (+%d)"
                       % (nu_p_a, len(self.primary), nu_p_b-nu_p_a, nu_s_a, len(self.secondary), nu_s_b-nu_s_a))
 
-    def _check_distance(self, distance:str) -> str:
-        distance = 'cosine'  # TODO: Elie
+    def _check_distance(self, distance: str) -> str:
+        # TODO: Elie
         return distance
         '''
         Si auto:
