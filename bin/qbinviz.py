@@ -264,8 +264,16 @@ class QBinVizPlugin(ida_idaapi.plugin_t):
                 print("Non-local primary are not yet supported")
                 return
                 #primary = Program(form.get_type().name, form.get_primary_filepath())
-            secondary = Program(form.get_type().name, form.get_secondary_filepath())
-            self.matching = Matching(form.get_matching_filepath())
+            f_path = form.get_secondary_filepath()
+            typ = form.get_type()
+            if typ == LoaderType.qbindiff:
+                secondary = Program(typ.name, f_path+"/data", f_path+"/callgraph.json")
+            elif typ == LoaderType.binexport:
+                secondary = Program(typ.name, f_path)
+            else:
+                print("Type not supported yet")
+                return
+            self.matching = Matching(file=form.get_matching_filepath())
             self.hooker.set_program(secondary)
             self.hooker.set_mapping(self.matching.matching)
             self.init_views()
