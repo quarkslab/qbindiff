@@ -1,7 +1,7 @@
 qBinDiff
 ========
 
-Experimental binary diffing tool based on the **Network Alignemnt Quadratic Problem**.
+Experimental binary diffing tool based on the **Network Alignement Quadratic Problem**.
 
 Installation
 ------------
@@ -111,9 +111,14 @@ will find it. A simple solution is to create a symbolic link of qbindiff into $I
 qBinViz can then be triggered as a script with Ctrl+F7 or as a plugin by putting it
 in the $IDA_ROOT/plugins directory.
 
-TODOLIST
---------
+TODO LIST
+---------
 If you want to help us improve the tools, here are some items we want to work on. Feel free to contribute
 
+### Functionalities
+
 * adding dependencies & incompatibilities between features
+* refactor binexport loader to use: https://gitlab.qb/rdavid/python-binexport
 * memory managements (limit the memory used or a toggle)
+
+### Features
