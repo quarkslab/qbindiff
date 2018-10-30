@@ -20,10 +20,10 @@ the matching between functions. The default format for input files is
 line options are:
 
     Usage: qbindiff [OPTIONS] <primary file> <secondary file>
-    
+
       qBinDiff is an experimental binary diffing tool based on machine learning technics, namely Belief
       propagation.
-    
+
     Options:
       -o, --output PATH               Output file matching [default: matching.json]
       -l, --loader <loader>           Input files type between ['qbindiff', 'binexport', 'diaphora', 'ida'].
@@ -110,3 +110,10 @@ Then the qbindiff module should be available in the pythonpath so that IDA qBinV
 will find it. A simple solution is to create a symbolic link of qbindiff into $IDA_ROOT/python.
 qBinViz can then be triggered as a script with Ctrl+F7 or as a plugin by putting it
 in the $IDA_ROOT/plugins directory.
+
+TODOLIST
+--------
+If you want to help us improve the tools, here are some items we want to work on. Feel free to contribute
+
+* adding dependencies & incompatibilities between features
+* memory managements (limit the memory used or a toggle)

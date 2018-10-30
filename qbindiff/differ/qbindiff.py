@@ -8,7 +8,7 @@ from qbindiff.belief.belief_propagation import BeliefMWM, BeliefNAQP, BeliefMatr
 from qbindiff.types import Set, Ratio, BeliefMatching, Addr
 from qbindiff.loader.program import Program
 from qbindiff.features.visitor import FeatureExtractor
-from typing import List, Optional
+from typing import List, Optional, Generator
 from qbindiff.differ.matching import Matching
 
 
@@ -62,11 +62,11 @@ class QBinDiff:
             return True
         return False
 
-    def compute(self, tradeoff: Ratio=0.5, maxiter: int=100) -> None:
+    def compute(self, tradeoff: Ratio=0.5, maxiter: int=100) -> Generator[None, int, None]:
         """
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is then converted into a binary-based format
-        :return: None
+        :return: iterable
         """
         if tradeoff == 0:
             logging.info("[+] switching to Maximum Weight Matching (tradeoff is 0)")
@@ -99,8 +99,12 @@ class QBinDiff:
                       % (nu_p_a, len(self.primary), nu_p_b-nu_p_a, nu_s_a, len(self.secondary), nu_s_b-nu_s_a))
 
     def _check_distance(self, distance:str) -> str:
-        distance = 'cosine'  # TODO: Elie
-        return distance
+        # FIXME Elie
+        if distance in ('cosine', 'euclidean'):
+            return distance
+
+        return 'cosine'
+
         '''
         Si auto:
             Si features de dimension 1:
