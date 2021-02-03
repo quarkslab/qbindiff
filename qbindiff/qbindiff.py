@@ -1,18 +1,86 @@
 from __future__ import absolute_import
 import logging
+from typing import Iterable, Any, Dict
 
-from qbindiff.differ.preprocessing import Preprocessor
-from qbindiff.belief.belief_propagation import BeliefMWM, BeliefNAQP, BeliefMatrixError
+from qbindiff.matcher.preprocessing import Preprocessor
+from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefNAQP, BeliefMatrixError
 
 # Import for types
 from qbindiff.types import Set, Ratio, BeliefMatching, Addr
 from qbindiff.loader.program import Program
-from qbindiff.features.visitor import FeatureExtractor
-from typing import List, Optional, Generator
-from qbindiff.differ.matching import Matching
+from qbindiff.loader.function import Function
+from qbindiff.features.visitor import FeatureExtractor, Environment, ProgramVisitor
+from typing import List, Optional, Generator, Tuple
+from qbindiff.mapping import Mapping, ProgramMapping, BasicBlockMapping, FunctionMapping
+from qbindiff.types import SimMatrix, FeatureVector, AffinityMatrix, PathLike
 
 
-class QBinDiff:
+class Visitor(object):
+    def visit_item(self, item: Any) -> Environment:
+        return Environment()
+
+    def visit(self, it: Iterable) -> List[Environment]:
+        return [self.visit_item(x) for x in it]
+
+
+
+class Differ(object):
+    def __init__(self):
+        # self.visitor = visitor
+        # self.primary = primary
+        # self.primary_affinity = primary_af
+        #
+        # self.secondary = secondary
+        # self.secondary_affinity = secondar_af
+
+        # Runtime values
+        # self.sim_matrix = None
+
+    @staticmethod
+    def extract_features(visitor: Visitor, p1: Iterable, p2: Iterable) -> Tuple[FeatureVector, FeatureVector]:
+        fts1 = visitor.visit(p1)
+        fts2 = visitor.visit(p2)
+        v1, v2 = Differ.features_to_vectors(fts1, fts2, XXXX)  # TODO: Récupérer les poids dans le visitor
+        return v1, v2
+
+    @staticmethod
+    def compute_similary(v1: FeatureVector, v2: FeatureVector, distance) -> SimMatrix:
+        # TODO: Implementing the similarity computation
+        pass
+
+    @staticmethod
+    def load_file(file: PathLike) -> Tuple[SimMatrix, AffinityMatrix, AffinityMatrix]:
+        # TODO: Reading the similary matrxi
+        pass
+
+    @staticmethod
+    def compute_matching(sim: SimMatrix, af1: AffinityMatrix, af2: AffinityMatrix, sparsity_ratio, epsilon, maxiter, tradeoff) -> Mapping:
+        # TODO: Créer l'objet matcher
+        # TODO: matcher.preprocess, matcher.compute
+        # TODO: Créer l'objet Mapping à partir des tuples
+        low_level_mapping = None
+        return Mapping(low_level_mapping)
+
+    @staticmethod
+    def features_to_vectors(fts1: List[Environment], fts2: List[Environment], weights: Dict[str, float]) -> Tuple[FeatureVector, FeatureVector]:
+        # TODO: To implement
+        pass
+
+    @staticmethod
+    def diff(visitor: Visitor, p1: Iterable, afp1: AffinityMatrix, p2: Iterable, afp2: AffinityMatrix, distance, sparsity_ratio, epsilon, maxiter, tradeoff) -> Mapping:
+        # Extraction des features
+        v1, v2 = Differ.extract_features(visitor, p1, p2)
+
+        # Calcul de la similarité
+        sim_matrix = Differ.compute_similary(v1, v2, distance)
+        del v1, v2
+
+        # Calcul du matching (diff)
+        return Differ.compute_matching(sim_matrix, afp1, afp2, sparsity_ratio, epsilon, maxiter, tradeoff)
+
+
+
+class QBinDiff(Differ):
     """
     QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
     """
@@ -20,18 +88,37 @@ class QBinDiff:
     name = "QBinDiff"
 
     def __init__(self, primary: Program, secondary: Program):
+        super(QBinDiff, self).__init__(ProgramVisitor())
         self.primary = primary
         self.secondary = secondary
-        self.primary_features = None
-        self.secondary_features = None
-        self._matching = None  # final matching filled after computation
+        # self.square_matrix = None
+        # self.matchindex = dict()
+        # self.objective = .0
+        # self._sim_index = dict()
 
-        self.sim_matrix = None
-        self.square_matrix = None
+    def register_feature(self, ft: FeatureExtractor, weight):
+        self.visitor.register_feature(ft, weight)
 
-        self.matchindex = dict()
-        self.objective = .0
-        self._sim_index = dict()
+
+    def diff_function(self, f1: Function, f2: Function) -> BasicBlockMapping:
+        mapping = self._diff(f1, f1.flowgraph, f2, f2.flowgraph)
+        # TODO: Computes indexes
+        # TODO: Create BasicBlockMapping
+
+    def diff_program(self) -> FunctionMapping:
+        mapping = self._diff(self.primary, self.primary.callgraph, self.secondary, self.secondary.callgraph)
+        # TODO: Compute indexes -> addr
+        # TODO: Create ProgramMapping object
+
+
+
+
+
+
+
+# =================================== OLD ==================================
+
+
 
     def initialize(self, features: List[FeatureExtractor], distance: str ="cosine", sim_threshold: Ratio=.9, sq_threshold: Ratio=.6) -> bool:
         """

@@ -7,9 +7,9 @@ class NbChildren(FunctionFeatureExtractor):
     name = "nb_children"
     key = "Nbc"
 
-    def call(self, env: Environment, fun: Function):
+    def visit_fonction(self, env: Environment, fun: Function):
         n_children = len(fun.children)
-        env.add_feature("N_CHILDREN", n_children)
+        env.add_feature("N_CHILDREN", n_children, self.weight)
 
 
 class NbParents(FunctionFeatureExtractor):

@@ -3,6 +3,7 @@
 from collections import OrderedDict
 import time
 import logging
+from typing import List, Any, Iterable
 
 # typing imports
 from qbindiff.loader.program import Program
@@ -30,6 +31,7 @@ class Environment(object):
         except KeyError:
             self.features[key] = 1
 
+    def weighted_
 
 class FeatureExtractor(object):
     """
@@ -71,6 +73,14 @@ class ProgramVisitor(object):
         self.instruction_callbacks = []
         self.operand_callbacks = []
         self.stats = {}
+
+    def visit_item(self, item: Any) -> Environment:
+        # TODO: check isinstance(item, Program),
+        return Environment()
+
+    def visit(self, it: Iterable) -> List[Environment]:
+        return [self.visit_item(x) for x in it]
+
 
     def register_feature(self, ft: FeatureExtractor) -> None:
         """

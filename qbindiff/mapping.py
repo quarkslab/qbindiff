@@ -3,8 +3,9 @@ from __future__ import absolute_import
 import json
 from collections import namedtuple
 
-from qbindiff.types import Addr
+from qbindiff.types import Addr, PathLike
 from typing import Optional, Set
+from pathlib import Path
 
 '''
 Match represent the matching between two functions and can hold the similarity between the two
@@ -12,7 +13,34 @@ Match represent the matching between two functions and can hold the similarity b
 Match = namedtuple("Match", "addr_primary addr_secondary similarity")
 
 
-class Matching:
+class Mapping:
+    def __init__(self, mapping):  # idx
+        self.raw_mapping = mapping
+        # TODO
+        pass
+
+    def save(self, filename: PathLike) -> None:
+        p = Path(filename)
+        # TODO: Sérialiser l'objet en JSON puis l'écrire
+
+
+
+class AddressMapping(Mapping):
+    def __init__(self, p1, p2, mapping):
+        super(ProgramMapping, self).__init__(mapping)
+        self.primary = p1
+        self.secondary = p2
+
+
+class BasicBlockMapping(AddressMapping):
+    pass
+
+class FunctionMapping(AddressMapping):
+    pass
+
+
+
+class ProgramMapping:
     """
     Matching hold all the match data between the two analysed programs
     """

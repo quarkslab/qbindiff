@@ -3,6 +3,7 @@ from typing import Dict, Tuple, List, Optional, Set, Union, Generator, Iterator
 import numpy
 from pandas import DataFrame, Index
 from scipy.sparse import csr_matrix
+from pathlib import Path
 
 """
 An integer representing an address within a program
@@ -30,6 +31,16 @@ BeliefMatching = Generator[Tuple[Idx, Idx, float], None, None]
 1-Dimensional array. Use to represente slice of a matrix or function features
 """
 Vector = numpy.array
+
+"""
+1-Dimensional array. Use to represente slice of a matrix or function features
+"""
+FeatureVector = numpy.array
+
+"""
+1-Dimensional array. Use to represente slice of a matrix or function features
+"""
+AffinityMatrix = numpy.array
 
 """
 2-Dimensional float array. Represent the matrix of weights between functions
@@ -81,3 +92,6 @@ List of addresses of both programs to be anchored together.
 For these function the match is fixed
 """
 Anchors = Tuple[Optional[List[Addr]], Optional[List[Addr]]]
+
+
+PathLike = Union[str, Path]
