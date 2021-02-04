@@ -8,18 +8,10 @@ from qbindiff.matcher.matcher import Matcher
 from qbindiff.types import Set, Ratio, BeliefMatching, Addr
 from qbindiff.loader.program import Program
 from qbindiff.loader.function import Function
-from qbindiff.features.visitor import FeatureExtractor, Environment, ProgramVisitor
+from qbindiff.features.visitor import FeatureExtractor, Environment, ProgramVisitor, Visitor
 from typing import List, Optional, Generator, Tuple
 from qbindiff.mapping import Mapping, ProgramMapping, BasicBlockMapping, FunctionMapping
 from qbindiff.types import SimMatrix, FeatureVector, AffinityMatrix, PathLike
-
-
-class Visitor(object):
-    def visit_item(self, item: Any) -> Environment:
-        return Environment()
-
-    def visit(self, it: Iterable) -> List[Environment]:
-        return [self.visit_item(x) for x in it]
 
 
 

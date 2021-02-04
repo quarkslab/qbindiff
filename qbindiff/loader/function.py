@@ -5,6 +5,9 @@ from typing import Set
 from qbindiff.types import Addr
 
 
+BasicBlock = list
+
+
 class Function(dict):
     """
     Function representation of a binary function. This class is a dict

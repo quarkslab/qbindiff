@@ -1,35 +1,35 @@
 
-from qbindiff.features.visitor import OperandFeatureExtractor, Environment, InstructionFeatureExtractor
+from qbindiff.features.visitor import OperandFeature, Environment, InstructionFeature, ExpressionFeature
 from qbindiff.loader.operand import Operand, Expr
 from qbindiff.loader.instruction import Instruction
 
 
-class LibName(OperandFeatureExtractor):
+class LibName(ExpressionFeature):
     """Call to library functions (local function)"""
     name = "libname"
     key = "lib"
 
-    def call(self, env: Environment, expr: Expr, full_op: Operand=None):
+    def visit_expression(self, expr: Expr, env: Environment):
         if expr['type'] == 'libname':
             env.inc_feature(expr['value'])
 
 
-class DatName(OperandFeatureExtractor):
+class DatName(ExpressionFeature):
     """References to data in the instruction"""
     name = "datname"
     key = 'dat'
 
-    def call(self, env: Environment, expr: Expr, full_op: Operand=None):
+    def visit_expression(self, expr: Expr, env: Environment) -> None:
         if expr['type'] == 'datname':
             env.inc_feature(expr['value'])
 
 
-class Constant(OperandFeatureExtractor):
+class Constant(ExpressionFeature):
     """Constant (32/64bits) in the instruction (not addresses)"""
     name = "cstname"
     key = 'cst'
 
-    def call(self, env: Environment, expr: Expr, full_op: Operand=None):
+    def visit_expression(self, expr: Expr, env: Environment) -> None:
         if expr['type'] == "number":
             try:
                 val = expr['value']
@@ -42,20 +42,20 @@ class Constant(OperandFeatureExtractor):
                 print('Invalid constant: %s' % (expr['value']))
 
 
-class ImpName(OperandFeatureExtractor):
+class ImpName(ExpressionFeature):
     """References to imports in the instruction"""
     name = 'impname'
     key = 'imp'
 
-    def call(self, env: Environment, expr: Expr, full_op: Operand=None):
+    def visit_expression(self, expr: Expr, env: Environment) -> None:
         if expr['type'] == 'impname':
             env.inc_feature(expr['value'])
 
 
-class Address(InstructionFeatureExtractor):
+class Address(InstructionFeature):
     """ Address of the function as a feature"""
     name = 'address'
     key = 'addr'
 
-    def call(self, env: Environment, inst: Instruction):
-        env.add_feature("addr", inst.addr)
+    def visit_instruction(self, instruction: Instruction, env: Environment) -> None:
+        env.add_feature("addr", instruction.addr)

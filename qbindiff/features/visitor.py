@@ -1,15 +1,9 @@
-# coding: utf-8
-
 from collections import OrderedDict
 import time
 import logging
-from typing import List, Any, Iterable
+from typing import List, Any, Iterable, Dict, Union, Callable
 
-# typing imports
-from qbindiff.loader.program import Program
-from qbindiff.loader.function import Function
-from qbindiff.loader.instruction import Instruction
-from qbindiff.loader.operand import Operand
+from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Expr
 from qbindiff.types import ProgramFeatures, FunctionFeatures
 
 
@@ -20,20 +14,67 @@ class Environment(object):
     feature.
     """
     def __init__(self):
-        self.features = {}
+        self.features: Dict[str, Union[int, Dict[str, int]]] = {}
 
-    def add_feature(self, key: str, value: int):
+    def add_feature(self, key: str, value: int) -> None:
         self.features[key] = value
 
-    def inc_feature(self, key: str):
+    def inc_feature(self, key: str) -> None:
         try:
             self.features[key] += 1
         except KeyError:
             self.features[key] = 1
 
-    def weighted_
+    def add_dict_feature(self, name: str, key: str, value: int) -> None:
+        if name not in self.features:
+            self.features[name] = {}
+        d = self.features[name]
+        d[key] = value
 
-class FeatureExtractor(object):
+    def inc_dict_feature(self, name: str, key: str, value: int) -> None:
+        if name not in self.features:
+            self.features[name] = {}
+        d = self.features[name]
+        try:
+            d[key] += value
+        except KeyError:
+            d[key] = value
+
+
+class Visitor(object):
+    """
+    Abstract class representing interface that a visitor
+    must implements to work with a Differ object.
+    """
+
+    def visit_item(self, item: Any, env: Environment) -> None:
+        """
+        Abstract method meant to perform the visit of the item.
+        It receives an environment in parameter that is meant to be filled.
+
+        :param item: item to be visited
+        :param env: Environment to fill during the visit
+        """
+        raise NotImplementedError()
+
+    def visit(self, it: Iterable[Any]) -> List[Environment]:
+        """
+        Function performing the iteration of all items to visit.
+        For each of them call visit_item with an environment meant
+        to be filled.
+
+        :param it: iterator of items.
+        :return: List of environments for all items
+        """
+        envs = []
+        for item in it:
+            env = Environment()
+            self.visit_item(item, env)
+            envs.append(env)
+        return envs
+
+
+class Feature(object):
     """
     Abstract class that represent a feature extractor which sole contraints
     are to define name, key and a function call that is to be called by the
@@ -42,110 +83,153 @@ class FeatureExtractor(object):
     name = ""
     key = ""
 
-    def call(self, env: Environment, item: object):
+
+class ProgramFeature(Feature):
+    def visit_program(self, program: Program, env: Environment) -> None:
         pass
 
 
-class InstructionFeatureExtractor(FeatureExtractor):
-    pass
+class FunctionFeature(Feature):
+    def visit_function(self, function: Function, env: Environment) -> None:
+        pass
 
 
-class FunctionFeatureExtractor(FeatureExtractor):
-    pass
+class BasicBlockFeature(Feature):
+    def visit_basic_block(self, basicblock: BasicBlock, env: Environment) -> None:
+        pass
 
 
-class BasicBlockFeatureExtractor(FeatureExtractor):
-    pass
+class InstructionFeature(Feature):
+    def visit_instruction(self, instruction: Instruction, env: Environment) -> None:
+        pass
 
 
-class OperandFeatureExtractor(FeatureExtractor):
-    pass
+class OperandFeature(Feature):
+    def visit_operand(self, operand: Operand, env: Environment) -> None:
+        pass
 
 
-class ProgramVisitor(object):
+class ExpressionFeature(Feature):
+    def visit_expression(self, expr: Expr, env: Environment) -> None:
+        pass
+
+
+class ProgramVisitor(Visitor):
     """
     Class aiming at providing a generic program visitor which calls
     the different feature extractor on the appropriate items.
     """
     def __init__(self):
+        self.features = []
+        self.program_callbacks = []
         self.function_callbacks = []
         self.basic_block_callbacks = []
         self.instruction_callbacks = []
         self.operand_callbacks = []
-        self.stats = {}
+        self.expression_callbacks = []
 
-    def visit_item(self, item: Any) -> Environment:
-        # TODO: check isinstance(item, Program),
-        return Environment()
+    def visit_item(self, item: Any, env: Environment) -> None:
+        """
+        Visit a program item according to its type.
 
-    def visit(self, it: Iterable) -> List[Environment]:
-        return [self.visit_item(x) for x in it]
+        :param item: Can be a Program, Function, Instruction etc..
+        :param env: Environment to be filled
+        """
+        if isinstance(item, Program):
+            self.visit_program(item, env)
+        elif isinstance(item, Function):
+            self.visit_function(item, env)
+        elif isinstance(item, BasicBlock):
+            self.visit_basic_block(item, env)
+        elif isinstance(item, Instruction):
+            self.visit_instruction(item, env)
+        elif isinstance(item, Operand):
+            self.visit_operand(item, env)
+        elif isinstance(item, Expr):
+            self.visit_expression(item, env)
 
-
-    def register_feature(self, ft: FeatureExtractor) -> None:
+    def register_feature(self, ft: Feature) -> None:
         """
         Register an instanciated feature extractor on the visitor.
         :param ft: Feature extractor instance
         :return: None
         """
-        if isinstance(ft, InstructionFeatureExtractor):
-            self._register_instruction_feature(ft)
-        elif isinstance(ft, BasicBlockFeatureExtractor):
-            self._register_basic_block_feature(ft)
-        elif isinstance(ft, FunctionFeatureExtractor):
-            self._register_function_feature(ft)
-        elif isinstance(ft, OperandFeatureExtractor):
-            self._register_operand_feature(ft)
-        else:
-            logging.error("[-] invalid feature extractor")
+        assert(isinstance(ft, Feature))
+        if isinstance(ft, ProgramFeature):
+            self.register_program_feature_callback(ft.visit_program)
+        if isinstance(ft, FunctionFeature):
+            self.register_function_feature_callback(ft.visit_function)
+        if isinstance(ft, BasicBlockFeature):
+            self.register_basic_block_feature_callback(ft.visit_basic_block)
+        if isinstance(ft, InstructionFeature):
+            self.register_instruction_feature_callback(ft.visit_instruction)
+        if isinstance(ft, OperandFeature):
+            self.register_operand_feature_callback(ft.visit_operand)
+        if isinstance(ft, ExpressionFeature):
+            self.register_expression_feature_callback(ft.visit_expression)
 
-    def _register_function_feature(self, feature_obj: FunctionFeatureExtractor) -> None:
-        self.function_callbacks.append(feature_obj)
-        self.stats[feature_obj.name] = 0
+    def register_program_feature_callback(self, callback: Callable) -> None:
+        self.program_callbacks.append(callback)
 
-    def _register_basic_block_feature(self, feature_obj: BasicBlockFeatureExtractor) -> None:
-        self.basic_block_callbacks.append(feature_obj)
-        self.stats[feature_obj.name] = 0
+    def register_function_feature_callback(self, callback: Callable) -> None:
+        self.function_callbacks.append(callback)
 
-    def _register_instruction_feature(self, feature_obj: InstructionFeatureExtractor) -> None:
-        self.instruction_callbacks.append(feature_obj)
-        self.stats[feature_obj.name] = 0
+    def register_basic_block_feature_callback(self, callback: Callable) -> None:
+        self.basic_block_callbacks.append(callback)
 
-    def _register_operand_feature(self, feature_obj: OperandFeatureExtractor) -> None:
-        self.operand_callbacks.append(feature_obj)
-        self.stats[feature_obj.name] = 0
+    def register_instruction_feature_callback(self, callback: Callable) -> None:
+        self.instruction_callbacks.append(callback)
 
-    def visit_program(self, program: Program) -> ProgramFeatures:
+    def register_operand_feature_callback(self, callback: Callable) -> None:
+        self.operand_callbacks.append(callback)
+
+    def register_expression_feature_callback(self, callback: Callable) -> None:
+        self.expression_callbacks.append(callback)
+
+    def visit_program(self, program: Program, env: Environment) -> None:
         """
         Visit the given program with the feature extractor registered beforehand
         with register_feature.
         :param program: program to visit
+        :param env: Environment to fill
         :return: ProgramFeatures (dict: Addr-> FunctionFeatures)
         """
-        function_features = OrderedDict()
-        for fun_addr, fun in program.items():
-            function_features[fun_addr] = self.visit_function(fun)
-        return function_features
+        # Call all features attached to the program
+        for cb in self.program_callbacks:
+            cb(program, env)
 
-    def visit_function(self, func: Function) -> FunctionFeatures:
+        # Recursively call visit on all functions
+        for fun in program:
+            self.visit_function(fun, env)
+
+    def visit_function(self, func: Function, env: Environment) -> None:
         """
         Visit the given function with the feature extractors registered beforehand.
         :param func: Function to visit
+        :param env: Environment to fill
         :return: FunctionFeatures, the features of the function
         """
-        env = Environment()
+        # Call all callbacks attacked to a function
         for callback in self.function_callbacks:
-            x0 = time.time()
-            callback.call(env, func)
-            self.stats[callback.name] += time.time() - x0
-        for bb_addr, bb in func.items():
-            for callback in self.basic_block_callbacks:
-                x0 = time.time()
-                callback.call(env, bb)
-                self.stats[callback.name] += time.time() - x0
-            for inst in bb:
-                self.visit_instruction(inst, env)
-        return env.features
+            callback(func, env)
+
+        # Recursively call visit for all basic blocks
+        for bb in func:
+            self.visit_basic_block(bb, env)
+
+    def visit_basic_block(self, basic_block: BasicBlock, env: Environment) -> None:
+        """
+        Visit the given basic block with the feature extractors registered beforehand.
+        :param basic_block: Basic Block to visit
+        :param env: Environment to fill
+        """
+        # Call all callbacks attacked to a basic block
+        for callback in self.basic_block_callbacks:
+            callback(basic_block, env)
+
+        # Recursively call visit for all instructions
+        for inst in basic_block:
+            self.visit_instruction(inst, env)
 
     def visit_instruction(self, instruction: Instruction, env: Environment) -> None:
         """
@@ -155,10 +239,10 @@ class ProgramVisitor(object):
         :param env: Environment
         :return: None (perform side effects on the Environment
         """
+        # Call all callbacks attached to an instruction
         for callback in self.instruction_callbacks:
-            x0 = time.time()
-            callback.call(env, instruction)
-            self.stats[callback.name] += time.time() - x0
+            callback(instruction, env)
+        # Recursively iter on all operands if there are any features registered
         if self.operand_callbacks:
             for op in instruction.operands:
                 self.visit_operand(op, env)
@@ -170,11 +254,19 @@ class ProgramVisitor(object):
         :param env: Environment
         :return: None
         """
-        for exp in operand.expressions:
-            for callback in self.operand_callbacks:
-                x0 = time.time()
-                callback.call(env, exp, full_op=operand)
-                self.stats[callback.name] += time.time() - x0
+        # Call all callbacks attached to an operand
+        for callback in self.operand_callbacks:
+            callback(operand, env)
+        if self.expression_callbacks:
+            for exp in operand.expressions:
+                self.visit_expression(exp, env)
 
-    def get_stats(self):
-        return self.stats
+    def visit_expression(self, expression: Expr, env: Environment) -> None:
+        """
+        Visit the given operand and update the environment accordingly.
+        :param expression: Expression object to visit
+        :param env: Environment
+        """
+        # Call all callbacks attached to an expression
+        for callback in self.expression_callbacks:
+            callback(expression, env)
