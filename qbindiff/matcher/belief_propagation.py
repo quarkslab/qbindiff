@@ -1,129 +1,135 @@
-from __future__ import absolute_import
+# coding: utf-8
 import logging
+logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 import numpy as np
-from scipy.sparse import csr_matrix
-
-# Import for types
-from qbindiff.types import Iterator, Generator, Ratio, InputMatrix, Vector, BeliefMatching
-
-
-class BeliefMatrixError(Exception):
-    pass
 
 
 class BeliefMWM:
+
     """
-    Compute the **Maxmimum Weight Matching** of the matrix of weights (similarity).
-    Returns the *real* maximum assignement.
+    Computes the optimal solution to the **Maxmimum Weight Matching problem**.
     """
-    def __init__(self, weights: InputMatrix):
-        weights = self._checkmatrix(weights)
-        self.weights = weights.data
-        self.mates = np.zeros_like(self.weights, dtype=bool)
-        self.objective = []
-        self._init_indices(weights)
+    
+    def __init__(self, similarity, epsilon=0.01):
+        self._init_indices(similarity)
         self._init_messages()
 
-    def compute_matching(self, maxiter: int=100) -> Generator[int, None, None]:
-        niter = 0
-        for _ in range(maxiter):
+        self._objective = []
+        self._maxscore = 0.
+        self._epsilon = self._dtype(epsilon)
+        self._epsilonref = self._epsilon.copy()
+        
+    def compute(self, maxiter=1000):
+        for niter in range(1, maxiter+1):
             self._update_messages()
-            niter += 1
+            self._round_messages()
+            self._update_epsilon()
             yield niter
             if self._converged():
-                for _ in range(self._converged_iter):
-                    self._update_messages()
-                    niter += 1
-                    yield niter
-                yield maxiter
-                logging.debug("[+] converged after %d iterations" % niter)
+                logging.info("[+] Converged after %i iterations" %niter)
                 return
-        logging.debug("[+] did not converge after %d iterations" % niter)
+        logging.info("[+] Did not converged after %i iterations" %maxiter)
 
     @property
-    def matching(self) -> BeliefMatching:
-        rows = np.logical_or.reduceat(self.mates, self._rowmap[:-1]).nonzero()[0]
-        cols = self._colidx[self.mates]
-        weights = self.weights[self.mates]
-        mask_1to1 = np.sort(np.unique(cols, return_index=True)[1])
-        return zip(rows[mask_1to1], cols[mask_1to1], weights[mask_1to1])
-
-    def _init_indices(self, weights: csr_matrix) -> None:
-        self.dims = weights.shape
-        self._colidx = weights.indices
-        self._rowmap = weights.indptr
-        self._colmap = np.zeros(weights.shape[1]+1, dtype=np.int32)
-        self._colmap[1:] = np.bincount(self._colidx).cumsum(dtype=np.int32)
-        self._tocol = self._colidx.argsort(kind="mergesort").astype(np.int32)
-        self._torow = np.zeros_like(self._tocol)
-        self._torow[self._tocol] = np.arange(weights.size, dtype=np.int32)
-        self._rownnz = np.diff(weights.indptr)
-
-    def _init_messages(self) -> None:
-        self.x = self.weights.astype(np.float32)
-        self.y = self.weights.astype(np.float32)
-        self.messages = np.zeros_like(self.weights, np.float32)
-
-    def _update_messages(self) -> None:
-        self.x[:] = self.weights + self._other_rowmax(self.y)
-        self.messages[:] = self.x
-        self.y[:] = self.weights + self._other_colmax(self.x)
-        self.messages += self.x
-        self._round_messages()
-
-    def _round_messages(self) -> None:
-        self.mates[:] = self.messages >= 0
-        matchmask = np.add.reduceat(self.mates, self._rowmap[:-1]) == 1
-        self.mates[:] &= np.repeat(matchmask, self._rownnz)
-        self.objective.append(self._objective())
+    def current_mapping(self):
+        rows = np.searchsorted(self._rowmap, self._mates.nonzero()[0], side='right') - 1
+        cols = self._colidx[self._mates]
+        mask = np.intersect1d(np.unique(rows, return_index=True)[1],
+                              np.unique(cols, return_index=True)[1])
+        return rows[mask], cols[mask]
 
     @property
-    def _rowslice(self) -> Iterator[slice]:
+    def current_score(self):
+        return self._weigths[self._mates].sum()
+
+    def _init_indices(self, similarity):
+        self._weigths = similarity.data.copy()
+        self._shape = similarity.shape
+        self._dtype = similarity.dtype.type
+        self._colidx = similarity.indices
+        self._rowmap = similarity.indptr
+        self._colmap = np.zeros(similarity.shape[1] + 1, dtype=np.uint32)
+        self._colmap[1:] = np.bincount(similarity.indices, minlength=similarity.shape[1]).cumsum(dtype=np.uint32)
+        self._tocol = np.argsort(similarity.indices, kind="mergesort").astype(np.uint32)
+        self._torow = np.zeros(similarity.nnz, dtype=np.uint32)
+        self._torow[self._tocol] = np.arange(similarity.nnz, dtype=np.uint32)
+
+    def _init_messages(self):
+        self._x = self._weigths.copy()
+        self._y = self._weigths.copy()
+        self._messages = np.zeros_like(self._weigths)
+        self._mates = np.zeros_like(self._weigths, dtype=bool)
+
+        if self._shape[0] < self._shape[1]:
+            self._update_messages = self._update_messages2
+
+    def _update_messages(self):
+        self._x[:] = self._weigths
+        self._x += self._other_colmax(self._y) #axis=0
+        self._messages[:] = self._x
+        self._y[:] = self._weigths
+        self._y += self._other_rowmax(self._x) #axis=1
+        self._messages += self._x
+
+    def _update_messages2(self):
+        self._x[:] = self._weigths
+        self._x += self._other_rowmax(self._y) #axis=1
+        self._messages[:] = self._x
+        self._y[:] = self._weigths
+        self._y += self._other_colmax(self._x) #axis=0
+        self._messages += self._x
+
+    def _round_messages(self):
+        self._mates[:] = self._messages > 0
+        self._objective.append(self.current_score)
+
+    @property
+    def _rowslice(self):
         return map(slice, self._rowmap[:-1], self._rowmap[1:])
 
     @property
-    def _colslice(self) -> Iterator[slice]:
+    def _colslice(self):
         return map(slice, self._colmap[:-1], self._colmap[1:])
-    """
-    def _rowsum(self, vector, values):
-        for row, value in zip(self._rowslice, values):
-            vector[row] += value
 
-    def _rowand(self, vector, values):
-        for row, value in zip(self._rowslice, values):
-            vector[row] &= value
-    """
-    def _other_rowmax(self, vector: Vector) -> Vector:
+    def _other_rowmax(self, vector):
         for row in self._rowslice:
             self._othermax(vector[row])
         return vector
 
-    def _other_colmax(self, vector: Vector) -> Vector:
+    def _other_colmax(self, vector):
         vector.take(self._tocol, out=vector)
         for col in self._colslice:
             self._othermax(vector[col])
         vector.take(self._torow, out=vector)
         return vector
 
-    @staticmethod
-    def _othermax(vector: Vector) -> None:
+    def _othermax(self, vector):
         """
         Compute the maximum value for all elements except (for the maxmimum value)
         $$x_i = max_{j!=i}{x_j}$$
         """
         if len(vector) > 1:
             arg2, arg1 = np.argpartition(vector, -2)[-2:]
-            max2, max1 = - np.maximum(0, vector[[arg2, arg1]])
-            vector[:] = max1
-            vector[arg1] = max2
+            max2, max1 = np.maximum(0., vector[[arg2, arg1]], dtype=self._dtype)
+            vector[:] = - max1 - self._epsilon
+            vector[arg1] = - max2
         else:
-            vector[:] = 0
+            vector[:] = 0.
 
-    def _objective(self) -> float:
-        return self.weights[self.mates].sum()
-
-    def _converged(self, m: int=10, w: int=50) -> bool:
+    def _update_epsilon(self):
+        if len(self._objective) < 10:
+            return
+        current_score = self._objective[-1] / max(self._mates.sum(), 1)
+        if self._maxscore >= current_score:
+            self._epsilon *= 1.2
+        else:
+            self.best_mapping = self.current_mapping
+            self._best_messages = self._messages.copy()
+            self._maxscore = current_score
+            self._epsilon = self._epsilonref
+            
+    def _converged(self, window=60, pattern=15):
         """
         Decide whether or not the algorithm have converged
 
@@ -133,97 +139,77 @@ class BeliefMWM:
         :return: True or False if the algorithm have converged
         :rtype: bool
         """
-        def _converged_(obj, idx):
-            return obj[-2*idx:-idx] == obj[-idx:]
-        patterns = self.objective[-w:-m]
-        actual = self.objective[-1]
-        if actual and actual in patterns:
-            pivot = patterns[::-1].index(actual) + m
-            if _converged_(self.objective, pivot):
-                self._converged_iter = np.argmax(self.objective[-pivot:]) + 1
-                return True
+        objective = self._objective[:-window+1:-1]
+        if len(objective) > pattern:
+            score = objective[0]
+            if score in objective[pattern:]:
+                pivot = objective[pattern:].index(score) + pattern
+                if objective[:pattern] == objective[pivot:pivot+pattern]:
+                    return True
         return False
 
-    @staticmethod
-    def _checkmatrix(matrix: InputMatrix) -> csr_matrix:
-        """
-        Normalize the weight values into something homogenous
-        """
-        try:
-            return csr_matrix(matrix)
-        except Exception:
-            raise BeliefMatrixError("[-] unknown matrix type: %s" % str(type(matrix)))
 
+class BeliefQAP(BeliefMWM):
 
-class BeliefNAQP(BeliefMWM):
     """
-    Compute an approximate solution to **Network Alignement Quadratic Problem**.
+    Computes an approximate solution to the **Quadratic Assignment problem**.
     """
-    def __init__(self, weights: InputMatrix, squares: csr_matrix, tradeoff: Ratio=0.5, active_beta: bool=False):
-        super(BeliefNAQP, self).__init__(weights)
-        self._init_beta(tradeoff, active_beta)
+    
+    def __init__(self, similarity, squares, tradeoff=0.5, epsilon=0.01):
+        super(BeliefQAP, self).__init__(similarity, epsilon=epsilon)
+        if tradeoff == 1:
+            logging.warning("[+] meaningless tradeoff for NAQP")
+            squares -= squares
+        else:
+            self._weigths *= 2 * tradeoff / (1 - tradeoff)
         self._init_squares(squares)
 
-    def _init_beta(self, tradeoff: Ratio, active_beta: bool) -> None:
-        self.active_beta = active_beta
-        if tradeoff == 1:
-            self.weights = np.zeros_like(self.weights)
-            tradeoff = .5
-        elif tradeoff == 0:
-            logging.warning("[+] meaningless tradeoff for NAQP (set to 1)")
-        tradeoff = tradeoff / (1 - tradeoff)
-        if active_beta:
-            self.beta = np.full_like(weights.data, tradeoff)
-        else:
-            self.beta = tradeoff
-
-    def _init_squares(self, squares: csr_matrix) -> None:
-        self.z = squares.astype(np.float32)
-        self.mz = np.zeros_like(self.weights, np.float32)
-        self._zrownnz = np.diff(squares.indptr)
-        self._ztocol = np.argsort(self.z.indices, kind="mergesort")
-        if self.active_beta:
-            np.clip(self.z.data, 0, np.repeat(self.beta, self._zrownnz), out=self.z.data)
-        else:
-            np.clip(self.z.data, 0, self.beta, out=self.z.data)
-
-    def _update_messages(self) -> None:
-        self.mz[:] = self.weights + self.z.sum(0).getA1()
-        self.x[:] = self.mz + self._other_rowmax(self.y)
-        self.messages[:] = self.x
-        self.y[:] = self.mz + self._other_colmax(self.x)
-        self.messages += self.x
-        self._round_messages()
-
-        self._clip_beta()
-
-    def _clip_beta(self) -> None:
-        if self.active_beta:
-            beta = np.repeat(self.beta, self._zrownnz)
-        else:
-            beta = self.beta
-        self.messages += beta
-        np.take(self.z.data, self._ztocol, out=self.z.data)
-        np.negative(self.z.data, out=self.z.data)
-        self.z.data += np.repeat(self.messages, self._zrownnz)
-        np.clip(self.z.data, 0, beta, out=self.z.data)
-
-    def _round_messages(self) -> None:
-        if self.active_beta:
-            messages = self.messages >= 0
-            matchmask = np.add.reduceat(messages, self._rowmap[:-1]) == 1
-            messages &= np.repeat(matchmask, self._rownnz)
-            self.beta += self.mates & messages
-            self.mates = messages
-            self.objective.append(self._objective())
-        else:
-            super(BeliefNAQP, self)._round_messages()
-
-    def _objective(self) -> float:
-        objective = super(BeliefNAQP, self)._objective()
-        objective += self.numsquares
+    @property
+    def current_score(self):
+        objective = super(BeliefQAP, self).current_score
+        objective += self.numsquares * 2
         return objective
 
     @property
-    def numsquares(self) -> int:
-        return self.z[self.mates][:, self.mates].nnz / 2
+    def numsquares(self):
+        return self._z[self._mates][:, self._mates].nnz / 2
+
+    def _init_squares(self, squares):
+        self._z = squares.astype(self._dtype)
+        self._zmax = self._z.data.copy()
+        self._zrownnz = np.diff(squares.indptr)
+        self._ztocol = np.argsort(squares.indices, kind="mergesort")
+        np.clip(self._z.data, 0, self._zmax, out=self._z.data)
+
+    def _update_messages(self):
+        self._messages[:] = self._weigths
+        self._messages += self._z.sum(0).getA1()
+        self._x[:] = self._messages
+        self._x += self._other_colmax(self._y) #axis=0
+        self._y[:] = self._messages
+        self._messages[:] = self._x
+        self._y += self._other_rowmax(self._x) #axis=1
+        self._messages += self._x
+
+    def _update_messages2(self):
+        self._messages[:] = self._weigths
+        self._messages += self._z.sum(0).getA1()
+        self._x[:] = self._messages
+        self._x += self._other_rowmax(self._y) #axis=1
+        self._y[:] = self._messages
+        self._messages[:] = self._x
+        self._y += self._other_colmax(self._x) #axis=0
+        self._messages += self._x
+
+    def _round_messages(self):
+        super(BeliefQAP, self)._round_messages()
+        self._clip_z()
+
+    def _clip_z(self):
+        #self._messages -= self._epsilon * (1 - self._mates)
+        np.take(self._z.data, self._ztocol, out=self._z.data)
+        np.negative(self._z.data, out=self._z.data)
+        self._z.data += np.repeat(self._messages, self._zrownnz)
+        self._z.data += self._zmax
+        np.clip(self._z.data, 0, self._zmax, out=self._z.data)
+

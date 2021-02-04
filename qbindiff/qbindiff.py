@@ -55,11 +55,14 @@ class Differ(object):
 
     @staticmethod
     def compute_matching(sim: SimMatrix, af1: AffinityMatrix, af2: AffinityMatrix, sparsity_ratio, epsilon, maxiter, tradeoff) -> Mapping:
-        # TODO: Créer l'objet matcher
-        # TODO: matcher.preprocess, matcher.compute
-        # TODO: Créer l'objet Mapping à partir des tuples
-        low_level_mapping = None
-        return Mapping(low_level_mapping)
+        matcher = Matcher(sim_matrix, affinity1, affinity2)
+        matcher.process(sparsity_ratio)
+        for _ in tqdm(matcher.compute(tradeoff, epsilon, maxiter), total=maxiter):
+            pass
+        logging.info(matcher.display_statistics())
+
+        return Mapping(matcher.format_mapping())
+
 
     @staticmethod
     def features_to_vectors(fts1: List[Environment], fts2: List[Environment], weights: Dict[str, float]) -> Tuple[FeatureVector, FeatureVector]:
