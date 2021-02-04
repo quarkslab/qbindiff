@@ -2,8 +2,7 @@ from __future__ import absolute_import
 import logging
 from typing import Iterable, Any, Dict
 
-from qbindiff.matcher.preprocessing import Preprocessor
-from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefNAQP, BeliefMatrixError
+from qbindiff.matcher.matcher import Matcher
 
 # Import for types
 from qbindiff.types import Set, Ratio, BeliefMatching, Addr
@@ -37,25 +36,76 @@ class Differ(object):
         # self.sim_matrix = None
 
     @staticmethod
-    def extract_features(visitor: Visitor, p1: Iterable, p2: Iterable) -> Tuple[FeatureVector, FeatureVector]:
-        fts1 = visitor.visit(p1)
-        fts2 = visitor.visit(p2)
-        v1, v2 = Differ.features_to_vectors(fts1, fts2, XXXX)  # TODO: Récupérer les poids dans le visitor
-        return v1, v2
+    def load(primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix, visitor: Visitor, distance: str='canberra', dtype: np.dtype=np.float32) -> Tuple[SimMatrix, AffinityMatrix, AffinityMatrix]:
+        primary_features = visitor.visit(primary)
+        secondary_features = visitor.visit(secondary)
+
+        feature_index = Differ._build_feature_index(primary_features, secondary_features)
+        primary_matrix = Differ._vectorize_features(primary_features, feature_index, dtype)
+        secondary_matrix = Differ._vectorize_features(secondary_features, feature_index, dtype)
+
+        sim_matrix = Differ._compute_similarity(primary_matrix, secondary_matrix, distance, dtype)
+        return sim_matrix, primary_affinity, secondary_affinity
+    
+    @staticmethod
+    def load_from_file(file: PathLike) -> Tuple[SimMatrix, AffinityMatrix, AffinityMatrix]:
+
+        return sim_matrix, primary_affinity, secondary_affinity
 
     @staticmethod
-    def compute_similary(v1: FeatureVector, v2: FeatureVector, distance) -> SimMatrix:
-        # TODO: Implementing the similarity computation
-        pass
+    def _build_feature_index(primary_features: List[Environment], secondary_features: List[Environment]) -> dict:
+        feature_keys = set()
+        for program_features in (primary_features, secondary_features):
+            for function_features in program_features:
+                for key, value in function_features.items():
+                    if isinstance(value: list):
+                        feature_keys.update(value.keys())
+                    else:
+                        feature_keys.add(key)
+        return {key: idx for idx, key in enumerate(feature_keys)}
 
     @staticmethod
-    def load_file(file: PathLike) -> Tuple[SimMatrix, AffinityMatrix, AffinityMatrix]:
-        # TODO: Reading the similary matrxi
-        pass
+    def _vectorize_features(program_features: List[Environment], feature_index: dict, dtype: np.dtype) -> FeatureVector:
+        feature_matrix = np.zerors((len(program_features), len(feature_index)), dtype=dtype)
+        for idx, function_features in enumerate(program_features.values()):
+            if function_features:  # if the function have features (otherwise array cells are already zeros)
+                idy, value = zip(*((feature_index[key], value) for key, value in function_features.items()))
+                feature_matrix[idx, ft_idx] += value
+        return feature_matrix
+
+     @staticmethod
+    def _compute_similarity(primary_matrix: FeatureVector, secondary_matrix: FeatureVector, distance: str='canberra', dtype: np.dtype=np.float32) -> SimMatrix:
+        matrix = Differ._compute_feature_similarity(primary_matrix, secondary_matrix, distance, dtype)
+        matrix /= matrix.max()
+        return matrix
 
     @staticmethod
-    def compute_matching(sim: SimMatrix, af1: AffinityMatrix, af2: AffinityMatrix, sparsity_ratio, epsilon, maxiter, tradeoff) -> Mapping:
-        matcher = Matcher(sim_matrix, affinity1, affinity2)
+    def _compute_feature_similarity(primary_matrix: FeatureVector, secondary_matrix: FeatureVector, distance: str, dtype: np.dtype) -> SimMatrix:
+        matrix = cdist(primary_matrix, secondary_matrix, distance).astype(dtype)
+        matrix /= matrix.max()
+        matrix[:] = 1 - matrix
+        return matrix
+
+    @staticmethod
+    def _compute_address_similarity(nb_primary_nodes: int, nb_secondary_nodes: int, dtype: np.dtype) -> SimMatrix:
+        matrix = np.zeros((nb_primary_nodes, nb_secondary_nodes), dtype)
+        primary_idx = np.arange(nb_primary_nodes, dtype=dtype) / np.maximum(nb_primary_nodes, nb_secondary_nodes)
+        secondary_idx = np.arange(nb_secondary_nodes, dtype=dtype) / np.maximum(nb_primary_nodes, nb_secondary_nodes)
+        matrix = np.absolute(np.subtract.outer(primary_idx, secondary_idx))
+        matrix[:] = 1 - matrix
+        return matrix
+
+    @staticmethod
+    def _compute_constant_similarity(primary_constants: List[Tuple[str]], secondary_constants: List[Tuple[str]], weight=.5, dtype: np.dtype) -> SimMatrix:
+        matrix = np.zeros((len(primary_constants), len(secondary_constants)), dtype)
+        for constant in set(primary_constants).intersection(secondary_constants):
+            idx, idy = zip(*product(primary_constants[constant], secondary_constants[constant]))
+            np.add.at(matrix, (idx, idy), weight / len(idx))
+        return matrix
+
+    @staticmethod
+    def compute(sim_matrix: SimMatrix, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix, sparsity_ratio, epsilon, maxiter, tradeoff) -> Mapping:
+        matcher = Matcher(sim_matrix, primary_affinity, secondary_affinity)
         matcher.process(sparsity_ratio)
         for _ in tqdm(matcher.compute(tradeoff, epsilon, maxiter), total=maxiter):
             pass
@@ -65,21 +115,10 @@ class Differ(object):
 
 
     @staticmethod
-    def features_to_vectors(fts1: List[Environment], fts2: List[Environment], weights: Dict[str, float]) -> Tuple[FeatureVector, FeatureVector]:
-        # TODO: To implement
-        pass
-
-    @staticmethod
-    def diff(visitor: Visitor, p1: Iterable, afp1: AffinityMatrix, p2: Iterable, afp2: AffinityMatrix, distance, sparsity_ratio, epsilon, maxiter, tradeoff) -> Mapping:
-        # Extraction des features
-        v1, v2 = Differ.extract_features(visitor, p1, p2)
-
-        # Calcul de la similarité
-        sim_matrix = Differ.compute_similary(v1, v2, distance)
-        del v1, v2
-
-        # Calcul du matching (diff)
-        return Differ.compute_matching(sim_matrix, afp1, afp2, sparsity_ratio, epsilon, maxiter, tradeoff)
+    def diff(visitor: Visitor, p1: Iterable, afp1: AffinityMatrix, p2: Iterable, afp2: AffinityMatrix, distance, sparsity_ratio, epsilon, maxiter, tradeoff, dtype) -> Mapping:
+        sim_matrix, primary_affinity, secondary_affinity = Differ.load(primary, secondary, primary_affinity, secondary_affinity, visitor, distance, dtype)
+        mapping = Differ.compute(sim_matrix, primary_affinity, secondary_affinity, sparsity_ratio, epsilon, maxiter, tradeoff)
+        return mapping
 
 
 
@@ -112,6 +151,33 @@ class QBinDiff(Differ):
         mapping = self._diff(self.primary, self.primary.callgraph, self.secondary, self.secondary.callgraph)
         # TODO: Compute indexes -> addr
         # TODO: Create ProgramMapping object
+
+    def _compute_similarity(self, primary_matrix: FeatureVector, secondary_matrix: FeatureVector, distance: str='canberra', dtype: np.dtype=np.float32) -> SimMatrix:
+        matrix = Differ._compute_feature_similarity(primary_matrix, secondary_matrix, distance, dtype)
+        matrix += .01 * Differ._compute_address_similarity(len(self.primary), len(self.secondary), dtype)
+        matrix /= matrix.max()
+
+        Differ._apply_anchors(matrix, anchors)
+        return matrix
+
+    def set_anchors(self, anchors:Tuple[Idx, Idx]=[]) -> Anchors:
+        if anchors:
+            return anchors
+        primary_names = {function.name: idx for idx, function in enumerate(self.primary)}
+        secondary_names = {function.name: idx for idx, function in enumerate(self.secondary)}
+        anchors = []
+        for name in set(primary_names).intersection(secondary_names):
+            anchors.append((primary_names[name], secondary_names[name]))
+        return zip(*anchors)
+
+    @staticmethod
+    def _apply_anchors(matrix:SimMatrix, anchors:Tuple[Idx, Idx]=[]) -> SimMatrix:
+        if anchors:
+            idx, idy = anchors
+            matrix[idx] = 0
+            matrix[:, idy] = 0
+            matrix[idxs, idy] = 1
+
 
 
 
