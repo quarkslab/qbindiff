@@ -179,3 +179,6 @@ class QBinDiff(Differ):
             anchors.append((primary_names[name], secondary_names[name]))
         return zip(*anchors)
 
+    def save(self):
+        pass
+

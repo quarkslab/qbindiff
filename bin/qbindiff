@@ -1,24 +1,19 @@
 #!/usr/bin/env python3
 # coding: utf-8
-
 import logging
-import os.path
 import click
+import numpy as np
+from pathlib import Path
 from tqdm import tqdm
-import numpy
 
-# Pop the directory of the script (to avoid import conflict with qbindiff (same name)
-import sys
-del sys.path[0]
-
+from qbindiff.loader.types import LoaderType
 from qbindiff.loader.program import Program
 from qbindiff.differ.qbindiff import QBinDiff
+
 from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCategory
 from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanDegree, \
                                     GraphDensity, GraphNbComponents, GraphDiameter, GraphTransitivity, GraphCommunities
 from qbindiff.features.artefact import LibName, DatName, Constant, ImpName, Address
-from qbindiff.belief.belief_propagation import BeliefMatrixError
-from qbindiff.loader.types import LoaderType
 from qbindiff.features.topology import NbChildren, NbParents, NbFamily
 
 
@@ -33,16 +28,17 @@ def configure_logging(verbose: int) -> None:
     logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
 
 
-def load_qbindiff_program(f_path):
-    p = Program(LoaderType.qbindiff.name, os.path.join(f_path, "data"), os.path.join(f_path, "callgraph.json"))
-    logging.info("[+] %s loaded: %d functions" % (p.name, len(p)))
-    return p
+def load_qbindiff_program(filename):
+    program = Program(LoaderType.qbindiff.name, Path(filename) / "data", Path(filename) / "callgraph.json")
+    logging.info("[+] %s loaded: %d functions" % (program.name, len(program)))
+    return program
 
 
-def load_binexport_program(file):
-    p = Program(LoaderType.binexport.name, file)
-    logging.info("[+] %s loaded: %d functions" % (p.name, len(p)))
-    return p
+def load_binexport_program(filename):
+    program = Program(LoaderType.binexport.name, filename)
+    logging.info("[+] %s loaded: %d functions" % (program.name, len(program)))
+    return program
+
 
 
 LOADERS = list(x.name for x in LoaderType)
@@ -71,47 +67,45 @@ FEATURES = {MnemonicSimple,
 
 FEATURES_KEYS = {x.name: x for x in FEATURES}
 FEATURES_KEYS.update({x.key: x for x in FEATURES})  # also add short keys as a valid feature
-DISTANCE = ['auto', 'correlation', 'cosine', 'euclidean']
+DISTANCES = ['canberra', 'correlation', 'cosine', 'euclidean']
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'],
-                        max_content_width=300)
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], max_content_width=300)
 
 DEFAULT_LOADER = LoaderType.binexport.name
-DEFAULT_OUTPUT = "matching.json"
-DEFAULT_DISTANCE = "auto"
-DEFAULT_SIM_THRESHOLD = .9
-DEFAULT_SQUARE_THRESHOLD = .75
-DEFAULT_MAXITER = 80
-DEFAULT_TRADEOFF = 0.5
+DEFAULT_FEATURES = tuple(FEATURE_KEYS)
+DEFAULT_DISTANCE = "canberra"
+DEFAULT_SPARSITY_RATIO = 0.75
+DEFAULT_MAXITER = 1000
+DEFAULT_TRADEOFF = 0.75
+DEFAULT_EPSILON = 0.05
+DTYPE = np.float32
 
-help_features = """The following features are available:
-"""+''.join("- %s, %s: %s\n" % (x.key, x.name, x.__doc__) for x in FEATURES)
+help_features = 'The following features are available [default: all]:\n%s' % ''.join("- %s, %s: %s\n" % (x.key, x.name, x.__doc__) for x in FEATURES)
+help_distance = 'The following distances are available [default: %s]:\n%s' % (DISTANCES[0], ''.join('-d {}\n'.format(dist) for dist in DISTANCES))
 
-help_distance = "Mathematical distance function between cosine and correlation [default: %s]" % DEFAULT_DISTANCE
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option('-o', '--output', type=click.Path(), default=DEFAULT_OUTPUT,
-              help="Output file matching [default: %s]" % DEFAULT_OUTPUT)
-@click.option('-l', '--loader', type=click.Choice(LOADERS), default=DEFAULT_LOADER, metavar="<loader>",
+@click.option('-o', '--output', type=Path, default='',
+              help="Output file [default: <primary>_vs_<secondary>.qbindiff]")
+@click.option('-l', '--loader', type=click.Choice(LOADERS), default=DEFAULT_LOADER,
               help="Input files type between %s. [default loader: %s]" % (LOADERS, DEFAULT_LOADER))
-@click.option('-f', '--feature', type=click.Choice(FEATURES_KEYS), default=None, multiple=True,
-              metavar="<feature>", help=help_features, required=True)
+@click.option('-f', '--feature', type=click.Choice(FEATURES_KEYS), default=DEFAULT_FEATURES, multiple=True,
+              metavar="<feature>", help=help_features)
 @click.option('-d', '--distance', type=click.Choice(DISTANCE), default=DEFAULT_DISTANCE,
               metavar="<function>", help=help_distance)
-@click.option('-sit', '--sim_threshold', type=float, default=DEFAULT_SIM_THRESHOLD,
-              help="Minimum function-based similarity ratio of matches to be considered. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SIM_THRESHOLD)
-@click.option('-sqt', '--sq_threshold', type=float, default=DEFAULT_SQUARE_THRESHOLD,
-              help="Minimum call-graph-based similarity ratio of matches to be considered. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SQUARE_THRESHOLD)
+@click.option('-s', '--sparsity_ratio', type=float, default=DEFAULT_SPARSITY_RATIO,
+              help="Ratio of least probable matches to ignore. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SPARSITY_RATIO)
+@click.option('-t', '--tradeoff', type=float, default=DEFAULT_TRADEOFF,
+              help="Tradeoff between function content (near 1.0) and call-graph information (near 0.0) [default: %.02f]" % DEFAULT_TRADEOFF)
+@click.option('-e', '--epsilon', type=float, default=DEFAULT_EPSILON,
+              help="Relaxation parameter to enforce convergence [default: %.02f]" % DEFAULT_EPSILON)
 @click.option('-i', '--maxiter', type=int, default=DEFAULT_MAXITER,
               help="Maximum number of iteration for belief propagation [default: %d]" % DEFAULT_MAXITER)
-@click.option('-t', '--tradeoff', type=float, default=DEFAULT_TRADEOFF,
-              help="Tradeoff between function content (near 0.0) and callgraph informations (near 1.0) [default: %d]" % DEFAULT_TRADEOFF)
-@click.option('--refine-match/--no-refine-match', default=True)
 @click.option('-v', '--verbose', count=True, help="Activate debugging messages")
-@click.argument("primary", type=click.Path(exists=True), metavar="<primary file>")
-@click.argument('secondary', type=click.Path(exists=True), metavar="<secondary file>")
-def main(output, loader, feature, distance, sim_threshold, sq_threshold, maxiter, tradeoff, refine_match, verbose, primary, secondary):
+@click.argument("primary", type=Path, metavar="<primary file>")
+@click.argument('secondary', type=Path, metavar="<secondary file>")
+def main(output, loader, feature, distance, sparsity_ratio, tradeoff, epsilon, maxiter, verbose, primary, secondary):
     """
     qBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
@@ -119,34 +113,20 @@ def main(output, loader, feature, distance, sim_threshold, sq_threshold, maxiter
 
     configure_logging(verbose)
 
-    if 0.0 > sim_threshold > 1:
-        logging.warning("[-] Similarity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SIM_THRESHOLD)
-        sim_threshold = 1
+    if 0.0 > sparsity_ratio > 1:
+        logging.warning("[-] Sparsity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SPARSITY_RATIO)
+        sparsity_ratio = DEFAULT_SPARSITY_RATIO
 
-    if 0.0 > sq_threshold > 1:
-        logging.warning("[-] Square ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SQUARE_THRESHOLD)
-        sq_threshold = DEFAULT_SQUARE_THRESHOLD
-
-    if 0.0 > tradeoff > 1:  # verify that tradeoff
+    if 0.0 > tradeoff > 1:
         logging.warning("[-] Trade-off parameter should be within 0..1 (set it to %.2f)" % DEFAULT_TRADEOFF)
         tradeoff = DEFAULT_TRADEOFF
 
-    # Preprocessing to extract features and filters functions
-    logging.info("[+] loading programs")
-    p1, p2 = None, None
-    if loader == "qbindiff":
-        p1 = load_qbindiff_program(primary)
-        p2 = load_qbindiff_program(secondary)
-    elif loader == "binexport":
-        # checks here that selected features are supported
-        unsupported_fts = [GroupsCategory.name]
-        if [x for x in feature if x in unsupported_fts]:
-            logging.warning("[-] Useless feature %s for the binexport loader" % str(unsupported_fts))
-        p1 = load_binexport_program(primary)
-        p2 = load_binexport_program(secondary)
-    else:
-        logging.error("[-] Diaphora loader not implemented yet..")
-        exit(1)
+    if 0.0 > epsilon:
+        logging.warning("[-] Epsilon parameter should be positive (set it to %.3f)" % DEFAULT_EPSILON)
+        epsilon = DEFAULT_EPSILON
+
+    if not output.name:
+        output = Path('{}_vs_{}.QBinDiff'.format(primary.stem, secondary.stem))
 
     features = []
     ft_seen = set()
@@ -157,30 +137,35 @@ def main(output, loader, feature, distance, sim_threshold, sq_threshold, maxiter
             features.append(FEATURES_KEYS[ft_name])
             ft_seen.add(ft_name)
 
-    differ = QBinDiff(p1, p2)
-
-    logging.info("[+] initialize NAQP computation")
-    if not differ.initialize(features=features, distance=distance, sim_threshold=sim_threshold, sq_threshold=sq_threshold):
+    # Preprocessing to extract features and filters functions
+    logging.info("[+] Loading programs")
+    if loader == "qbindiff":
+        primary = load_qbindiff_program(primary)
+        secondary = load_qbindiff_program(secondary)
+    elif loader == "binexport":
+        # checks here that selected features are supported
+        unsupported_fts = [GroupsCategory.name]
+        if [x for x in feature if x in unsupported_fts]:
+            logging.warning("[-] Useless feature %s for the binexport loader" % str(unsupported_fts))
+        primary = load_binexport_program(primary)
+        secondary = load_binexport_program(secondary)
+    else:
+        logging.error("[-] Diaphora loader not implemented yet..")
         exit(1)
 
-    logging.info("[+] starts NAQP computation")
-    try:
-        for _ in tqdm(differ.compute(tradeoff=tradeoff, maxiter=maxiter), total=maxiter):
-            pass
-    except BeliefMatrixError as e:
-        logging.error("[-] invalid matrix type: %s" % str(e))
-        exit(1)
+    qbindiff = QBinDiff(primary, secondary)
 
-    if refine_match:
-        logging.info("[+] refine matching")
-        differ.refine()
+    logging.info("[+] Initializing NAP")
+    qbindiff.initialize(visitor, distance, DTYPE)
 
-    differ.matching.write_file(output)
-    min_fun_nb = min(differ.matching.nb_function_primary, differ.matching.nb_function_secondary)
-    logging.info("[+] final matched functions: %d / %d" % (differ.matching.nb_match, min_fun_nb))
-    logging.info("[+] matching successfully saved to: %s" % output)
+    logging.info("[+] Computing NAP")
+    for _ in tqdm(qbindiff.compute(sparsity_ratio, tradeoff, epsilon, maxiter), total=maxiter):
+        pass
+
+    logging.info("[+] Saving")
+    qbindiff.save(output)
+    logging.info("[+] Mapping successfully saved to: %s" % output)
     exit(0)
-
 
 if __name__ == '__main__':
     main()
