@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -31,11 +32,9 @@ class Mapping:
         self._nb_squares = list(nb_squares)
 
     def from_file(self, filename: PathLike):
-        connect = sqlite3.connect(str(filename))
-        cursor = connect.cursor()
-        mapping = zip(*cursor.execute('SELECT address1, address2, similarity, squares FROM function').fetchall())
-        connect.close()
-        self.from_mapping(mapping)
+        with open(filename) as file:
+            mapping = json.load(file)
+        self.from_mapping(zip(*mapping))
 
     def load(self, filename: PathLike)
         self.from_file(filename)
@@ -43,15 +42,9 @@ class Mapping:
     def save(self, filename: PathLike):
         if filename is None:
             filename = '{}_vs_{}.qbindiff'.format(self.primary.name, self.secondary.name)
-        if os.path.exists(str(filename)):
-            os.remove(str(filename))
-        connect = sqlite3.connect(str(filename))
-        cursor = connect.cursor()
-        cursor.execute('DROP TABLE IF EXISTS function')
-        cursor.execute('CREATE TABLE function (address1 INTEGER, address2 INTEGER, similarity REAL, squares INTEGER)')
-        cursor.executemany('INSERT INTO function VALUES (?, ?, ?, ?)', zip(self.primary_matched, self.secondary_matched, self._similarities, self._nb_squares))
-        connect.commit()
-        connect.close()
+        mapping = zip(self.primary_matched, self.secondary_matched, self._similarities, self._nb_squares)
+        with open(filename) as file:
+            json.dump(mapping, file)
 
     def primary_match(self, idx: Idx) -> Idx:
         """ Returns the match index associated with the given primary index """
@@ -66,7 +59,7 @@ class Mapping:
         return None
 
     @property
-    def primary_functions(self) -> List[Idx]:
+    def primary_items(self) -> List[Idx]:
         """
         Provide the list of all indexes in primary
         :return: list of indexes in primary
@@ -75,7 +68,7 @@ class Mapping:
         return list(range(max(self._idx)))
 
     @property
-    def secondary_functions(self) -> List[Idx]:
+    def secondary_items(self) -> List[Idx]:
         """
         Provide the list of all indexes secondary
         :return: list of indexes in secondary
@@ -105,7 +98,7 @@ class Mapping:
         Provide the list of indexes unmatched primary
         :return: list of indexes in primary
         """
-        return list(set(self.primary_functions).difference(self.primary_matched))
+        return list(set(self.primary_items).difference(self.primary_matched))
 
     @property
     def secondary_unmatched(self) -> List[Idx]:
@@ -113,17 +106,17 @@ class Mapping:
         Provide the list of indexes unmatched secondary
         :return: list of indexes in secondary
         """
-        return list(set(self.secondary_functions).difference(self.secondary_matched))
+        return list(set(self.secondary_items).difference(self.secondary_matched))
 
     @property
-    def nb_primary_functions(self) -> int:
+    def nb_primary_items(self) -> int:
         """ Total number of function in primary """
-        return len(self.primary_functions)
+        return len(self.primary_items)
 
     @property
-    def nb_secondary_functions(self) -> int:
+    def nb_secondary_items(self) -> int:
         """ Total number of function in secondary """
-        return len(self.secondary_functions)
+        return len(self.secondary_items)
 
     @property
     def nb_matched(self) -> int:
@@ -133,12 +126,12 @@ class Mapping:
     @property
     def nb_primary_unmatched(self) -> int:
         """ Number of unmatched function in the primary """
-        return self.nb_primary_functions - self.nb_matched
+        return self.nb_primary_items - self.nb_matched
 
     @property
     def nb_secondary_unmatched(self) -> int:
         """ Number of unmatched function in the secondary """
-        return self.nb_secondary_functions - self.nb_matched
+        return self.nb_secondary_items - self.nb_matched
 
     @property
     def similarity(self) -> float:
@@ -155,12 +148,6 @@ class Mapping:
         """ Global network alignment score of the mapping """
         return tradeoff * self.similarity + (1 - tradeoff) * self.nb_squares
 
-    def display_statistics(self, mapping: Optional[Mapping]=None):
-        output = 'Score: {:.4f} | Similarity: {:.4f} | '\
-                 'Squares: {:.0f} | Nb matches: {}\n'.format(self.score, self.similarity, self.nb_squares, self.nb_matched)
-        return output
-
-
 
 class FunctionMapping(Mapping)
 
@@ -171,43 +158,74 @@ class FunctionMapping(Mapping)
         self._primary_index = dict(zip(*enumerate(self._primary)))
         self._secondary_index = dict(zip(*enumerate(self._secondary)))
 
+    def primary_match(self, addr: Addr) -> Addr:
+        """ Returns the match address associated with the given primary address """
+        if addr in self._primary_index.values():
+            idx = 
+            return self._secondary_index[self._idy[self._idx.indice(idx)]]
+        return None
+
+    def secondary_match(self, idx: Idx) -> Idx:
+        """ Returns the match index associated with the given secondary index """
+        if addr in self._secondary_index.values():
+            idx = 
+            return self._primary_index[self._idx[self._idy.indice(idx)]]
+        return None
+
     @property
-    def primary_functions(self) -> List[Addr]:
-        """ Total number of function in primary """
+    def primary_items(self) -> List[Addr]:
+        """
+        Provide the list of all adresses in primary
+        :return: list of addresses in primary
+        """
         return list(self._primary_index.values())
 
     @property
-    def secondary_functions(self) -> List[Addr]:
-        """ Total number of function in secondary """
+    def secondary_items(self) -> List[Addr]:
+        """
+        Provide the list of all addresses in secondary
+        :return: list of addresses in secondary
+        """
         return list(self._secondary_index.values())
 
     @property
     def primary_matched(self) -> List[Addr]:
         """
-        Provide the set of indexes matched in primary
-        :return: set of indexes in primary
+        Provide the set of addresses matched in primary
+        :return: set of addresses in primary
         """
-        return [self._primary_index[idx] for idx in self._idx]
+        return [self._primary_index[idx] for idx in super().primary_matched]
 
     @property
     def secondary_matched(self) -> List[Addr]:
         """
-        Provide the set of indexes matched in the secondary binary
-        :return: set of indexes in secondary
+        Provide the set of addresses matched in secondary
+        :return: set of addresses in secondary
         """
-        return [self._secondary_index[idy] for idy in self._idy]
+        return [self._secondary_index[idy] for idy in super().secondary_matched]
 
-    def display_statistics(self, mapping: Optional[Mapping]=None):
-        output = super().display_statistics(mapping)
-        output += 'Node cover:  {:.3f}% / {:.3f}% | '\
-                  'Edge cover:  {:.3f}% / {:.3f}%\n'.format(100 * self.nb_matched / self.nb_primary_functions,
-                                                            100 * self.nb_matched / self.nb_secondary_functions,
-                                                            100 * self.nb_squares / self._primary.callgraph.sum(),
-                                                            100 * self.nb_squares / self._secondary.callgraph.sum())
-        return output
+    def from_sqlite_file(self, filename: PathLike):
+        connect = sqlite3.connect(str(filename))
+        cursor = connect.cursor()
+        mapping = zip(*cursor.execute('SELECT address1, address2, similarity, squares FROM function').fetchall())
+        connect.close()
+        self.from_mapping(mapping)
+
+    def save_sqlite(self, filename: PathLike):
+        if filename is None:
+            filename = '{}_vs_{}.qbindiff'.format(self.primary.name, self.secondary.name)
+        if os.path.exists(str(filename)):
+            os.remove(str(filename))
+        connect = sqlite3.connect(str(filename))
+        cursor = connect.cursor()
+        cursor.execute('DROP TABLE IF EXISTS function')
+        cursor.execute('CREATE TABLE function (address1 INTEGER, address2 INTEGER, similarity REAL, squares INTEGER)')
+        cursor.executemany('INSERT INTO function VALUES (?, ?, ?, ?)', zip(self.primary_matched, self.secondary_matched, self._similarities, self._nb_squares))
+        connect.commit()
+        connect.close()
 
 
-class BasicBlockMapping(AddressMapping):
+class BBlockMapping(AddressMapping):
     pass
 
 
