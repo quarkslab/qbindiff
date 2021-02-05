@@ -208,7 +208,7 @@ class FunctionBackendBinExport(object):
         self.addr = addr
         self.parents = set()
         self.children = set()
-        self.graph = networkx.DiGraph()
+        self._graph = networkx.DiGraph()
         self._pb_type = None  # Set by the Program constructor
         self._name = None  # Set by the Program constructor (mangled name)
 
@@ -263,7 +263,7 @@ class FunctionBackendBinExport(object):
                     logging.error("0x%x basic block address (0x%x) already in(idx:%d)" % (self.addr, bb_addr, bb_idx))
                 self._function[bb_addr] = bb_data
                 tmp_mapping[bb_idx] = bb_addr
-                self.graph.add_node(bb_addr)
+                self._graph.add_node(bb_addr)
 
         if bb_count != len(self._function):
             logging.error("Wrong basic block number %x, bb:%d, self:%d" %
@@ -273,8 +273,11 @@ class FunctionBackendBinExport(object):
         for edge in pb_fun.edge:
             bb_src = tmp_mapping[edge.source_basic_block_index]
             bb_dst = tmp_mapping[edge.target_basic_block_index]
-            self.graph.add_edge(bb_src, bb_dst)
+            self._graph.add_edge(bb_src, bb_dst)
 
+    @property
+    def graph(self) -> networkx.DiGraph:
+        return self._graph
 
     @property
     def function(self):
@@ -312,6 +315,7 @@ class ProgramBackendBinExport(object):
             self._pb.ParseFromString(f.read())
         self._mask = 0xFFFFFFFF if self.architecture.endswith("32") else 0xFFFFFFFFFFFFFFFF
         self.fun_names = {}
+        self._callgraph = networkx.DiGraph()
 
         # Make the data refs map
         data_refs = {}
@@ -345,6 +349,7 @@ class ProgramBackendBinExport(object):
         # Load the callgraph
         cg = self.proto.call_graph
         for node in cg.vertex:
+            self._callgraph.add_node(node.address)
             if node.address not in self._program and node.type == cg.Vertex.IMPORTED:
                 self._program[node.address] = Function(LoaderType.binexport, self, data_refs, addr_refs, None,
                                                        is_import=True, addr=node.address)
@@ -357,6 +362,7 @@ class ProgramBackendBinExport(object):
         for edge in cg.edge:
             src = cg.vertex[edge.source_vertex_index].address
             dst = cg.vertex[edge.target_vertex_index].address
+            self._callgraph.add_edge(src, dst)
             self._program[src].children.add(dst)
             self._program[dst].parents.add(src)
 
@@ -387,3 +393,7 @@ class ProgramBackendBinExport(object):
 
     def __repr_(self):
         return '<Program:%s>' % self.name
+
+    @property
+    def callgraph(self) -> networkx.DiGraph:
+        return self._callgraph

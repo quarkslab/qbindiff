@@ -1,3 +1,7 @@
+import networkx
+from typing import Callable
+
+from qbindiff.loader import Function
 from qbindiff.loader.types import LoaderType
 from qbindiff.loader.backend.binexport import ProgramBackendBinExport
 from qbindiff.loader.backend.qbindiff import ProgramBackendQBinDiff
@@ -22,6 +26,7 @@ class Program(dict):
                 self.load_ida(*args)
             else:
                 raise NotImplementedError("Loader: %s not implemented" % loader)
+        self._filter = lambda x: True
 
     def load_binexport(self,  file_path: str) -> None:
         """
@@ -60,3 +65,33 @@ class Program(dict):
         :return: program name
         """
         return self._backend.name
+
+    def set_function_filter(self, func: Callable[[Function], bool]) -> None:
+        """
+        Filter out some functions, to ignore them in later processing.
+
+        .. warning: The filter only apply for __iter__ function and callgraph property.
+                    Accessing functions through the dictionary does not apply the filter
+
+        :param func: function take an Function object and returns whether or not to keep it
+        :return: None
+        """
+        self._filter = func
+
+    def __iter__(self):
+        """
+        Override the built-in __iter__ to iterate all functions
+        located in the program.
+
+        :return: Iterator of all functions (sorted by address)
+        """
+        for addr in sorted(self.keys()):
+            f = self[addr]
+            if self._filter(f):  # yield function only if filter agree to keep it
+                yield f
+
+    @property
+    def callgraph(self) -> networkx.DiGraph:
+        cg = self._backend.callgraph
+        funcs = list(self)  # functions already filtered
+        return cg.subgraph([x.addr for x in funcs])

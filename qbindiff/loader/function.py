@@ -39,7 +39,7 @@ class Function(dict):
 
     @property
     def edges(self):
-        return list(self.graph.edges)
+        return list(self.flowgraph.edges)
 
     @property
     def addr(self) -> Addr:
@@ -50,7 +50,7 @@ class Function(dict):
         return self._backend.addr
 
     @property
-    def graph(self) -> networkx.DiGraph:
+    def flowgraph(self) -> networkx.DiGraph:
         """
         Gives the networkx DiGraph of the function. This is used to perform networkx
         based algorithm.

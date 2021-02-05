@@ -111,7 +111,7 @@ class FunctionBackendIDA(object):
         self._function = fun
         self.addr = addr
         self.pfn = ida_funcs.get_func(self.addr)
-        self.graph = networkx.DiGraph()
+        self._graph = networkx.DiGraph()
         self.parents = set()
         self.children = set()
         self._load_basic_blocks()
@@ -125,13 +125,13 @@ class FunctionBackendIDA(object):
                 bb.append(Instruction(LoaderType.ida, cur_addr))
                 cur_addr = ida_bytes.next_head(cur_addr, idabb.end_ea)
             self._function[idabb.start_ea] = bb
-            self.graph.add_node(idabb.start_ea)  # also add the bb as attribute in the graph
+            self._graph.add_node(idabb.start_ea)  # also add the bb as attribute in the graph
 
         for idabb in cfg:  # Second pass to add edges
             for succs in idabb.succs():
-                self.graph.add_edge(idabb.start_ea, succs.start_ea)
+                self._graph.add_edge(idabb.start_ea, succs.start_ea)
             for preds in idabb.preds():
-                self.graph.add_edge(idabb.start_ea, preds.start_ea)
+                self._graph.add_edge(idabb.start_ea, preds.start_ea)
 
     @property
     def name(self):
@@ -148,12 +148,17 @@ class FunctionBackendIDA(object):
     def is_import(self):
         raise NotImplementedError("is_import not implemented for IDA backend")
 
+    @property
+    def graph(self) -> networkx.DiGraph:
+        return self._graph
+
 
 class ProgramBackendIDA(object):
     def __init__(self, program):
         self._program = program
         self._load_functions()
         self._load_call_graph()
+        self._graph = networkx.DiGraph()
 
     @property
     def name(self):
@@ -165,12 +170,18 @@ class ProgramBackendIDA(object):
 
     def _load_call_graph(self):
         for fun_addr in self._program.keys():
+            self._graph.add_node(fun_addr)
             for pred in idautils.CodeRefsTo(fun_addr, 1):
                 f_pred = ida_funcs.get_func(pred)
                 if f_pred:
                     pred = f_pred.start_ea
+                    self._graph.add_edge(pred, fun_addr)
                     self._program[fun_addr].parents.add(pred)
                     self._program[pred].children.add(fun_addr)
 
     def __repr__(self):
         return '<Program:%s>' % self.name
+
+    @property
+    def callgraph(self) -> networkx.DiGraph:
+        return self._graph
