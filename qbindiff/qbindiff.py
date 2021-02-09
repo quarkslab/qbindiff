@@ -16,32 +16,68 @@ from qbindiff.mapping import Mapping, ProgramMapping, BasicBlockMapping, Functio
 
 class Differ(object):
 
-    @staticmethod
-    def load(primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix, visitor: Visitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=[]) -> Tuple[SimMatrix, AffinityMatrix, AffinityMatrix]:
+    def diff(self, primary: Iterable, secondary: Iterable,
+             visitor: Visitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=[],
+             sparsity_ratio: Ratio=.0, tradeoff: Ratio: .75, epsilon: Float= .5, maxiter: Int=1000,
+             filename: PathLike=''):
+        self.load(visitor, distance, dtype, anchors)
+        self.compute(sparsity_ratio, tradeoff, epsilon, maxiter)
+        self.save(filename)
+
+    def load(self, primary: Iterable, secondary: Iterable,
+             visitor: Visitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=[]):
         """
         Initialize the diffing instance by computing the pairwise similarity between the nodes
         of the two graphs to diff.
+        :param primary: iterable to extract features from
+        :param secondary: iterable to extract features from
         :param visitor: list of features extractors to apply
         :param distance: distance metric to use (will be later converted into a similarity metric)
         :param dtype: datatype of the similarity measures
         :param anchors: user defined mapping correspondance
-        :return: similarity matrix and the respective affinity matrix of both graphs
         """
+        self.diffing = '_vs_'.join((primary.name, secondary.name))
+        self.primary_affinity = primary.graph
+        self.secondary_affinity = secondary.graph
+
         primary_features = visitor.visit(primary)
         secondary_features = visitor.visit(secondary)
 
-        feature_index, feature_weights = Differ._build_feature_index(primary_features, secondary_features, visitor)
-        primary_matrix = Differ._vectorize_features(primary_features, feature_index, dtype)
-        secondary_matrix = Differ._vectorize_features(secondary_features, feature_index, dtype)
+        feature_index, feature_weights = self._build_feature_index(primary_features, secondary_features, visitor)
+        primary_matrix = self._vectorize_features(primary_features, feature_index, dtype)
+        secondary_matrix = self._vectorize_features(secondary_features, feature_index, dtype)
 
-        sim_matrix = Differ._compute_similarity(primary_matrix, secondary_matrix, distance, dtype, feature_weights)
-        Differ._apply_anchors(sim_matrix, anchors)
-        return sim_matrix, primary_affinity, secondary_affinity
-    
-    @staticmethod
-    def load_from_file(file: PathLike) -> Tuple[SimMatrix, AffinityMatrix, AffinityMatrix]:
+        self.sim_matrix = self._compute_similarity(primary_matrix, secondary_matrix, distance, dtype, feature_weights)
+        self._apply_anchors(self.sim_matrix, anchors)
+        # Todo build graph attribute for any iterable
 
-        return sim_matrix, primary_affinity, secondary_affinity
+    def compute(self, sparsity_ratio: Ratio=.9, tradeoff: Ratio=.75, epsilon: Float=.5, maxiter: Int=1000):
+        """
+        Run the belief propagation algorithm. This method hangs until the computation is done.
+        The resulting matching is then converted into a binary-based format
+        """
+        matcher = Matcher(self.sim_matrix, self.primary_affinity, self.secondary_affinity)
+        matcher.process(sparsity_ratio)
+        for _ in tqdm(matcher.compute(tradeoff, epsilon, maxiter), total=maxiter):
+            pass
+        logging.info(matcher.display_statistics())
+
+        self.mapping = self._convert_mapping(matcher.format_mappping())
+
+    def save(self, filename: PathLike=''):
+        filename = str(filename)
+        if not filename:
+            filename = str(self.diffing)
+        if not filename.endswith('.qbindiff'):
+            filename += '.qbindiff'
+        self.mapping.save(filename)
+
+    def load_from_file(self, filename: PathLike):
+        data = scipy.io.loadmat(str(filename))
+        self.primary_affinity = data['A'].astype(bool)
+        self.secondary_affinity = data['B'].astype(bool)
+        self.sim_matrix = data['C'].astype(dtype)
+        self.diffing = Path(filename).name
 
     @staticmethod
     def _build_feature_index(primary_features: List[Environment], secondary_features: List[Environment], visitor: Visitor) -> Tuple[Dict, List]:
@@ -59,11 +95,11 @@ class Differ(object):
         return feature_index, feature_weights
 
     @staticmethod
-    def _vectorize_features(program_features: List[Environment], feature_index: Dict, dtype: np.dtype) -> FeatureVector:
-        feature_matrix = np.zerors((len(program_features), len(feature_index)), dtype=dtype)
-        for idx, function_features in enumerate(program_features.values()):
-            if function_features:  # if the function have features (otherwise array cells are already zeros)
-                idy, value = zip(*((feature_index[key], value) for key, value in function_features.items()))
+    def _vectorize_features(iterable_features: List[Environment], feature_index: Dict, dtype: np.dtype) -> FeatureVector:
+        feature_matrix = np.zerors((len(iterable_features), len(feature_index)), dtype=dtype)
+        for idx, features in enumerate(iterable_features.values()):
+            if features:  # if the node has features (otherwise array cells are already zeros)
+                idy, value = zip(*((feature_index[key], value) for key, value in features.items()))
                 feature_matrix[idx, ft_idx] += value
         return feature_matrix
 
@@ -98,10 +134,6 @@ class Differ(object):
         return matrix
 
     @staticmethod
-    def set_anchors(anchors:Tuple[Idx, Idx]=[]) -> Tuple[Idx, Idx]:
-        return anchors
-
-    @staticmethod
     def _apply_anchors(matrix:SimMatrix, anchors:Tuple[Idx, Idx]) -> SimMatrix:
         if anchors:
             idx, idy = anchors
@@ -110,29 +142,8 @@ class Differ(object):
             matrix[idx, idy] = 1
 
     @staticmethod
-    def compute(sim_matrix: SimMatrix, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix, sparsity_ratio, epsilon, maxiter, tradeoff) -> Mapping:
-        """
-        Run the belief propagation algorithm. This method hangs until the computation is done.
-        The resulting matching is then converted into a binary-based format
-        :return: iterable
-        """
-        matcher = Matcher(sim_matrix, primary_affinity, secondary_affinity)
-        matcher.process(sparsity_ratio)
-        for _ in tqdm(matcher.compute(tradeoff, epsilon, maxiter), total=maxiter):
-            pass
-        logging.info(matcher.display_statistics())
-
-        return matcher.format_mapping()
-
-
-    @staticmethod
-    def _diff(primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix, visitor: Visitor,
-             distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=[],
-             sparsity_ratio: Ratio=.0, epsilon: Float= .5, maxiter: Int=1000, tradeoff: Ratio: .75) -> Mapping:
-        sim_matrix, primary_affinity, secondary_affinity = Differ.load(primary, secondary, primary_affinity, secondary_affinity, visitor, distance, dtype, anchors)
-        mapping = Differ.compute(sim_matrix, primary_affinity, secondary_affinity, sparsity_ratio, epsilon, maxiter, tradeoff)
-        return Mapping(mapping)
-
+    def _convert_mapping(matcher_mapping):
+        return Mapping(matcher_mapping)
 
 
 class QBinDiff(Differ):
@@ -143,30 +154,35 @@ class QBinDiff(Differ):
     name = "QBinDiff"
 
     def __init__(self, primary: Program, secondary: Program):
-        super(QBinDiff, self).__init__(ProgramVisitor())
-        self.primary = primary
-        self.secondary = secondary
+        super().__init__(primary, secondary)
 
     def register_feature(self, feature: FeatureExtractor, weight: Float=1):
-        self.visitor.register_feature(feature, weight)
+        self.
 
-    def diff_program(self) -> FunctionMapping:
-        anchors = self.set_anchors()
-        mapping = self._diff(self.primary, self.secondary, self.primary.callgraph, self.secondary.callgraph, anchors)
-        return FunctionMapping(self.primary, self.secondary, mapping)
+    def diff_program(self, features, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Addr, Addr]=[],
+                     sparsity_ratio: Ratio=.0, tradeoff: Ratio: .75, epsilon: Float= .5, maxiter: Int=1000,
+                     filename: PathLike=''):
+        visitor = self._build_visitor(features)
+        anchors = self.extract_function_anchors(self.primary, self.secondary, anchors)
+        super().diff(self.primary, self.secondary, visitor, distance, dtype, anchors, sparsity_ratio, tradeoff, epsilon, maxiter, filename)
 
-    def diff_function(self, primary_function: Function, secondary_function: Function) -> BasicBlockMapping:
-        anchors = self.set_anchors()
-        mapping = self._diff(primary_function, secondary_function, primary_function.flowgraph, secondary_function.flowgraph, anchors)
-        return BBlockMapping(self.primary, self.secondary, mapping)
+    def diff_function(self, primary: Function, secondary: Function,
+                      features, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Addr, Addr]=[],
+                      sparsity_ratio: Ratio=.0, tradeoff: Ratio: .75, epsilon: Float= .5, maxiter: Int=1000,
+                      filename: PathLike=''):
+        visitor = self._build_visitor(features)
+        anchors = self.extract_bblock_anchors(primary, secondary, anchors)
+        mapping = self._diff(primary, secondary, visitor, distance, dtype, anchors, sparsity_ratio, tradeoff, epsilon, maxiter, filename)
 
-    def _compute_similarity(self, primary_matrix: FeatureVector, secondary_matrix: FeatureVector, distance: Str='canberra', dtype: np.dtype=np.float32) -> SimMatrix:
-        matrix = Differ._compute_feature_similarity(primary_matrix, secondary_matrix, distance, dtype)
-        matrix += .01 * Differ._compute_address_similarity(len(self.primary), len(self.secondary), dtype)
-        matrix /= matrix.max()
-        return matrix
+    @staticmethod
+    def _build_visitor(features: List[str], weights: List[Float]): -> ProgramVisitor
+        visitor = ProgramVisitor()
+        for feature, weight in zip(features, weights):
+            visitor.register_feature(feature, weight)
+        return visitor
 
-    def set_anchors(self, anchors:Tuple[Idx, Idx]=[]) -> Tuple[Idx, Idx]:
+    @staticmethod
+    def extract_function_anchors(primary: Program, secondary: Program, anchors:Tuple[Addr, Addr]=[]) -> Tuple[Idx, Idx]:
         if anchors:
             primary_index = {function.addr: idx for idx, function in enumerate(self.primary)}
             secondary_index = {function.addr: idx for idx, function in enumerate(self.secondary)}
@@ -179,6 +195,25 @@ class QBinDiff(Differ):
             anchors.append((primary_names[name], secondary_names[name]))
         return zip(*anchors)
 
-    def save(self):
-        pass
+    def extract_function_anchors(primary: Function, secondary: Function, anchors:Tuple[Addr, Addr]=[]) -> Tuple[Idx, Idx]:
+        raise NotImplementedError('Not Implemented')
+
+     @staticmethod
+    def _compute_similarity(primary_matrix: FeatureVector, secondary_matrix: FeatureVector, distance: Str='canberra', dtype: np.dtype=np.float32, feature_weights: List[Float]=1) -> SimMatrix:
+        matrix = Differ._compute_feature_similarity(primary_matrix, secondary_matrix, distance, dtype, feature_weights)
+        matrix += .01 * Differ._compute_address_similarity(len(primary_matrix), len(secondary_matrix), dtype)
+        matrix /= matrix.max()
+        return matrix
+
+    @staticmethod
+    def _convert_mapping(matcher_mapping):
+        return FunctionMapping(matcher_mapping)
+
+    def save(self, filename: PathLike=''):
+        filename = str(filename)
+        if not filename:
+            filename = str(self.diffing)
+        if not filename.endswith('.qbindiff'):
+            filename += '.qbindiff'
+        self.mapping.save_sqlite(filename)
 
