@@ -90,7 +90,7 @@ help_distance = 'The following distances are available [default: %s]:\n%s' % (DI
               help="Output file [default: <primary>_vs_<secondary>.qbindiff]")
 @click.option('-l', '--loader', type=click.Choice(LOADERS), default=DEFAULT_LOADER,
               help="Input files type between %s. [default loader: %s]" % (LOADERS, DEFAULT_LOADER))
-@click.option('-f', '--feature', type=click.Choice(FEATURES_KEYS), default=DEFAULT_FEATURES, multiple=True,
+@click.option('-f', '--features', type=click.Choice(FEATURES_KEYS), default=DEFAULT_FEATURES, multiple=True,
               metavar="<feature>", help=help_features)
 @click.option('-d', '--distance', type=click.Choice(DISTANCE), default=DEFAULT_DISTANCE,
               metavar="<function>", help=help_distance)
@@ -105,7 +105,7 @@ help_distance = 'The following distances are available [default: %s]:\n%s' % (DI
 @click.option('-v', '--verbose', count=True, help="Activate debugging messages")
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument('secondary', type=Path, metavar="<secondary file>")
-def main(output, loader, feature, distance, sparsity_ratio, tradeoff, epsilon, maxiter, verbose, primary, secondary):
+def main(output, loader, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter, verbose, primary, secondary):
     """
     qBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
@@ -126,16 +126,7 @@ def main(output, loader, feature, distance, sparsity_ratio, tradeoff, epsilon, m
         epsilon = DEFAULT_EPSILON
 
     if not output.name:
-        output = Path('{}_vs_{}.QBinDiff'.format(primary.stem, secondary.stem))
-
-    features = []
-    ft_seen = set()
-    for ft_name in feature:
-        if ft_name in ft_seen:
-            logging.warning("Feature %s already registered (skip it)" % ft_name)
-        else:
-            features.append(FEATURES_KEYS[ft_name])
-            ft_seen.add(ft_name)
+        output = Path('{}_vs_{}.qbindiff'.format(primary.stem, secondary.stem))
 
     # Preprocessing to extract features and filters functions
     logging.info("[+] Loading programs")
@@ -143,10 +134,6 @@ def main(output, loader, feature, distance, sparsity_ratio, tradeoff, epsilon, m
         primary = load_qbindiff_program(primary)
         secondary = load_qbindiff_program(secondary)
     elif loader == "binexport":
-        # checks here that selected features are supported
-        unsupported_fts = [GroupsCategory.name]
-        if [x for x in feature if x in unsupported_fts]:
-            logging.warning("[-] Useless feature %s for the binexport loader" % str(unsupported_fts))
         primary = load_binexport_program(primary)
         secondary = load_binexport_program(secondary)
     else:
@@ -155,8 +142,14 @@ def main(output, loader, feature, distance, sparsity_ratio, tradeoff, epsilon, m
 
     qbindiff = QBinDiff(primary, secondary)
 
+    visitor = ProgramVisitor()
+    for feature in set(features):
+        visitor.register_feature(feature, weight)
+
+    anchors = qbindiff.extract_function_anchors(primary, secondary, anchors)
+
     logging.info("[+] Initializing NAP")
-    qbindiff.initialize(visitor, distance, DTYPE)
+    qbindiff.initialize(primary, secondary, visitor, distance, DTYPE, anchors)
 
     logging.info("[+] Computing NAP")
     for _ in tqdm(qbindiff.compute(sparsity_ratio, tradeoff, epsilon, maxiter), total=maxiter):

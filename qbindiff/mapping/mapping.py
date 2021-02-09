@@ -40,8 +40,6 @@ class Mapping:
         self.from_file(filename)
 
     def save(self, filename: PathLike):
-        if filename is None:
-            filename = '{}_vs_{}.qbindiff'.format(self.primary.name, self.secondary.name)
         mapping = zip(self.primary_matched, self.secondary_matched, self._similarities, self._nb_squares)
         with open(filename) as file:
             json.dump(mapping, file)
@@ -212,13 +210,10 @@ class FunctionMapping(Mapping)
         self.from_mapping(mapping)
 
     def save_sqlite(self, filename: PathLike):
-        if filename is None:
-            filename = '{}_vs_{}.qbindiff'.format(self.primary.name, self.secondary.name)
         if os.path.exists(str(filename)):
             os.remove(str(filename))
         connect = sqlite3.connect(str(filename))
         cursor = connect.cursor()
-        cursor.execute('DROP TABLE IF EXISTS function')
         cursor.execute('CREATE TABLE function (address1 INTEGER, address2 INTEGER, similarity REAL, squares INTEGER)')
         cursor.executemany('INSERT INTO function VALUES (?, ?, ?, ?)', zip(self.primary_matched, self.secondary_matched, self._similarities, self._nb_squares))
         connect.commit()
