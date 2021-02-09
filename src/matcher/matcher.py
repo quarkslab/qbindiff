@@ -7,8 +7,13 @@ from itertools import chain
 from scipy.sparse import csr_matrix
 from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefQAP
 
+# Import for types
+from qbindiff.types import Bool, Int, Float, Str
+from qbindiff.types import PathLike, Positive, Ratio
+from qbindiff.types import RawMapping, ExtendedMapping, Vector, Matrix, FeatureVectors, AffinityMatrix, SimMatrix, SparseMatrix
 
-def solve_linear_assignment(sim_matrix):
+
+def solve_linear_assignment(sim_matrix: SimMatrix) -> RawMapping:
     n, m = sim_matrix.shape
     transposed = n > m
     if transposed:
@@ -24,7 +29,7 @@ def solve_linear_assignment(sim_matrix):
 
 class Matcher:
 
-    def __init__(self, primary_affinity, secondary_affinity, similarity_matrix):
+    def __init__(self, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix, similarity_matrix: SimMatrix):
         self.primary_affinity = primary_affinity
         self.secondary_affinity = secondary_affinity
         self.full_sim_matrix = similarity_matrix
@@ -32,13 +37,13 @@ class Matcher:
         self.sparse_sim_matrix = None
         self.squares_matrix = None
 
-    def process(self, sparsity_ratio=.75, compute_squares=True):
+    def process(self, sparsity_ratio: Ratio=.75, compute_squares: Bool=True):
         mask = self._compute_matrix_mask(self.full_sim_matrix, sparsity_ratio)
         self.sparse_sim_matrix = self._compute_sparse_matrix(self.full_sim_matrix, mask)
         if compute_squares:
             self.squares_matrix = self._compute_squares_matrix(self.sparse_sim_matrix, self.primary_affinity, self.secondary_affinity)
 
-    def compute(self, tradeoff=.5, epsilon=.05, maxiter=1000):
+    def compute(self, tradeoff: Ratio=.75, epsilon: Positive=.5, maxiter: Int=1000):
         if tradeoff == 1:
             logging.info('[+] switching to Maximum Weight Matching (tradeoff is 1)')
             belief = BeliefMWM(self.sparse_sim_matrix, epsilon)
@@ -52,7 +57,7 @@ class Matcher:
         score_matrix.data[:] = belief._best_messages
         self.mapping = self._refine(belief.mapping, score_matrix)
 
-    def display_statistics(self, mapping=None):
+    def display_statistics(self, mapping: RawMapping=None) -> Str:
         similarities, common_subgraph = self._compute_statistics(mapping)
         nb_matches = len(similarities)
         similarity = similarities.sum()
@@ -69,13 +74,13 @@ class Matcher:
                                                             100 * nb_squares / self.secondary_affinity.sum())
         return output
 
-    def format_mapping(self):
+    def format_mapping(self) -> ExtendedMapping:
         idx, idy = self.mapping
         similarities, common_subgraph = self._compute_statistics(mapping)
         nb_squares = common_subgraph.sum(0) + common_subgraph.sum(1)
         return idx, idy, similarities, nb_squares
 
-    def _compute_statistics(self, mapping=None):
+    def _compute_statistics(self, mapping: RawMapping=None) -> Tuple[Vector, AffinityMatrix]:
         if mapping is None:
             mapping = self.mapping
         idx, idy = mapping
@@ -85,7 +90,7 @@ class Matcher:
         return similarities, common_subgraph
 
     @staticmethod
-    def _compute_matrix_mask(full_matrix, sparsity_ratio=.75):
+    def _compute_matrix_mask(full_matrix: SimMatrix, sparsity_ratio: Ratio=.75) -> Matrix:
         if sparsity_ratio == 0:
             return full_matrix.astype(bool)
         elif sparsity_ratio == 1:
@@ -104,14 +109,14 @@ class Matcher:
         return mask
 
     @staticmethod
-    def _compute_sparse_matrix(full_matrix, mask):
+    def _compute_sparse_matrix(full_matrix: SimMatrix, mask: Matrix) -> SparseMatrix:
         sparse_data = full_matrix[mask]
         sparse_matrix = csr_matrix(mask, dtype=full_matrix.dtype)
         sparse_matrix.data[:] = sparse_data
         return sparse_matrix
 
     @staticmethod
-    def _compute_squares_matrix(sparse_matrix, primary_affinity, secondary_affinity):
+    def _compute_squares_matrix(sparse_matrix: SparseMatrix, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix) -> SparseMatrix:
         size = sparse_matrix.nnz
         edgelist1 = [list(edges.nonzero()[0]) for edges in primary_affinity]
         edgelist2 = [list(edges.nonzero()[0]) for edges in secondary_affinity]
@@ -138,7 +143,7 @@ class Matcher:
         return squares_matrix
 
     @staticmethod
-    def _refine(self, mapping, score_matrix):
+    def _refine(self, mapping: RawMapping, score_matrix: SimMatrix) -> RawMapping:
         idx, idy = mapping
         if len(idx) == min(score_matrix.shape):
             return

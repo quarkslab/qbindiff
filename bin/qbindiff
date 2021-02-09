@@ -16,8 +16,11 @@ from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanD
 from qbindiff.features.artefact import LibName, DatName, Constant, ImpName, Address
 from qbindiff.features.topology import NbChildren, NbParents, NbFamily
 
+# Import for types
+from qbindiff.types import PathLike, Int
 
-def configure_logging(verbose: int) -> None:
+
+def configure_logging(verbose: Int):
     # first desactivate matplotlib logging
     logger = logging.getLogger('matplotlib')
     logger.setLevel(logging.WARNING)
@@ -28,18 +31,18 @@ def configure_logging(verbose: int) -> None:
     logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
 
 
-def load_qbindiff_program(filename):
+def load_qbindiff_program(filename: PathLike) -> Program:
     program = Program(LoaderType.qbindiff.name, Path(filename) / "data", Path(filename) / "callgraph.json")
     logging.info("[+] %s loaded: %d functions" % (program.name, len(program)))
     return program
 
 
-def load_binexport_program(filename):
+def load_binexport_program(filename: PathLike) -> Program:
     program = Program(LoaderType.binexport.name, filename)
     logging.info("[+] %s loaded: %d functions" % (program.name, len(program)))
     return program
 
-def extract_function_anchors(primary, secondary) -> Tuple[Addr, Addr]:
+def extract_function_anchors(primary: Program, secondary: Program) -> AddrAnchors:
     primary_names = {function.name: function.address for function in primary}
     secondary_names = {function.name: function.address for function in secondary}
     anchors = []
@@ -80,7 +83,7 @@ DISTANCES = ['canberra', 'correlation', 'cosine', 'euclidean']
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], max_content_width=300)
 
 DEFAULT_LOADER = LoaderType.binexport.name
-DEFAULT_FEATURES = tuple(FEATURE_KEYS)
+DEFAULT_FEATURES = tuple(FEATURES_KEYS)
 DEFAULT_DISTANCE = "canberra"
 DEFAULT_SPARSITY_RATIO = 0.75
 DEFAULT_MAXITER = 1000
@@ -88,8 +91,8 @@ DEFAULT_TRADEOFF = 0.75
 DEFAULT_EPSILON = 0.05
 DTYPE = np.float32
 
-help_features = 'The following features are available [default: all]:\n%s' % ''.join("- %s, %s: %s\n" % (x.key, x.name, x.__doc__) for x in FEATURES)
-help_distance = 'The following distances are available [default: %s]:\n%s' % (DISTANCES[0], ''.join('-d {}\n'.format(dist) for dist in DISTANCES))
+help_features = 'The following features are available [default: all]:\n{}\n'.format('\n'.join("- {}, {}: {}".format(x.key, x.name, x.__doc__) for x in FEATURES))
+help_distance = 'The following distances are available [default: {}]:\n{}\n'.format(DISTANCES[0], '\n'.join('-d {}'.format(dist) for dist in DISTANCES))
 
 
 
@@ -98,9 +101,9 @@ help_distance = 'The following distances are available [default: %s]:\n%s' % (DI
               help="Output file [default: <primary>_vs_<secondary>.qbindiff]")
 @click.option('-l', '--loader', type=click.Choice(LOADERS), default=DEFAULT_LOADER,
               help="Input files type between %s. [default loader: %s]" % (LOADERS, DEFAULT_LOADER))
-@click.option('-f', '--features', type=click.Choice(FEATURES_KEYS), default=DEFAULT_FEATURES, multiple=True,
+@click.option('-f', '--features', type=str, default=DEFAULT_FEATURES, multiple=True,
               metavar="<feature>", help=help_features)
-@click.option('-d', '--distance', type=click.Choice(DISTANCE), default=DEFAULT_DISTANCE,
+@click.option('-d', '--distance', type=click.Choice(DISTANCES), default=DEFAULT_DISTANCE,
               metavar="<function>", help=help_distance)
 @click.option('-s', '--sparsity_ratio', type=float, default=DEFAULT_SPARSITY_RATIO,
               help="Ratio of least probable matches to ignore. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SPARSITY_RATIO)
@@ -150,8 +153,15 @@ def main(output, loader, features, distance, sparsity_ratio, tradeoff, epsilon, 
 
     qbindiff = QBinDiff(primary, secondary)
 
-    for feature, weight in set(features):
-        qbindiff.register_feature(feature, weight)
+    for feature in set(features):
+        weight = 1.0
+        if ':' in feature:
+            feature, weight = feature.split(':')
+        if feature not in FEATURES_KEYS:
+            logging.warning("Feature '{}' not recognized - ignored.")
+            continue
+        qbindiff.register_feature(FEATURES_KEYS[feature], weight)
+
     anchors = extract_function_anchors(primary, secondary)
 
     logging.info("[+] Initializing NAP")

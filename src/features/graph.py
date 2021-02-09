@@ -1,5 +1,4 @@
 import networkx
-import community
 from qbindiff.features.visitor import FunctionFeature, Environment
 from qbindiff.loader.function import Function
 
@@ -77,16 +76,3 @@ class GraphTransitivity(FunctionFeature):
     def visit_function(self, fun: Function, env: Environment):
         env.add_feature('TRANSITIVITY', networkx.transitivity(fun.graph))
 
-
-class GraphCommunities(FunctionFeature):
-    """Number of graph communities (Louvain modularity)"""
-    name = "graph_community"
-    key = "Gcom"
-
-    def visit_function(self, fun: Function, env: Environment):
-        partition = community.best_partition(fun.graph.to_undirected())
-        if len(fun) > 1:
-            metric = max(x for x in partition.values() if x != fun.addr)
-        else:
-            metric = 0
-        env.add_feature('COMMUNITIES', metric)

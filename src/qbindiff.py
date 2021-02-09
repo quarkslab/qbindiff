@@ -1,31 +1,34 @@
-from __future__ import absolute_import
+# coding: utf-8
 import logging
+import numpy as np
 
+from qbindiff.loader.visitor import ProgramVisitor
 from qbindiff.matcher.matcher import Matcher
-from qbindiff.mapping.mapping import Mapping
+from qbindiff.mapping.mapping import Mapping, AddressMapping
 
 # Import for types
-from typing import Optional, Iterable, Tuple, List, Dict, Any, Str, Int , Float
-from qbindiff.types import PathLike, FeatureVector, AffinityMatrix, SimMatrix, Idx, Addr, Ratio
+from qbindiff.types import Iterable, Tuple, List, Dict
+from qbindiff.types import Optional, Any, Int, Float, Str
+from qbindiff.types import PathLike, Positive, Ratio, Idx, Addr
+from qbindiff.types import FeatureVectors, AffinityMatrix, SimMatrix
+
+from qbindiff.features.visitor import FeatureExtractor, Environment, Visitor
 from qbindiff.loader.program import Program
 from qbindiff.loader.function import Function
-from qbindiff.features.visitor import FeatureExtractor, Environment, ProgramVisitor, Visitor
-from qbindiff.mapping import Mapping, AddressMapping
-
 
 
 class Differ(object):
 
     def diff(self, primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix,
-             visitor: Visitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=None,
-             sparsity_ratio: Ratio=.0, tradeoff: Ratio: .75, epsilon: Float= .5, maxiter: Int=1000,
+             visitor: Visitor, distance: Str='canberra', dtype: Dtype=np.float32, anchors: Anchors=None,
+             sparsity_ratio: Ratio=.75, tradeoff: Ratio: .75, epsilon: Positive= .5, maxiter: Int=1000,
              output: PathLike=''):
         self.initialize(visitor, distance, dtype)
         self.compute(sparsity_ratio, tradeoff, epsilon, maxiter)
         self.save(output)
 
     def initialize(self, primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix,
-             visitor: Visitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=None):
+             visitor: Visitor, distance: Str='canberra', dtype: Dtype=np.float32, anchors: Anchors=None):
         """
         Initialize the diffing instance by computing the pairwise similarity between the nodes
         of the two graphs to diff.
@@ -51,7 +54,7 @@ class Differ(object):
         anchors = self._convert_anchors(primary, secondary, anchors)
         self._apply_anchors(self.sim_matrix, anchors)
 
-    def compute(self, sparsity_ratio: Ratio=.9, tradeoff: Ratio=.75, epsilon: Float=.5, maxiter: Int=1000):
+    def compute(self, sparsity_ratio: Ratio=.75, tradeoff: Ratio=.75, epsilon: Positive=.5, maxiter: Int=1000):
         """
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is then converted into a binary-based format.
@@ -100,7 +103,7 @@ class Differ(object):
         return feature_index, feature_weights
 
     @staticmethod
-    def _vectorize_features(iterable_features: List[Environment], feature_index: Dict, dtype: np.dtype) -> FeatureVector:
+    def _vectorize_features(iterable_features: List[Environment], feature_index: Dict, dtype: Dtype) -> FeatureVectors:
         feature_matrix = np.zerors((len(iterable_features), len(feature_index)), dtype=dtype)
         for idx, features in enumerate(iterable_features.values()):
             if features:  # if the node has features (otherwise array cells are already zeros)
@@ -109,20 +112,20 @@ class Differ(object):
         return feature_matrix
 
      @staticmethod
-    def _compute_similarity(primary_matrix: FeatureVector, secondary_matrix: FeatureVector, distance: Str='canberra', dtype: np.dtype=np.float32, feature_weights: List[Float]=1) -> SimMatrix:
+    def _compute_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: Str='canberra', dtype: Dtype=np.float32, feature_weights: List[Positive]=1.0) -> SimMatrix:
         matrix = Differ._compute_feature_similarity(primary_matrix, secondary_matrix, distance, dtype, feature_weights)
         matrix /= matrix.max()
         return matrix
 
     @staticmethod
-    def _compute_feature_similarity(primary_matrix: FeatureVector, secondary_matrix: FeatureVector, distance: Str, dtype: np.dtype, feature_weights: List[Float]) -> SimMatrix:
+    def _compute_feature_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: Str, dtype: Dtype, feature_weights: List[Positive]) -> SimMatrix:
         matrix = cdist(primary_matrix, secondary_matrix, distance, w=feature_weights).astype(dtype)
         matrix /= matrix.max()
         matrix[:] = 1 - matrix
         return matrix
 
     @staticmethod
-    def _compute_address_similarity(nb_primary_nodes: Int, nb_secondary_nodes: Int, dtype: np.dtype) -> SimMatrix:
+    def _compute_address_similarity(nb_primary_nodes: Int, nb_secondary_nodes: Int, dtype: Dtype) -> SimMatrix:
         matrix = np.zeros((nb_primary_nodes, nb_secondary_nodes), dtype)
         primary_idx = np.arange(nb_primary_nodes, dtype=dtype) / np.maximum(nb_primary_nodes, nb_secondary_nodes)
         secondary_idx = np.arange(nb_secondary_nodes, dtype=dtype) / np.maximum(nb_primary_nodes, nb_secondary_nodes)
@@ -131,7 +134,7 @@ class Differ(object):
         return matrix
 
     @staticmethod
-    def _compute_constant_similarity(primary_constants: List[Tuple[Str]], secondary_constants: List[Tuple[Str]], weight=.5, dtype: np.dtype) -> SimMatrix:
+    def _compute_constant_similarity(primary_constants: List[Tuple[Str]], secondary_constants: List[Tuple[Str]], weight: Positive=.5, dtype: Dtype) -> SimMatrix:
         matrix = np.zeros((len(primary_constants), len(secondary_constants)), dtype)
         for constant in set(primary_constants).intersection(secondary_constants):
             idx, idy = zip(*product(primary_constants[constant], secondary_constants[constant]))
@@ -139,11 +142,11 @@ class Differ(object):
         return matrix
 
     @staticmethod
-    def _convert_anchors(primary: Iterable, secondary: Iterable, anchors: Tuple[Idx, Idx]) -> Tuple[Idx, Idx]:
+    def _convert_anchors(primary: Iterable, secondary: Iterable, anchors: Anchors) -> Anchors:
         return anchors
 
     @staticmethod
-    def _apply_anchors(matrix:SimMatrix, anchors:Tuple[Idx, Idx]):
+    def _apply_anchors(matrix:SimMatrix, anchors:Anchors):
         if anchors:
             idx, idy = anchors
             data = matrix[idx, idy]
@@ -152,8 +155,8 @@ class Differ(object):
             matrix[idx, idy] = data
 
     @staticmethod
-    def _convert_mapping(matcher_mapping):
-        return Mapping(matcher_mapping)
+    def _convert_mapping(mapping: ExtendedMapping):
+        return Mapping(mapping)
 
 
 class QBinDiff(Differ):
@@ -168,14 +171,14 @@ class QBinDiff(Differ):
         self.secondary = secondary
         self._visitor = ProgramVisitor()
 
-    def diff_program(self, visitor: ProgramVisitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors: Tuple[Addr, Addr]=None,
-                     sparsity_ratio: Ratio=.0, tradeoff: Ratio: .75, epsilon: Float= .5, maxiter: Int=1000,
+    def diff_program(self, visitor: ProgramVisitor, distance: Str='canberra', dtype: Dtype=np.float32, anchors: AddrAnchors=None,
+                     sparsity_ratio: Ratio=.75, tradeoff: Ratio: .75, epsilon: Positive= .5, maxiter: Int=1000,
                      output: PathLike=''):
         self.diff(self.primary, self.secondary, self.primary.callgraph, self.secondary.callgraph, self._visitor, distance, dtype, anchors, sparsity_ratio, tradeoff, epsilon, maxiter, output)
 
     def diff_function(self, primary: Function, secondary: Function,
-                      visitor: ProgramVisitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors: Tuple[Addr, Addr]=None,
-                      sparsity_ratio: Ratio=.0, tradeoff: Ratio: .75, epsilon: Float= .5, maxiter: Int=1000,
+                      visitor: ProgramVisitor, distance: Str='canberra', dtype: Dtype=np.float32, anchors: AddrAnchors=None,
+                      sparsity_ratio: Ratio=.75, tradeoff: Ratio: .75, epsilon: Positive= .5, maxiter: Int=1000,
                       output: PathLike=''):
         self.diff(primary, secondary, primary.flowgraph, secondary.flowgraph, self._visitor, distance, dtype, anchors, sparsity_ratio, tradeoff, epsilon, maxiter, output)
 
@@ -187,18 +190,18 @@ class QBinDiff(Differ):
             filename += '.qbindiff'
         self.mapping.save_sqlite(filename)
 
-    def register_feature(feature: FeatureExtractor, weight: float=1.0):
+    def register_feature(feature: FeatureExtractor, weight: Positive=1.0):
         self._visitor.register_feature(feature, weight)
 
      @staticmethod
-    def _compute_similarity(primary_matrix: FeatureVector, secondary_matrix: FeatureVector, distance: Str='canberra', dtype: np.dtype=np.float32, feature_weights: List[Float]=1) -> SimMatrix:
+    def _compute_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: Str='canberra', dtype: Dtype=np.float32, feature_weights: List[Positive]=1.0) -> SimMatrix:
         matrix = Differ._compute_feature_similarity(primary_matrix, secondary_matrix, distance, dtype, feature_weights)
         matrix += .01 * Differ._compute_address_similarity(len(primary_matrix), len(secondary_matrix), dtype)
         matrix /= matrix.max()
         return matrix
 
     @staticmethod
-    def _convert_anchors(primary: Iterable, secondary: Iterable, anchors: Tuple[Addr, Addr]) -> Tuple[Idx, Idx]:
+    def _convert_anchors(primary: Iterable, secondary: Iterable, anchors: AddrAnchors) -> Anchors:
         if anchors:
             primary_index = {item.addr: idx for idx, item in enumerate(primary)}
             secondary_index = {item.addr: idx for idx, item in enumerate(secondary)}
@@ -206,6 +209,6 @@ class QBinDiff(Differ):
             return [primary_index[addr] for addr in addrx], [secondary_index[addr] for addr in addry]
 
     @staticmethod
-    def _convert_mapping(matcher_mapping):
-        return AddressMapping(matcher_mapping)
+    def _convert_mapping(mapping: ExtendedMapping):
+        return AddressMapping(mapping)
 

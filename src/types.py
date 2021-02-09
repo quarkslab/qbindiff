@@ -1,97 +1,86 @@
-from typing import Dict, Tuple, List, Optional, Set, Union, Generator, Iterator
+from typing import Iterable, Generator, Iterator, Union, Tuple, List, Set, Dict 
+from typing import Optional, Any, Bool, Int, Float, Str, 
 
 import numpy
-from pandas import DataFrame, Index
-from scipy.sparse import csr_matrix
 from pathlib import Path
+from scipy.sparse import csr_matrix
 
 """
-An integer representing an address within a program
+Float greater than zero
 """
-Addr = int
-
-"""
-An integer representing an index in a matrix. At low-level
-functions are manipulated using indexes in matrices.
-"""
-Idx = int
-
-"""
-Set of address indexes, as pandas Index
-"""
-AddrIndex = Index
-
-"""
-Low-level matching on matrix indexes computed by
-the belief propagation algorithm. (Internal type)
-"""
-BeliefMatching = Generator[Tuple[Idx, Idx, float], None, None]
-
-"""
-1-Dimensional array. Use to represente slice of a matrix or function features
-"""
-Vector = numpy.array
-
-"""
-1-Dimensional array. Use to represente slice of a matrix or function features
-"""
-FeatureVector = numpy.array
-
-"""
-1-Dimensional array. Use to represente slice of a matrix or function features
-"""
-AffinityMatrix = numpy.array
-
-"""
-2-Dimensional float array. Represent the matrix of weights between functions
-which represent similarity between functions
-"""
-SimMatrix = numpy.array
-
-"""
-Matrix based representation of the call graph. Boolean 2-D array
-"""
-CallMatrix = numpy.array
-
-"""
-2-D Matrix given to the belief propagation algorithm which represent distances
-of both programs. It can be a DataFrame, a sparse matrix or a numpy array
-"""
-InputMatrix = Union[DataFrame, csr_matrix, numpy.array]
-
-"""
-Internal representation of call graphs, as a list of function indexes which
-are parents to a list of indexes which are children
-"""
-CallGraph = List[List[Idx]]
-
-"""
-Math set of natural positive integers
-"""
-R = Union[int, float]
+Positive = Float
 
 """
 Float bewteen 0 and 1
 """
-Ratio = float
+Ratio = Float
 
 """
-Features of a function. The type is a dictionnary of features
-keys to their occurence or value
+An integer representing an index in a matrix.
 """
-FunctionFeatures = Dict[str, int]
+Idx = Int
 
 """
-Features extracted from the program. This a dictionnary indexed by function addreses
-wich contains a dictionnary of features
+An integer representing an address within a program
 """
-ProgramFeatures = Dict[Addr, FunctionFeatures]
+Addr = Int
 
 """
-List of addresses of both programs to be anchored together.
-For these function the match is fixed
+Pair of lists of user defined index correspondences. Default None.
 """
-Anchors = Tuple[Optional[List[Addr]], Optional[List[Addr]]]
+Anchors = Optional[Tuple[Idx, Idx]]
 
+"""
+Pair of lists of user defined address correspondences. Default None.
+"""
+AddrAnchors = Optional[Tuple[Addr, Addr]]
 
-PathLike = Union[str, Path]
+"""
+Pair of lists of indexes that are mapped together.
+"""
+RawMapping = Tuple[Idx, Idx]
+
+"""
+An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
+"""
+ExtendedMapping = Tuple[Idx, Idx, Float, Int]
+
+"""
+Numpy data type
+"""
+Dtype = numpy.dtype
+
+"""
+Arbitrary d-Dimensional array. Used to represent a vector.
+"""
+Vector = numpy.array
+
+"""
+Arbitrary nxd-Dimensional array. Used to represent a matrix.
+"""
+Matrix = numpy.array
+
+"""
+Float nxd-Dimensional array. Each n rows is represented as a dimensionnal feature vector.
+"""
+FeatureVectors = numpy.array
+
+"""
+Boolean nxn-Dimensional array. Records the node relationships among a graph.
+"""
+AffinityMatrix = numpy.array
+
+"""
+Float nxm-Dimensional array. Records the pairwise similarity scores between nodes of both graphs to diff.
+"""
+SimMatrix = numpy.array
+
+"""
+Float nxm-Dimensional array. A sparse version of the above SimMatrix
+"""
+SparseMatrix = csr_matrix
+
+"""
+Path
+"""
+PathLike = Union[Str, Path]

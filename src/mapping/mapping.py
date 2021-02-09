@@ -1,19 +1,18 @@
-from __future__ import absolute_import
-
+# coding: utf-8
 import json
 import sqlite3
 from pathlib import Path
 
-from typing import Tuple, List, Optional
-from qbindiff.types import PathLike, Mapping, Idx, Addr
-
+# Import for types
+from qbindiff.types import Tuple, List, Optional
+from qbindiff.types import PathLike, Ratio, Idx, Addr, ExtendedMapping
 
 
 class Mapping:
     """
     Matching hold all the match data between the two analysed programs
     """
-    def __init__(self, mapping: Optional[Mapping]=None):
+    def __init__(self, mapping: Optional[ExtendedMapping]=None):
         self._idx = []
         self._idy = []
         self._similarities = []
@@ -21,11 +20,11 @@ class Mapping:
         if mapping:
             self.from_mapping(mapping)
 
-    def __iter__(self) -> Tuple[List[Idx], List[Idx]]:
+    def __iter__(self) -> RawMapping:
         return self.primary_match, self.secondary_matched
 
-    def from_mapping(self, mapping: Mapping):
-        idx, idy, _similarities, nb_squares = mapping
+    def from_mapping(self, mapping: ExtendedMapping):
+        idx, idy, similarities, nb_squares = mapping
         self._idx = list(idx)
         self._idy = list(idy)
         self._similarities = list(similarities)
@@ -107,49 +106,49 @@ class Mapping:
         return list(set(self.secondary_items).difference(self.secondary_matched))
 
     @property
-    def nb_primary_items(self) -> int:
+    def nb_primary_items(self) -> Int:
         """ Total number of function in primary """
         return len(self.primary_items)
 
     @property
-    def nb_secondary_items(self) -> int:
+    def nb_secondary_items(self) -> Int:
         """ Total number of function in secondary """
         return len(self.secondary_items)
 
     @property
-    def nb_matched(self) -> int:
+    def nb_matched(self) -> Int:
         """ Returns the number of matches """
         return len(self._idx)
 
     @property
-    def nb_primary_unmatched(self) -> int:
+    def nb_primary_unmatched(self) -> Int:
         """ Number of unmatched function in the primary """
         return self.nb_primary_items - self.nb_matched
 
     @property
-    def nb_secondary_unmatched(self) -> int:
+    def nb_secondary_unmatched(self) -> Int:
         """ Number of unmatched function in the secondary """
         return self.nb_secondary_items - self.nb_matched
 
     @property
-    def similarity(self) -> float:
+    def similarity(self) -> Float:
         """ Global similairty score of the mapping """
         return sum(self._similarities)
 
     @property    
-    def nb_squares(self) -> int:
+    def nb_squares(self) -> Int:
         """ Global square number of the mapping """
         return sum(self._nb_squares) / 2
 
     @property    
-    def score(self, tradeoff: float=.5) -> float:
+    def score(self, tradeoff: Ratio=.5) -> Float:
         """ Global network alignment score of the mapping """
         return tradeoff * self.similarity + (1 - tradeoff) * self.nb_squares
 
 
 class AddressMapping(Mapping)
 
-    def __init__(self, primary: Program, secondary: Program,  mapping: Mapping=None):
+    def __init__(self, primary: Program, secondary: Program,  mapping: Optional[ExtendedMapping]=None):
         super().__init__(mapping)
         self._primary = primary
         self._secondary = secondary

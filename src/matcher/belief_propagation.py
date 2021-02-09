@@ -1,8 +1,12 @@
 # coding: utf-8
 import logging
-logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 import numpy as np
+
+# Import for types
+from qbindiff.types import Bool, Int, Float
+from qbindiff.types import Positive, Ratio
+from qbindiff.types import RawMapping, Vector, SparseMatrix
 
 
 class BeliefMWM:
@@ -11,7 +15,7 @@ class BeliefMWM:
     Computes the optimal solution to the **Maxmimum Weight Matching problem**.
     """
     
-    def __init__(self, similarity, epsilon=0.01):
+    def __init__(self, similarity: SparseMatrix, epsilon: Positive=.5):
         self._init_indices(similarity)
         self._init_messages()
 
@@ -20,7 +24,7 @@ class BeliefMWM:
         self._epsilon = self._dtype(epsilon)
         self._epsilonref = self._epsilon.copy()
         
-    def compute(self, maxiter=1000):
+    def compute(self, maxiter: Int=1000):
         for niter in range(1, maxiter+1):
             self._update_messages()
             self._round_messages()
@@ -32,7 +36,7 @@ class BeliefMWM:
         logging.info("[+] Did not converged after %i iterations" %maxiter)
 
     @property
-    def current_mapping(self):
+    def current_mapping(self) -> RawMapping:
         rows = np.searchsorted(self._rowmap, self._mates.nonzero()[0], side='right') - 1
         cols = self._colidx[self._mates]
         mask = np.intersect1d(np.unique(rows, return_index=True)[1],
@@ -40,10 +44,10 @@ class BeliefMWM:
         return rows[mask], cols[mask]
 
     @property
-    def current_score(self):
+    def current_score(self) -> Float:
         return self._weigths[self._mates].sum()
 
-    def _init_indices(self, similarity):
+    def _init_indices(self, similarity: SparseMatrix):
         self._weigths = similarity.data.copy()
         self._shape = similarity.shape
         self._dtype = similarity.dtype.type
@@ -85,26 +89,26 @@ class BeliefMWM:
         self._objective.append(self.current_score)
 
     @property
-    def _rowslice(self):
+    def _rowslice(self) -> Generator[Vector]:
         return map(slice, self._rowmap[:-1], self._rowmap[1:])
 
     @property
-    def _colslice(self):
+    def _colslice(self) -> Generator[Vector]:
         return map(slice, self._colmap[:-1], self._colmap[1:])
 
-    def _other_rowmax(self, vector):
+    def _other_rowmax(self, vector: Vector) -> Vector:
         for row in self._rowslice:
             self._othermax(vector[row])
         return vector
 
-    def _other_colmax(self, vector):
+    def _other_colmax(self, vector: Vector) -> Vector:
         vector.take(self._tocol, out=vector)
         for col in self._colslice:
             self._othermax(vector[col])
         vector.take(self._torow, out=vector)
         return vector
 
-    def _othermax(self, vector):
+    def _othermax(self, vector: Vector):
         """
         Compute the maximum value for all elements except (for the maxmimum value)
         $$x_i = max_{j!=i}{x_j}$$
@@ -129,7 +133,7 @@ class BeliefMWM:
             self._maxscore = current_score
             self._epsilon = self._epsilonref
             
-    def _converged(self, window=60, pattern=15):
+    def _converged(self, window: Int=60, pattern: Int=15) -> Bool:
         """
         Decide whether or not the algorithm have converged
 
@@ -155,7 +159,7 @@ class BeliefQAP(BeliefMWM):
     Computes an approximate solution to the **Quadratic Assignment problem**.
     """
     
-    def __init__(self, similarity, squares, tradeoff=0.5, epsilon=0.01):
+    def __init__(self, similarity: SparseMatrix, squares: SparseMatrix, tradeoff: Ratio=.5, epsilon: Positive=.5):
         super(BeliefQAP, self).__init__(similarity, epsilon=epsilon)
         if tradeoff == 1:
             logging.warning("[+] meaningless tradeoff for NAQP")
@@ -165,16 +169,16 @@ class BeliefQAP(BeliefMWM):
         self._init_squares(squares)
 
     @property
-    def current_score(self):
+    def current_score(self) -> Float:
         objective = super(BeliefQAP, self).current_score
         objective += self.numsquares * 2
         return objective
 
     @property
-    def numsquares(self):
+    def numsquares(self) -> Int:
         return self._z[self._mates][:, self._mates].nnz / 2
 
-    def _init_squares(self, squares):
+    def _init_squares(self, squares: SparseMatrix):
         self._z = squares.astype(self._dtype)
         self._zmax = self._z.data.copy()
         self._zrownnz = np.diff(squares.indptr)
