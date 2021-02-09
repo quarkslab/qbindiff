@@ -147,7 +147,7 @@ class Mapping:
         return tradeoff * self.similarity + (1 - tradeoff) * self.nb_squares
 
 
-class FunctionMapping(Mapping)
+class AddressMapping(Mapping)
 
     def __init__(self, primary: Program, secondary: Program,  mapping: Mapping=None):
         super().__init__(mapping)

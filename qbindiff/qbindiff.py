@@ -10,22 +10,22 @@ from qbindiff.types import PathLike, FeatureVector, AffinityMatrix, SimMatrix, I
 from qbindiff.loader.program import Program
 from qbindiff.loader.function import Function
 from qbindiff.features.visitor import FeatureExtractor, Environment, ProgramVisitor, Visitor
-from qbindiff.mapping import Mapping, ProgramMapping, BasicBlockMapping, FunctionMapping
+from qbindiff.mapping import Mapping, AddressMapping
 
 
 
 class Differ(object):
 
-    def diff(self, primary: Iterable, secondary: Iterable,
-             visitor: Visitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=[],
+    def diff(self, primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix,
+             visitor: Visitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=None,
              sparsity_ratio: Ratio=.0, tradeoff: Ratio: .75, epsilon: Float= .5, maxiter: Int=1000,
-             filename: PathLike=''):
-        self.initialize(visitor, distance, dtype, anchors)
+             output: PathLike=''):
+        self.initialize(visitor, distance, dtype)
         self.compute(sparsity_ratio, tradeoff, epsilon, maxiter)
-        self.save(filename)
+        self.save(output)
 
-    def initialize(self, primary: Iterable, secondary: Iterable,
-             visitor: Visitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=[]):
+    def initialize(self, primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix,
+             visitor: Visitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Idx, Idx]=None):
         """
         Initialize the diffing instance by computing the pairwise similarity between the nodes
         of the two graphs to diff.
@@ -37,8 +37,8 @@ class Differ(object):
         :param anchors: user defined mapping correspondences
         """
         self.diffing = '_vs_'.join((primary.name, secondary.name))
-        self.primary_affinity = primary.graph
-        self.secondary_affinity = secondary.graph
+        self.primary_affinity = primary_affinity
+        self.secondary_affinity = secondary_affinity
 
         primary_features = visitor.visit(primary)
         secondary_features = visitor.visit(secondary)
@@ -48,8 +48,8 @@ class Differ(object):
         secondary_matrix = self._vectorize_features(secondary_features, feature_index, dtype)
 
         self.sim_matrix = self._compute_similarity(primary_matrix, secondary_matrix, distance, dtype, feature_weights)
+        anchors = self._convert_anchors(primary, secondary, anchors)
         self._apply_anchors(self.sim_matrix, anchors)
-        # Todo build graph attribute for any iterable
 
     def compute(self, sparsity_ratio: Ratio=.9, tradeoff: Ratio=.75, epsilon: Float=.5, maxiter: Int=1000):
         """
@@ -139,7 +139,11 @@ class Differ(object):
         return matrix
 
     @staticmethod
-    def _apply_anchors(matrix:SimMatrix, anchors:Tuple[Idx, Idx]) -> SimMatrix:
+    def _convert_anchors(primary: Iterable, secondary: Iterable, anchors: Tuple[Idx, Idx]) -> Tuple[Idx, Idx]:
+        return anchors
+
+    @staticmethod
+    def _apply_anchors(matrix:SimMatrix, anchors:Tuple[Idx, Idx]):
         if anchors:
             idx, idy = anchors
             data = matrix[idx, idy]
@@ -162,21 +166,18 @@ class QBinDiff(Differ):
     def __init__(self, primary: Program, secondary: Program):
         self.primary = primary
         self.secondary = secondary
+        self._visitor = ProgramVisitor()
 
-    def diff_program(self, features: List[FeatureExtractor], distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Addr, Addr]=[],
+    def diff_program(self, visitor: ProgramVisitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors: Tuple[Addr, Addr]=None,
                      sparsity_ratio: Ratio=.0, tradeoff: Ratio: .75, epsilon: Float= .5, maxiter: Int=1000,
-                     filename: PathLike=''):
-        visitor = self._build_visitor(features)
-        anchors = self.extract_function_anchors(self.primary, self.secondary, anchors)
-        self.diff(self.primary, self.secondary, visitor, distance, dtype, anchors, sparsity_ratio, tradeoff, epsilon, maxiter, filename)
+                     output: PathLike=''):
+        self.diff(self.primary, self.secondary, self.primary.callgraph, self.secondary.callgraph, self._visitor, distance, dtype, anchors, sparsity_ratio, tradeoff, epsilon, maxiter, output)
 
     def diff_function(self, primary: Function, secondary: Function,
-                      features: List[FeatureExtractor], distance: Str='canberra', dtype: np.dtype=np.float32, anchors:Tuple[Addr, Addr]=[],
+                      visitor: ProgramVisitor, distance: Str='canberra', dtype: np.dtype=np.float32, anchors: Tuple[Addr, Addr]=None,
                       sparsity_ratio: Ratio=.0, tradeoff: Ratio: .75, epsilon: Float= .5, maxiter: Int=1000,
-                      filename: PathLike=''):
-        visitor = self._build_visitor(features)
-        anchors = self.extract_bblock_anchors(primary, secondary, anchors)
-        mapping = self.diff(primary, secondary, visitor, distance, dtype, anchors, sparsity_ratio, tradeoff, epsilon, maxiter, filename)
+                      output: PathLike=''):
+        self.diff(primary, secondary, primary.flowgraph, secondary.flowgraph, self._visitor, distance, dtype, anchors, sparsity_ratio, tradeoff, epsilon, maxiter, output)
 
     def save(self, filename: PathLike=''):
         filename = str(filename)
@@ -186,31 +187,8 @@ class QBinDiff(Differ):
             filename += '.qbindiff'
         self.mapping.save_sqlite(filename)
 
-    @staticmethod
-    def _build_visitor(features: List[FeatureExtractor]): -> ProgramVisitor
-        visitor = ProgramVisitor()
-        for feature, weight in zip(features, weights):
-            visitor.register_feature(feature, weight)
-        #Todo: deal with weights
-        return visitor
-
-    @staticmethod
-    def extract_function_anchors(primary: Program, secondary: Program, anchors:Tuple[Addr, Addr]=[]) -> Tuple[Idx, Idx]:
-        if anchors:
-            primary_index = {function.addr: idx for idx, function in enumerate(self.primary)}
-            secondary_index = {function.addr: idx for idx, function in enumerate(self.secondary)}
-            addrx, addry = anchors
-            return [primary_index[addr] for addr in addrx], [secondary_index[addr] for addr in addry]
-        primary_names = {function.name: idx for idx, function in enumerate(self.primary)}
-        secondary_names = {function.name: idx for idx, function in enumerate(self.secondary)}
-        anchors = []
-        for name in set(primary_names).intersection(secondary_names):
-            anchors.append((primary_names[name], secondary_names[name]))
-        return zip(*anchors)
-
-    @staticmethod
-    def extract_bblock_anchors(primary: Function, secondary: Function, anchors:Tuple[Addr, Addr]=[]) -> Tuple[Idx, Idx]:
-        raise NotImplementedError('Not Implemented')
+    def register_feature(feature: FeatureExtractor, weight: float=1.0):
+        self._visitor.register_feature(feature, weight)
 
      @staticmethod
     def _compute_similarity(primary_matrix: FeatureVector, secondary_matrix: FeatureVector, distance: Str='canberra', dtype: np.dtype=np.float32, feature_weights: List[Float]=1) -> SimMatrix:
@@ -220,8 +198,14 @@ class QBinDiff(Differ):
         return matrix
 
     @staticmethod
+    def _convert_anchors(primary: Iterable, secondary: Iterable, anchors: Tuple[Addr, Addr]) -> Tuple[Idx, Idx]:
+        if anchors:
+            primary_index = {item.addr: idx for idx, item in enumerate(primary)}
+            secondary_index = {item.addr: idx for idx, item in enumerate(secondary)}
+            addrx, addry = anchors
+            return [primary_index[addr] for addr in addrx], [secondary_index[addr] for addr in addry]
+
+    @staticmethod
     def _convert_mapping(matcher_mapping):
-        return FunctionMapping(matcher_mapping)
-
-
+        return AddressMapping(matcher_mapping)
 

@@ -39,6 +39,14 @@ def load_binexport_program(filename):
     logging.info("[+] %s loaded: %d functions" % (program.name, len(program)))
     return program
 
+def extract_function_anchors(primary, secondary) -> Tuple[Addr, Addr]:
+    primary_names = {function.name: function.address for function in primary}
+    secondary_names = {function.name: function.address for function in secondary}
+    anchors = []
+    for name in set(primary_names).intersection(secondary_names):
+        anchors.append((primary_names[name], secondary_names[name]))
+    return zip(*anchors)
+
 
 
 LOADERS = list(x.name for x in LoaderType)
@@ -142,14 +150,12 @@ def main(output, loader, features, distance, sparsity_ratio, tradeoff, epsilon, 
 
     qbindiff = QBinDiff(primary, secondary)
 
-    visitor = ProgramVisitor()
-    for feature in set(features):
-        visitor.register_feature(feature, weight)
-
-    anchors = qbindiff.extract_function_anchors(primary, secondary, anchors)
+    for feature, weight in set(features):
+        qbindiff.register_feature(feature, weight)
+    anchors = extract_function_anchors(primary, secondary)
 
     logging.info("[+] Initializing NAP")
-    qbindiff.initialize(primary, secondary, visitor, distance, DTYPE, anchors)
+    qbindiff.initialize(qbindiff.primary, qbindiff.secondary, qbindiff.primary.callgraph, qbindiff.secondary.callgraph, qbindiff._visitor, distance, DTYPE, anchors)
 
     logging.info("[+] Computing NAP")
     for _ in tqdm(qbindiff.compute(sparsity_ratio, tradeoff, epsilon, maxiter), total=maxiter):
