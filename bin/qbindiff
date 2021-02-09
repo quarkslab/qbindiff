@@ -93,6 +93,7 @@ DTYPE = np.float32
 
 help_features = 'The following features are available [default: all]:\n{}\n'.format('\n'.join("- {}, {}: {}".format(x.key, x.name, x.__doc__) for x in FEATURES))
 help_distance = 'The following distances are available [default: {}]:\n{}\n'.format(DISTANCES[0], '\n'.join('-d {}'.format(dist) for dist in DISTANCES))
+help_distance += '\nFeatures may be weighted by a positive value such as <feature>:<weight> [default: 1.0]\n'
 
 
 
