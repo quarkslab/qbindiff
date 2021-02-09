@@ -142,9 +142,10 @@ class Differ(object):
     def _apply_anchors(matrix:SimMatrix, anchors:Tuple[Idx, Idx]) -> SimMatrix:
         if anchors:
             idx, idy = anchors
+            data = matrix[idx, idy]
             matrix[idx] = 0
             matrix[:, idy] = 0
-            matrix[idx, idy] = 1
+            matrix[idx, idy] = data
 
     @staticmethod
     def _convert_mapping(matcher_mapping):
