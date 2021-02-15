@@ -140,7 +140,6 @@ class Mapping:
         """ Global square number of the mapping """
         return sum(self._nb_squares) / 2
 
-    @property    
     def score(self, tradeoff: Ratio=.5) -> Float:
         """ Global network alignment score of the mapping """
         return tradeoff * self.similarity + (1 - tradeoff) * self.nb_squares

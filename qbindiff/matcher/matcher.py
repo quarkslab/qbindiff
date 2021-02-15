@@ -57,38 +57,6 @@ class Matcher:
         score_matrix.data[:] = belief._best_messages
         self.mapping = self._refine(belief.mapping, score_matrix)
 
-    def display_statistics(self, mapping: RawMapping=None) -> Str:
-        similarities, common_subgraph = self._compute_statistics(mapping)
-        nb_matches = len(similarities)
-        similarity = similarities.sum()
-        nb_squares = common_subgraph.sum()
-
-        output = 'Score: {:.4f} | '\
-                 'Similarity: {:.4f} | '\
-                 'Squares: {:.0f} | '\
-                 'Nb matches: {}\n'.format(similarity + nb_squares, similarity, nb_squares, nb_matches)
-        output += 'Node cover:  {:.3f}% / {:.3f}% | '\
-                  'Edge cover:  {:.3f}% / {:.3f}%\n'.format(100 * nb_matches / len(self.primary_affinity),
-                                                            100 * nb_matches / len(self.secondary_affinity),
-                                                            100 * nb_squares / self.primary_affinity.sum(),
-                                                            100 * nb_squares / self.secondary_affinity.sum())
-        return output
-
-    def format_mapping(self) -> ExtendedMapping:
-        idx, idy = self.mapping
-        similarities, common_subgraph = self._compute_statistics(mapping)
-        nb_squares = common_subgraph.sum(0) + common_subgraph.sum(1)
-        return idx, idy, similarities, nb_squares
-
-    def _compute_statistics(self, mapping: RawMapping=None) -> Tuple[Vector, AffinityMatrix]:
-        if mapping is None:
-            mapping = self.mapping
-        idx, idy = mapping
-        similarities = self.full_sim_matrix[idx, idy]
-        common_subgraph = self.primary_affinity[np.ix_(idx, idx)]
-        common_subgraph &= self.secondary_affinity[np.ix_(idy, idy)]
-        return similarities, common_subgraph
-
     @staticmethod
     def _compute_matrix_mask(full_matrix: SimMatrix, sparsity_ratio: Ratio=.75) -> Matrix:
         if sparsity_ratio == 0:

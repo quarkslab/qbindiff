@@ -100,8 +100,6 @@ help_distance += '\nFeatures may be weighted by a positive value such as <featur
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('-o', '--output', type=Path, default='',
               help="Output file [default: <primary>_vs_<secondary>.qbindiff]")
-@click.option('-l', '--loader', type=click.Choice(LOADERS), default=DEFAULT_LOADER,
-              help="Input files type between %s. [default loader: %s]" % (LOADERS, DEFAULT_LOADER))
 @click.option('-f', '--features', type=str, default=DEFAULT_FEATURES, multiple=True,
               metavar="<feature>", help=help_features)
 @click.option('-d', '--distance', type=click.Choice(DISTANCES), default=DEFAULT_DISTANCE,
@@ -117,7 +115,7 @@ help_distance += '\nFeatures may be weighted by a positive value such as <featur
 @click.option('-v', '--verbose', count=True, help="Activate debugging messages")
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument('secondary', type=Path, metavar="<secondary file>")
-def main(output, loader, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter, verbose, primary, secondary):
+def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter, verbose, primary, secondary):
     """
     qBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
@@ -140,18 +138,9 @@ def main(output, loader, features, distance, sparsity_ratio, tradeoff, epsilon, 
     if not output.name:
         output = Path('{}_vs_{}.qbindiff'.format(primary.stem, secondary.stem))
 
-    # Preprocessing to extract features and filters functions
-    logging.info("[+] Loading programs")
-    if loader == "qbindiff":
-        primary = load_qbindiff_program(primary)
-        secondary = load_qbindiff_program(secondary)
-    elif loader == "binexport":
-        primary = load_binexport_program(primary)
-        secondary = load_binexport_program(secondary)
-    else:
-        logging.error("[-] Diaphora loader not implemented yet..")
-        exit(1)
-
+    primary = Program(primary)
+    secondary = Program(secondary)
+    
     qbindiff = QBinDiff(primary, secondary)
 
     for feature in set(features):

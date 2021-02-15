@@ -3,25 +3,74 @@ from qbindiff.features.visitor import FunctionFeature, Environment
 from qbindiff.loader.function import Function
 
 
-class GraphNbBlock(FunctionFeature):
+class BBlockNb(FunctionFeature):
     """Number of basic blocks in the function"""
-    name = "graph_nblock"
-    key = "Gnb"
+    name = "bblock_nb"
+    key = "bnb"
 
     def visit_function(self, fun: Function, env: Environment):
-        n_node = len(fun.graph)
-        env.add_feature("N_BLOCK", n_node)
+        value = fun.graph.nb_nodes()
+        env.add_feature(self.key, value)
 
 
-class GraphMeanInstBlock(FunctionFeature):
-    """Mean of instruction per basic blocks in the function"""
-    name = "graph_mean_inst_block"
-    key = "Gmib"
+class JumpNb(FunctionFeature):
+    """Number of jumps in the function"""
+    name = "jump_nb"
+    key = "jnb"
 
     def visit_function(self, fun: Function, env: Environment):
-        n_node = len(fun.graph)
-        metric = sum(map(len, fun.values())) / n_node if n_node != 0 else 0
-        env.add_feature('MEAN_INST_P_BLOCK', metric)
+        value = fun.graph.nb_edges()
+        env.add_feature(self.key, value)
+
+
+class MaxParentNb(FunctionFeature):
+    """Maximum number of parent of a bblock in the function"""
+    name = "max_parent_nb"
+    key = "maxp"
+
+    def visit_function(self, fun: Function, env: Environment):
+        value = max(len(bblock.predecessor() for bblock in fun))
+        env.add_feature(self.key, value)
+
+
+class MaxChildNb(FunctionFeature):
+    """Maximum number of children of a bblock in the function"""
+    name = "max_child_nb"
+    key = "maxc"
+
+    def visit_function(self, fun: Function, env: Environment):
+        value = max(len(bblock.successor() for bblock in fun))
+        env.add_feature(self.key, value)
+
+
+class MaxInsNB(FunctionFeature):
+    """Max number of instructions per basic blocks in the function"""
+    name = "max_ins_nb"
+    key = "maxins"
+
+    def visit_function(self, fun: Function, env: Environment):
+        value = max(len(bblock) for bblock in fun)
+        env.add_feature(self.key, value)
+
+
+class MeanInsNB(FunctionFeature):
+    """Mean number of instructions per basic blocks in the function"""
+    name = "mean_ins_nb"
+    key = "meanins"
+
+    def visit_function(self, fun: Function, env: Environment):
+        value = max(len(bblock) for bblock in fun)
+        env.add_feature(self.key, value)
+
+
+class InstNB(FunctionFeature):
+    """Number of instructions per basic blocks in the function"""
+    name = "ins_nb"
+    key = "inb"
+
+    def visit_function(self, fun: Function, env: Environment):
+        value = sum(len(bblock) for bblock in fun)
+        env.add_feature(self.key, value)
 
 
 class GraphMeanDegree(FunctionFeature):

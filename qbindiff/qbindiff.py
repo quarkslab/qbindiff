@@ -9,7 +9,7 @@ from qbindiff.mapping.mapping import Mapping, AddressMapping
 # Import for types
 from qbindiff.types import Iterable, Tuple, List, Dict
 from qbindiff.types import Optional, Any, Int, Float, Str
-from qbindiff.types import PathLike, Positive, Ratio, Idx, Addr
+from qbindiff.types import PathLike, Positive, Ratio, Idx, Addr, Dtype
 from qbindiff.types import FeatureVectors, AffinityMatrix, SimMatrix
 
 from qbindiff.features.visitor import FeatureExtractor, Environment, Visitor
@@ -68,9 +68,9 @@ class Differ(object):
 
         yield from matcher.compute(tradeoff, epsilon, maxiter)
 
-        logging.info(matcher.display_statistics())
+        self.mapping = self._convert_mapping(matcher.mapping)
 
-        self.mapping = self._convert_mapping(matcher.format_mappping())
+        logging.info(self.display_statistics())
 
     def save(self, filename: PathLike=''):
         filename = str(filename)
@@ -108,18 +108,18 @@ class Differ(object):
         for idx, features in enumerate(iterable_features.values()):
             if features:  # if the node has features (otherwise array cells are already zeros)
                 idy, value = zip(*((feature_index[key], value) for key, value in features.items()))
-                feature_matrix[idx, ft_idx] += value
+                feature_matrix[idx, idy] += value
         return feature_matrix
 
      @staticmethod
-    def _compute_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: Str='canberra', dtype: Dtype=np.float32, feature_weights: List[Positive]=1.0) -> SimMatrix:
-        matrix = Differ._compute_feature_similarity(primary_matrix, secondary_matrix, distance, dtype, feature_weights)
+    def _compute_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: Str='canberra', dtype: Dtype=np.float32, weights: List[Positive]=1.0) -> SimMatrix:
+        matrix = Differ._compute_feature_similarity(primary_matrix, secondary_matrix, distance, dtype, weights)
         matrix /= matrix.max()
         return matrix
 
     @staticmethod
-    def _compute_feature_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: Str, dtype: Dtype, feature_weights: List[Positive]) -> SimMatrix:
-        matrix = cdist(primary_matrix, secondary_matrix, distance, w=feature_weights).astype(dtype)
+    def _compute_feature_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: Str, dtype: Dtype, weights: List[Positive]) -> SimMatrix:
+        matrix = cdist(primary_matrix, secondary_matrix, distance, w=weights).astype(dtype)
         matrix /= matrix.max()
         matrix[:] = 1 - matrix
         return matrix
@@ -154,9 +154,37 @@ class Differ(object):
             matrix[:, idy] = 0
             matrix[idx, idy] = data
 
-    @staticmethod
-    def _convert_mapping(mapping: ExtendedMapping):
-        return Mapping(mapping)
+    def _convert_mapping(self, mapping: RawMapping) -> Mapping:
+        idx, idy = mapping
+        similarities, squares = self._compute_statistics(mapping)
+        return Mapping(idx, idy, similarities, squares)
+
+    def _compute_statistics(self, mapping: RawMapping=None) -> Tuple[Vector, AffinityMatrix]:
+        if mapping is None:
+            mapping = self.mapping
+        idx, idy = mapping
+        similarities = self.sim_matrix[idx, idy]
+        common_subgraph = self.primary_affinity[np.ix_(idx, idx)]
+        common_subgraph &= self.secondary_affinity[np.ix_(idy, idy)]
+        squares = common_subgraph.sum(0) + common_subgraph.sum(1)
+        return similarities, squares
+
+    def display_statistics(self, mapping: RawMapping=None) -> Str:
+        similarities, squares = self._compute_statistics(mapping)
+        nb_matches = len(similarities)
+        similarity = similarities.sum()
+        nb_squares = squares.sum()
+
+        output = 'Score: {:.4f} | '\
+                 'Similarity: {:.4f} | '\
+                 'Squares: {:.0f} | '\
+                 'Nb matches: {}\n'.format(similarity + nb_squares, similarity, nb_squares, nb_matches)
+        output += 'Node cover:  {:.3f}% / {:.3f}% | '\
+                  'Edge cover:  {:.3f}% / {:.3f}%\n'.format(100 * nb_matches / len(self.primary_affinity),
+                                                            100 * nb_matches / len(self.secondary_affinity),
+                                                            100 * nb_squares / self.primary_affinity.sum(),
+                                                            100 * nb_squares / self.secondary_affinity.sum())
+        return output
 
 
 class QBinDiff(Differ):
@@ -207,8 +235,10 @@ class QBinDiff(Differ):
             secondary_index = {item.addr: idx for idx, item in enumerate(secondary)}
             addrx, addry = anchors
             return [primary_index[addr] for addr in addrx], [secondary_index[addr] for addr in addry]
+        return anchors
 
-    @staticmethod
-    def _convert_mapping(mapping: ExtendedMapping):
-        return AddressMapping(mapping)
+    def _convert_mapping(self, mapping: RawMapping) -> Mapping:
+        idx, idy = mapping
+        similarities, squares = self._compute_statistics(mapping)
+        return AddressMapping(idx, idy, similarities, squares)
 
