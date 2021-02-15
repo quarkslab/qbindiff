@@ -1,6 +1,6 @@
 
 from setuptools import setup
-
+from setuptools import find_packages
 
 setup(
     name='qbindiff',
@@ -9,13 +9,7 @@ setup(
     author='Elie Mengin, Robin David',
     author_email='emengin@quarkslab.com, rdavid@quarkslab.com',
     url='https://gitlab.qb/machine_learning/qbindiff',
-    package_dir={'qbindiff': 'src'},
-    packages={'qbindiff': 'qbindiff',
-              'qbindiff.loader': 'qbindiff.loader',
-              'qbindiff.loader.backend': 'qbindiff.loader.backend',
-              'qbindiff.features': 'qbindiff.features',
-              'qbindiff.matcher': 'qbindiff.matcher',
-              'qbindiff.saver': 'qbindiff.saver'},
+    package_dir=find_packages(),
     scripts=['bin/qbindiff'],
     install_requires=[
         'protobuf',
