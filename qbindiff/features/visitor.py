@@ -83,6 +83,17 @@ class Feature(object):
     name = ""
     key = ""
 
+    def __init__(self, weight: float = 1.):
+        self._weight = weight
+
+    @property
+    def weight(self):
+        return self._weight
+
+    @weight.setter
+    def weight(self, value: float) -> None:
+        self._weight = value
+
 
 class ProgramFeature(Feature):
     def visit_program(self, program: Program, env: Environment) -> None:
@@ -168,7 +179,7 @@ class ProgramVisitor(Visitor):
             self.register_operand_feature_callback(ft.visit_operand)
         if isinstance(ft, ExpressionFeature):
             self.register_expression_feature_callback(ft.visit_expression)
-        self.features[ft.key] = (ft, weight)
+        self.features[ft.key] = ft
 
     def register_program_feature_callback(self, callback: Callable) -> None:
         self.program_callbacks.append(callback)
@@ -274,17 +285,4 @@ class ProgramVisitor(Visitor):
             callback(expression, env)
 
     def get_feature(self, key: str) -> Feature:
-        return self.features[key][0]
-
-    def get_feature_weight(self, key: str) -> float:
-        return self.features[key][1]
-
-
-
-
-
-
-
-
-
-
+        return self.features[key]

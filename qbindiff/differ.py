@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import scipy.io
 import scipy.spatial.distance
-from typing import Generator
+from typing import Generator, Union
 
 from qbindiff.features.visitor import ProgramVisitor, Feature
 from qbindiff.matcher.matcher import Matcher
@@ -241,11 +241,12 @@ class QBinDiff(Differ):
         self.mapping = self.diff(primary, secondary, primary.flowgraph, secondary.flowgraph, self._visitor, distance, anchors, sparsity_ratio, tradeoff, epsilon, maxiter)
         return self.mapping
 
-
-    def save_sqlite(self, filename: PathLike=''):
+    def save_sqlite(self, filename: PathLike):
         self.mapping.save_sqlite(filename)
 
-    def register_feature(self, feature: Feature, weight: Positive=1.0):
+    def register_feature(self, feature: Union[type, Feature], weight: Positive = 1.0):
+        if not isinstance(feature, Feature):
+            feature = feature(weight)
         self._visitor.register_feature(feature, weight)
 
 
