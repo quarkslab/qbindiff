@@ -1,5 +1,5 @@
 import networkx
-from typing import Callable
+from typing import Callable, Union
 
 from qbindiff.loader import Function
 from qbindiff.loader.types import LoaderType
@@ -13,19 +13,18 @@ class Program(dict):
     It inherits from dict which keys are function addresses and
     values are Function object.
     """
-    def __init__(self, loader: str=None, *args):
+    def __init__(self, loader: Union[str, LoaderType] = LoaderType.binexport, *args):
         dict.__init__(self)
         self._backend = None
-        if loader is not None:
-            loader = LoaderType[loader]
-            if loader == LoaderType.qbindiff:
-                self.load_qbindiff(*args)
-            elif loader == LoaderType.binexport:
-                self.load_binexport(*args)
-            elif loader == LoaderType.ida:
-                self.load_ida(*args)
-            else:
-                raise NotImplementedError("Loader: %s not implemented" % loader)
+        loader = LoaderType[loader] if isinstance(loader, str) else loader
+        if loader == LoaderType.qbindiff:
+            self.load_qbindiff(*args)
+        elif loader == LoaderType.binexport:
+            self.load_binexport(*args)
+        elif loader == LoaderType.ida:
+            self.load_ida(*args)
+        else:
+            raise NotImplementedError("Loader: %s not implemented" % loader)
         self._filter = lambda x: True
 
     def load_binexport(self,  file_path: str) -> None:

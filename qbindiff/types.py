@@ -1,49 +1,55 @@
-from typing import Iterable, Generator, Iterator, Union, Tuple, List, Set, Dict 
-from typing import Optional, Any, Bool, Int, Float, Str, 
+from typing import Iterable, Generator, Iterator, Union, Tuple, List, Set, Dict, Optional, Any
 
 import numpy
 from pathlib import Path
 from scipy.sparse import csr_matrix
+from collections import namedtuple
 
 """
 Float greater than zero
 """
-Positive = Float
+Positive = float
 
 """
 Float bewteen 0 and 1
 """
-Ratio = Float
+Ratio = float
 
 """
 An integer representing an index in a matrix.
 """
-Idx = Int
+Idx = int
 
 """
 An integer representing an address within a program
 """
-Addr = Int
+Addr = int
 
 """
 Pair of lists of user defined index correspondences. Default None.
 """
-Anchors = Optional[Tuple[Idx, Idx]]
+Anchors = List[Tuple[Idx, Idx]]
 
 """
 Pair of lists of user defined address correspondences. Default None.
 """
-AddrAnchors = Optional[Tuple[Addr, Addr]]
+AddrAnchors = List[Tuple[Addr, Addr]]
 
 """
 Pair of lists of indexes that are mapped together.
 """
-RawMapping = Tuple[Idx, Idx]
+RawMapping = Tuple[List[Idx], List[Idx]]
+
+'''
+Match represent the matching between two functions and can hold the similarity between the two
+'''
+Match = namedtuple("Match", "primary secondary similarity squares")
+
 
 """
 An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
 """
-ExtendedMapping = Tuple[Idx, Idx, Float, Int]
+ExtendedMapping = List[Tuple[Any, Any, float, int]]
 
 """
 Numpy data type
@@ -83,4 +89,4 @@ SparseMatrix = csr_matrix
 """
 Path
 """
-PathLike = Union[Str, Path]
+PathLike = Union[str, Path]

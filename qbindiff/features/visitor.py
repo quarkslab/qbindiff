@@ -120,7 +120,7 @@ class ProgramVisitor(Visitor):
     the different feature extractor on the appropriate items.
     """
     def __init__(self):
-        self.features = []
+        self.features = {}
         self.program_callbacks = []
         self.function_callbacks = []
         self.basic_block_callbacks = []
@@ -148,10 +148,11 @@ class ProgramVisitor(Visitor):
         elif isinstance(item, Expr):
             self.visit_expression(item, env)
 
-    def register_feature(self, ft: Feature) -> None:
+    def register_feature(self, ft: Feature, weight: float = 1.) -> None:
         """
         Register an instanciated feature extractor on the visitor.
         :param ft: Feature extractor instance
+        :param weight: Weight to apply to the feature
         :return: None
         """
         assert(isinstance(ft, Feature))
@@ -167,6 +168,7 @@ class ProgramVisitor(Visitor):
             self.register_operand_feature_callback(ft.visit_operand)
         if isinstance(ft, ExpressionFeature):
             self.register_expression_feature_callback(ft.visit_expression)
+        self.features[ft.key] = (ft, weight)
 
     def register_program_feature_callback(self, callback: Callable) -> None:
         self.program_callbacks.append(callback)
@@ -270,3 +272,19 @@ class ProgramVisitor(Visitor):
         # Call all callbacks attached to an expression
         for callback in self.expression_callbacks:
             callback(expression, env)
+
+    def get_feature(self, key: str) -> Feature:
+        return self.features[key][0]
+
+    def get_feature_weight(self, key: str) -> float:
+        return self.features[key][1]
+
+
+
+
+
+
+
+
+
+

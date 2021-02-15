@@ -1,46 +1,38 @@
 #!/usr/bin/env python3
-# coding: utf-8
+# builtin-imports
 import logging
+from pathlib import Path
+
+# Third-party imports
 import click
 import numpy as np
-from pathlib import Path
 from tqdm import tqdm
 
+# Local imports
+from qbindiff.mapping import Mapping, AddressMapping
 from qbindiff.loader.types import LoaderType
 from qbindiff.loader.program import Program
-from qbindiff.differ.qbindiff import QBinDiff
-
-from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCategory
-from qbindiff.features.graph import GraphNbBlock, GraphMeanInstBlock, GraphMeanDegree, \
-                                    GraphDensity, GraphNbComponents, GraphDiameter, GraphTransitivity, GraphCommunities
-from qbindiff.features.artefact import LibName, DatName, Constant, ImpName, Address
-from qbindiff.features.topology import NbChildren, NbParents, NbFamily
-
-# Import for types
-from qbindiff.types import PathLike, Int
+from qbindiff import QBinDiff, Differ
+from qbindiff.features import FEATURES
+from qbindiff.types import PathLike
 
 
-def configure_logging(verbose: Int):
+def configure_logging(verbose: int):
     # first desactivate matplotlib logging
     logger = logging.getLogger('matplotlib')
     logger.setLevel(logging.WARNING)
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
-    numpy.warnings.filterwarnings('ignore')
+    np.warnings.filterwarnings('ignore')
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
-
-
-def load_qbindiff_program(filename: PathLike) -> Program:
-    program = Program(LoaderType.qbindiff.name, Path(filename) / "data", Path(filename) / "callgraph.json")
-    logging.info("[+] %s loaded: %d functions" % (program.name, len(program)))
-    return program
 
 
 def load_binexport_program(filename: PathLike) -> Program:
     program = Program(LoaderType.binexport.name, filename)
     logging.info("[+] %s loaded: %d functions" % (program.name, len(program)))
     return program
+
 
 def extract_function_anchors(primary: Program, secondary: Program) -> AddrAnchors:
     primary_names = {function.name: function.address for function in primary}
@@ -51,31 +43,24 @@ def extract_function_anchors(primary: Program, secondary: Program) -> AddrAnchor
     return zip(*anchors)
 
 
+def display_statistics(differ: Differ, mapping: Mapping) -> None:
+    nb_matches = mapping.nb_match
+    similarity = mapping.similarity
+    nb_squares = mapping.squares
+
+    output = 'Score: {:.4f} | '\
+             'Similarity: {:.4f} | '\
+             'Squares: {:.0f} | '\
+             'Nb matches: {}\n'.format(similarity + nb_squares, similarity, nb_squares, nb_matches)
+    output += 'Node cover:  {:.3f}% / {:.3f}% | '\
+              'Edge cover:  {:.3f}% / {:.3f}%\n'.format(100 * nb_matches / len(differ.primary_affinity),
+                                                        100 * nb_matches / len(differ.secondary_affinity),
+                                                        100 * nb_squares / differ.primary_affinity.sum(),
+                                                        100 * nb_squares / differ.secondary_affinity.sum())
+    print(output)
+
 
 LOADERS = list(x.name for x in LoaderType)
-FEATURES = {MnemonicSimple,
-            MnemonicTyped,
-            GroupsCategory,
-            GraphNbBlock,
-            GraphMeanInstBlock,
-            GraphMeanDegree,
-            GraphDensity,
-            GraphNbComponents,
-            GraphDiameter,
-            GraphTransitivity,
-            GraphCommunities,
-            LibName,
-            DatName,
-            Constant,
-            ImpName,
-            NbChildren,
-            NbParents,
-            NbParents,
-            NbFamily,
-            Address
-            # New features should be added here
-            }
-
 FEATURES_KEYS = {x.name: x for x in FEATURES}
 FEATURES_KEYS.update({x.key: x for x in FEATURES})  # also add short keys as a valid feature
 DISTANCES = ['canberra', 'correlation', 'cosine', 'euclidean']
@@ -94,7 +79,6 @@ DTYPE = np.float32
 help_features = 'The following features are available [default: all]:\n{}\n'.format('\n'.join("- {}, {}: {}".format(x.key, x.name, x.__doc__) for x in FEATURES))
 help_distance = 'The following distances are available [default: {}]:\n{}\n'.format(DISTANCES[0], '\n'.join('-d {}'.format(dist) for dist in DISTANCES))
 help_distance += '\nFeatures may be weighted by a positive value such as <feature>:<weight> [default: 1.0]\n'
-
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -155,16 +139,19 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
     anchors = extract_function_anchors(primary, secondary)
 
     logging.info("[+] Initializing NAP")
-    qbindiff.initialize(qbindiff.primary, qbindiff.secondary, qbindiff.primary.callgraph, qbindiff.secondary.callgraph, qbindiff._visitor, distance, DTYPE, anchors)
+    qbindiff.compute_similarity(qbindiff.primary, qbindiff.secondary, qbindiff.primary.callgraph, qbindiff.secondary.callgraph, qbindiff._visitor, distance, DTYPE, anchors)
 
     logging.info("[+] Computing NAP")
-    for _ in tqdm(qbindiff.compute(sparsity_ratio, tradeoff, epsilon, maxiter), total=maxiter):
+    for _ in tqdm(qbindiff.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter), total=maxiter):
         pass
+
+    display_statistics(qbindiff, qbindiff.mapping)
 
     logging.info("[+] Saving")
     qbindiff.save(output)
     logging.info("[+] Mapping successfully saved to: %s" % output)
     exit(0)
+
 
 if __name__ == '__main__':
     main()

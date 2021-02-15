@@ -18,6 +18,6 @@ setup(
         'numpy',
         'scipy',
         'lapjv',
-        'networkx'
+        'networkx',
     ],
 )

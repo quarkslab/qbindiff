@@ -1,154 +1,166 @@
 # coding: utf-8
 import json
 import sqlite3
+from typing import Generator, Iterator, Iterable
 from pathlib import Path
 
 # Import for types
-from qbindiff.types import Tuple, List, Optional
+from qbindiff.types import Tuple, List, Optional, Match
 from qbindiff.types import PathLike, Ratio, Idx, Addr, ExtendedMapping
+from qbindiff.loader.program import Program
+
+
+
+import json
+from collections import namedtuple
+
+from qbindiff.types import Addr
+from typing import Optional, Set
+
 
 
 class Mapping:
     """
     Matching hold all the match data between the two analysed programs
     """
-    def __init__(self, mapping: Optional[ExtendedMapping]=None):
-        self._idx = []
-        self._idy = []
-        self._similarities = []
-        self._nb_squares = []
-        if mapping:
-            self.from_mapping(mapping)
+    def __init__(self, mapping: ExtendedMapping, unmatched: Tuple[List[Idx], List[Idx]]):
+        self._matches = [Match(*x) for x in mapping]
+        self._primary_unmatched = unmatched[0]
+        self._secondary_unmatched = unmatched[1]
 
-    def __iter__(self) -> RawMapping:
-        return self.primary_match, self.secondary_matched
-
-    def from_mapping(self, mapping: ExtendedMapping):
-        idx, idy, similarities, nb_squares = mapping
-        self._idx = list(idx)
-        self._idy = list(idy)
-        self._similarities = list(similarities)
-        self._nb_squares = list(nb_squares)
-
-    def from_file(self, filename: PathLike):
-        with open(filename) as file:
-            mapping = json.load(file)
-        self.from_mapping(zip(*mapping))
-
-    def load(self, filename: PathLike)
-        self.from_file(filename)
-
-    def save(self, filename: PathLike):
-        mapping = zip(self.primary_matched, self.secondary_matched, self._similarities, self._nb_squares)
-        with open(filename) as file:
-            json.dump(mapping, file)
-
-    def primary_match(self, idx: Idx) -> Idx:
-        """ Returns the match index associated with the given primary index """
-        if idx in self._idx:
-            return self._idy[self._idx.indice(idx)]
-        return None
-
-    def secondary_match(self, idx: Idx) -> Idx:
-        """ Returns the match index associated with the given secondary index """
-        if idx in self._idy:
-            return self._idx[self._idy.indice(idx)]
-        return None
+    def __iter__(self):
+        return iter(self._matches)
 
     @property
-    def primary_items(self) -> List[Idx]:
-        """
-        Provide the list of all indexes in primary
-        :return: list of indexes in primary
-        WARNING: due to lack of information, this function might be erroneous
-        """
-        return list(range(max(self._idx)))
+    def similarity(self) -> float:
+        """ Global similarity of the diff """
+        return sum(x.similarity for x in self._matches)
 
     @property
-    def secondary_items(self) -> List[Idx]:
+    def normalized_similarity(self) -> float:
+        """ Global similarity of the diff """
+        return (2*self.similarity) / (self.nb_item_primary+self.nb_item_secondary)
+
+    @property
+    def squares(self) -> float:
+        """ Global similarity of the diff """
+        return sum(x.squares for x in self._matches) / 2
+
+    def add_match(self, p1: Idx, p2: Idx, similarity: float=None, squares: int=None) -> None:
         """
-        Provide the list of all indexes secondary
-        :return: list of indexes in secondary
-        WARNING: due to lack of information, this function might be erroneous
+        Add the given match between the two function addresses
+        :param addr_p1: function address in primary
+        :param addr_p2: function address in secondary
+        :param similarity: similarity metric as float
+        :return: None
         """
-        return list(range(max(self._idy)))
+        self._matches.append(Match(p1, p2, similarity, squares))
+
+    def remove_match(self, match: Match) -> None:
+        """
+        Remove the given matching from the matching
+        :param match: Match object to remove from the matching
+        :return: None
+        """
+        self._matches.remove(match)
 
     @property
     def primary_matched(self) -> List[Idx]:
         """
-        Provide the list of indexes matched in primary
-        :return: list of indexes in primary
+        Provide the set of addresses matched in primary
+        :return: set of addresses in primary
         """
-        return self._idx
-
-    @property
-    def secondary_matched(self) -> List[Idx]:
-        """
-        Provide the list of indexes matched secondary
-        :return: list of indexes in secondary
-        """
-        return self._idy
+        return [x.primary for x in self._matches]
 
     @property
     def primary_unmatched(self) -> List[Idx]:
         """
-        Provide the list of indexes unmatched primary
-        :return: list of indexes in primary
+        Provide the set of addresses matched in primary
+        :return: set of addresses in primary
         """
-        return list(set(self.primary_items).difference(self.primary_matched))
+        return self._primary_unmatched
+
+    @property
+    def secondary_matched(self) -> List[Idx]:
+        """
+        Provide the set of addresses matched in the secondary binary
+        :return: set of addresses in secondary
+        """
+        return [x.secondary for x in self._matches]
 
     @property
     def secondary_unmatched(self) -> List[Idx]:
         """
-        Provide the list of indexes unmatched secondary
-        :return: list of indexes in secondary
+        Provide the set of addresses matched in the secondary binary
+        :return: set of addresses in secondary
         """
-        return list(set(self.secondary_items).difference(self.secondary_matched))
+        return self._secondary_unmatched
 
     @property
-    def nb_primary_items(self) -> Int:
-        """ Total number of function in primary """
-        return len(self.primary_items)
-
-    @property
-    def nb_secondary_items(self) -> Int:
-        """ Total number of function in secondary """
-        return len(self.secondary_items)
-
-    @property
-    def nb_matched(self) -> Int:
+    def nb_match(self) -> int:
         """ Returns the number of matches """
-        return len(self._idx)
+        return len(self._matches)
 
     @property
-    def nb_primary_unmatched(self) -> Int:
-        """ Number of unmatched function in the primary """
-        return self.nb_primary_items - self.nb_matched
+    def nb_unmatched_primary(self) -> int:
+        """ Number of unmatched function in the primary program """
+        return len(self._primary_unmatched)
 
     @property
-    def nb_secondary_unmatched(self) -> Int:
-        """ Number of unmatched function in the secondary """
-        return self.nb_secondary_items - self.nb_matched
+    def nb_unmatched_secondary(self) -> int:
+        """ Number of unmatched function in the secondary program """
+        return len(self._secondary_unmatched)
 
     @property
-    def similarity(self) -> Float:
-        """ Global similairty score of the mapping """
-        return sum(self._similarities)
+    def nb_item_primary(self) -> int:
+        """ Total number of function in primary """
+        return self.nb_match + self.nb_unmatched_primary
 
-    @property    
-    def nb_squares(self) -> Int:
-        """ Global square number of the mapping """
-        return sum(self._nb_squares) / 2
+    @property
+    def nb_item_secondary(self) -> int:
+        """ Total number of function in secondary """
+        return self.nb_match + self.nb_unmatched_secondary
 
-    def score(self, tradeoff: Ratio=.5) -> Float:
-        """ Global network alignment score of the mapping """
-        return tradeoff * self.similarity + (1 - tradeoff) * self.nb_squares
+    def match_primary(self, idx: Idx) -> Optional[Match]:
+        """ Returns the match index associated with the given primary index """
+        for m in self._matches:
+            if m.primary == idx:
+                return m
+        return None
+
+    def match_secondary(self, idx: Idx) -> Optional[Match]:
+        """ Returns the match index associated with the given primary index """
+        for m in self._matches:
+            if m.secondary == idx:
+                return m
+        return None
+
+    def is_match_primary(self, idx: Idx) -> bool:
+        """ Returns true if the address in primary did match with a function """
+        return self.match_primary(idx) is not None
+
+    def is_match_secondary(self, idx: Idx) -> bool:
+        """ Returns true if the address in secondary did match with a function in primary """
+        return self.match_secondary(idx) is not None
+
+    @staticmethod
+    def from_file(filename: PathLike) -> 'Mapping':
+        with open(filename) as file:
+            mapping = json.load(file)
+        return Mapping(mapping['matched'], mapping['unmatched'])
+
+    def save(self, filename: PathLike) -> None:
+        with open(filename) as file:
+            json.dump({'matched': self._matches, 'unmatched': [self._primary_unmatched, self._secondary_unmatched]}, file)
 
 
-class AddressMapping(Mapping)
 
-    def __init__(self, primary: Program, secondary: Program,  mapping: Optional[ExtendedMapping]=None):
-        super().__init__(mapping)
+
+
+class AddressMapping(Mapping):
+
+    def __init__(self, primary: Iterable, secondary: Iterable,  mapping: ExtendedMapping, unmatched: Tuple[List[Addr], List[Addr]]):
+        super().__init__(mapping, unmatched)
         self._primary = primary
         self._secondary = secondary
         self._primary_index = dict(zip(*enumerate(self._primary)))

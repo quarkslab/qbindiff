@@ -1,6 +1,7 @@
 import networkx
 from qbindiff.features.visitor import FunctionFeature, Environment
 from qbindiff.loader.function import Function
+import community
 
 
 class BBlockNb(FunctionFeature):
@@ -124,4 +125,33 @@ class GraphTransitivity(FunctionFeature):
 
     def visit_function(self, fun: Function, env: Environment):
         env.add_feature('TRANSITIVITY', networkx.transitivity(fun.graph))
+
+
+class GraphCommunities(FunctionFeature):
+    """Number of graph communities (Louvain modularity)"""
+    name = "graph_community"
+    key = "Gcom"
+
+    def visit_function(self, function: Function, env: Environment) -> None:
+        partition = community.best_partition(function.graph.to_undirected())
+        if len(function) > 1:
+            metric = max(x for x in partition.values() if x != function.addr)
+        else:
+            metric = 0
+        env.add_feature('COMMUNITIES', metric)
+
+
+class FunctionOffset(ProgramFeature, FunctionFeature):
+    key = "toto"
+
+    def __init__(self):
+        self.offset_map = {}
+
+    def visit_program(self, program, env: Environment):
+        self.offset_map = {addr: i for i, addr in enumerate(sorted(program.keys()))}
+
+    def visit_function(self, function: Function, env: Environment):
+        env.add_feature[self.key] = self.offset_map[function.address]
+
+
 
