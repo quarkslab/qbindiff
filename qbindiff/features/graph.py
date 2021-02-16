@@ -81,8 +81,8 @@ class GraphMeanDegree(FunctionFeature):
 
     def visit_function(self, fun: Function, env: Environment):
         n_node = len(fun.graph)
-        metric = sum(x for a, x in fun.graph.degree()) / n_node if n_node != 0 else 0
-        env.add_feature('MEAN_DEGREE', metric)
+        value = sum(x for a, x in fun.graph.degree()) / n_node if n_node != 0 else 0
+        env.add_feature(self.key, value)
 
 
 class GraphDensity(FunctionFeature):
@@ -91,7 +91,9 @@ class GraphDensity(FunctionFeature):
     key = "Gd"
 
     def visit_function(self, fun: Function, env: Environment):
-        env.add_feature('DENSITY', networkx.density(fun.graph))
+        value = networkx.density(fun.graph)
+        env.add_feature(self.key, value)
+
 
 
 class GraphNbComponents(FunctionFeature):
@@ -100,8 +102,8 @@ class GraphNbComponents(FunctionFeature):
     key = "Gnc"
 
     def visit_function(self, fun: Function, env: Environment):
-        components = list(networkx.connected_components(fun.graph.to_undirected()))
-        env.add_feature("N_COMPONENTS", len(components))
+        value = len(list(networkx.connected_components(fun.graph.to_undirected())))
+        env.add_feature(self.key, value)
 
 
 class GraphDiameter(FunctionFeature):
@@ -112,10 +114,10 @@ class GraphDiameter(FunctionFeature):
     def visit_function(self, fun: Function, env: Environment):
         components = list(networkx.connected_components(fun.graph.to_undirected()))
         if components:
-            max_dia = max(networkx.diameter(networkx.subgraph(fun.graph, x).to_undirected()) for x in components)
+            value = max(networkx.diameter(networkx.subgraph(fun.graph, x).to_undirected()) for x in components)
         else:
-            max_dia = 0
-        env.add_feature("MAX_DIAMETER", max_dia)
+            value = 0
+        env.add_feature(self.key, value)
 
 
 class GraphTransitivity(FunctionFeature):
@@ -124,7 +126,8 @@ class GraphTransitivity(FunctionFeature):
     key = "Gt"
 
     def visit_function(self, fun: Function, env: Environment):
-        env.add_feature('TRANSITIVITY', networkx.transitivity(fun.graph))
+        value = networkx.transitivity(fun.graph)
+        env.add_feature(self.key, value)
 
 
 class GraphCommunities(FunctionFeature):
@@ -135,23 +138,8 @@ class GraphCommunities(FunctionFeature):
     def visit_function(self, function: Function, env: Environment) -> None:
         partition = community.best_partition(function.graph.to_undirected())
         if len(function) > 1:
-            metric = max(x for x in partition.values() if x != function.addr)
+            value = max(x for x in partition.values() if x != function.addr)
         else:
-            metric = 0
-        env.add_feature('COMMUNITIES', metric)
-
-
-class FunctionOffset(ProgramFeature, FunctionFeature):
-    key = "toto"
-
-    def __init__(self):
-        self.offset_map = {}
-
-    def visit_program(self, program, env: Environment):
-        self.offset_map = {addr: i for i, addr in enumerate(sorted(program.keys()))}
-
-    def visit_function(self, function: Function, env: Environment):
-        env.add_feature[self.key] = self.offset_map[function.address]
-
-
+            value = 0
+        env.add_feature(self.key, value)
 

@@ -4,6 +4,29 @@ from qbindiff.loader.operand import Operand, Expr
 from qbindiff.loader.instruction import Instruction
 
 
+class Address(InstructionFeature):
+    """ Address of the function as a feature"""
+    name = 'address'
+    key = 'addr'
+
+    def visit_instruction(self, instruction: Instruction, env: Environment) -> None:
+        value = instruction.addr
+        env.add_feature(self.key, value)
+
+
+class AddressIndex(ProgramFeature, FunctionFeature):
+    """ Address index of the function as a feature"""
+    key = "address_index"
+    key = "addridx"
+
+    def visit_program(self, program: Program, env: Environment):
+        self._function_idx = 0
+
+    def visit_function(self, function: Function, env: Environment):
+        env.add_feature(self.key, self._function_idx)
+        self._function_idx += 1
+
+
 class LibName(ExpressionFeature):
     """Call to library functions (local function)"""
     name = "libname"
@@ -24,6 +47,16 @@ class DatName(ExpressionFeature):
             env.inc_feature(expr['value'])
 
 
+class ImpName(ExpressionFeature):
+    """References to imports in the instruction"""
+    name = 'impname'
+    key = 'imp'
+
+    def visit_expression(self, expr: Expr, env: Environment) -> None:
+        if expr['type'] == 'impname':
+            env.inc_feature(expr['value'])
+
+
 class Constant(ExpressionFeature):
     """Constant (32/64bits) in the instruction (not addresses)"""
     name = "cstname"
@@ -41,21 +74,3 @@ class Constant(ExpressionFeature):
             except ValueError:
                 print('Invalid constant: %s' % (expr['value']))
 
-
-class ImpName(ExpressionFeature):
-    """References to imports in the instruction"""
-    name = 'impname'
-    key = 'imp'
-
-    def visit_expression(self, expr: Expr, env: Environment) -> None:
-        if expr['type'] == 'impname':
-            env.inc_feature(expr['value'])
-
-
-class Address(InstructionFeature):
-    """ Address of the function as a feature"""
-    name = 'address'
-    key = 'addr'
-
-    def visit_instruction(self, instruction: Instruction, env: Environment) -> None:
-        env.add_feature("addr", instruction.addr)
