@@ -5,7 +5,7 @@ class LoaderType(IntEnum):
     """
     The different kind of loaders (diaphora not supported)
     """
-    qbindiff = 0
+    unknown = 0
     binexport = 1
     diaphora = 2
     ida = 3

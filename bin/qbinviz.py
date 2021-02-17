@@ -206,10 +206,8 @@ QBinDiff vizualization configuration:
                 print("binexport/diaphora set: put file mode")
                 self.controls['iPrimary'] = self.primary
                 self.controls['iSecondary'] = self.secondary
-            elif typ == LoaderType.qbindiff:
-                print("qbindiff set: put dir mode")
-                self.controls['iPrimary'] = self.primaryD
-                self.controls['iSecondary'] = self.secondaryD
+            else:
+                assert False
             self.iLoader.value = v
             self.Compile()
             self.Close(1)
@@ -266,9 +264,7 @@ class QBinVizPlugin(ida_idaapi.plugin_t):
                 #primary = Program(form.get_type().name, form.get_primary_filepath())
             f_path = form.get_secondary_filepath()
             typ = form.get_type()
-            if typ == LoaderType.qbindiff:
-                secondary = Program(typ.name, f_path+"/data", f_path+"/callgraph.json")
-            elif typ == LoaderType.binexport:
+            if typ == LoaderType.binexport:
                 secondary = Program(typ.name, f_path)
             else:
                 print("Type not supported yet")

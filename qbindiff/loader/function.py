@@ -16,18 +16,12 @@ class Function(dict):
     def __init__(self, loader, *args, **kwargs):
         super(dict, self).__init__()
         self._backend = None
-        if loader == LoaderType.qbindiff:
-            self.load_qbindiff(*args)
-        elif loader == LoaderType.binexport:
+        if loader == LoaderType.binexport:
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
-
-    def load_qbindiff(self, data):
-        from qbindiff.loader.backend.qbindiff import FunctionBackendQBinDiff
-        self._backend = FunctionBackendQBinDiff(self, data)
 
     def load_binexport(self, *args, **kwargs):
         from qbindiff.loader.backend.binexport import FunctionBackendBinExport

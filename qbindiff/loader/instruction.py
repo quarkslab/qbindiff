@@ -10,23 +10,12 @@ class Instruction(object):
     """
     def __init__(self, loader, *args):
         self._backend = None
-        if loader == LoaderType.qbindiff:
-            self.load_qbindiff(*args)
-        elif loader == LoaderType.binexport:
+        if loader == LoaderType.binexport:
             self.load_binexport(*args)
         elif loader == LoaderType.ida:
             self.load_ida(*args)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
-
-    def load_qbindiff(self, data: dict) -> None:
-        """
-        Load the isntruction using the raw dict data
-        :param data: raw data
-        :return: None
-        """
-        from qbindiff.loader.backend.qbindiff import InstructionBackendQBinDiff
-        self._backend = InstructionBackendQBinDiff(data)
 
     def load_binexport(self, *args) -> None:
         """

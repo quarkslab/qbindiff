@@ -4,7 +4,6 @@ from typing import Callable, Union
 from qbindiff.loader import Function
 from qbindiff.loader.types import LoaderType
 from qbindiff.loader.backend.binexport import ProgramBackendBinExport
-from qbindiff.loader.backend.qbindiff import ProgramBackendQBinDiff
 
 
 class Program(dict):
@@ -17,9 +16,7 @@ class Program(dict):
         dict.__init__(self)
         self._backend = None
         loader = LoaderType[loader] if isinstance(loader, str) else loader
-        if loader == LoaderType.qbindiff:
-            self.load_qbindiff(*args)
-        elif loader == LoaderType.binexport:
+        if loader == LoaderType.binexport:
             self.load_binexport(*args)
         elif loader == LoaderType.ida:
             self.load_ida(*args)
@@ -35,16 +32,6 @@ class Program(dict):
         :return: None
         """
         self._backend = ProgramBackendBinExport(self, file_path)
-
-    def load_qbindiff(self, directory, call_graph) -> None:
-        """
-        Load the Program using the qbindiff backend. This functions is
-        meant to be used with a parameter-less instanciation: Program()
-        :param directory: directory path which contains all the function JSON files
-        :param call_graph: file path to the call graph json file
-        :return: None
-        """
-        self._backend = ProgramBackendQBinDiff(self, directory, call_graph)
 
     def load_ida(self) -> None:
         """

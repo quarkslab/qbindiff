@@ -14,23 +14,12 @@ class Operand(object):
     """
     def __init__(self, loader, *args):
         self._backend = None
-        if loader == LoaderType.qbindiff:
-            self.load_qbindiff(*args)
-        elif loader == LoaderType.binexport:
+        if loader == LoaderType.binexport:
             self.load_binexport(*args)
         elif loader == LoaderType.ida:
             self.load_ida(*args)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
-
-    def load_qbindiff(self, data: dict) -> None:
-        """
-        Instanciate the operand using the dict values retrieved.
-        :param data: raw dict of operand data
-        :return: None
-        """
-        from qbindiff.loader.backend.qbindiff import OperandBackendQBinDiff
-        self._backend = OperandBackendQBinDiff(data)
 
     def load_binexport(self, *args) -> None:
         """
