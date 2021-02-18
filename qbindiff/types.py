@@ -1,4 +1,4 @@
-from typing import Iterable, Generator, Iterator, Union, Tuple, List, Set, Dict, Optional, Any
+from typing import Iterable, Generator, Iterator, Union, Tuple, List, Set, Dict, Optional, Any, Hashable
 
 import numpy
 from pathlib import Path
@@ -26,9 +26,14 @@ An integer representing an address within a program
 Addr = int
 
 """
+Item, entity being matched. The only constraint is to be hashable
+"""
+Item = Hashable
+
+"""
 Pair of lists of user defined index correspondences. Default None.
 """
-Anchors = List[Tuple[Idx, Idx]]
+Anchors = List[Tuple[Item, Item]]
 
 """
 Pair of lists of user defined address correspondences. Default None.
@@ -49,7 +54,7 @@ Match = namedtuple("Match", "primary secondary similarity squares")
 """
 An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
 """
-ExtendedMapping = List[Tuple[Any, Any, float, int]]
+ExtendedMapping = List[Tuple[Item, Item, float, int]]
 
 """
 Numpy data type
