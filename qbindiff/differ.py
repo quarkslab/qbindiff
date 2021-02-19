@@ -129,9 +129,9 @@ class Differ(object):
     @staticmethod
     def _extract_feature_keys(primary_features: List[Environment], secondary_features: List[Environment]) -> List[str]:
         feature_keys = set()
-        for program_features in (primary_features, secondary_features):
-            for function_features in program_features:
-                for key, value in function_features.features.items():
+        for features in (primary_features, secondary_features):
+            for env in features:
+                for key, value in env.features.items():
                     if isinstance(value, dict):
                         feature_keys.update(value.keys())
                     else:
@@ -143,10 +143,12 @@ class Differ(object):
         feature_index = {key: idx for idx, key in enumerate(feature_keys)}
         feature_matrix = np.zeros((len(features), len(feature_index)), dtype=Differ.DTYPE)
         for idx, env in enumerate(features):
-
-            if env.features:  # if the node has features (otherwise array cells are already zeros)
-                idy, value = zip(*((feature_index[key], value) for key, value in env.features.items()))
-                feature_matrix[idx, list(idy)] += value
+            for key, value in env.features.items():
+                if isinstance(value, dict):
+                    idy, value = zip(*((feature_index[key], value) for key, value in value.items()))
+                    feature_matrix[idx, list(idy)] 
+                else:
+                    feature_matrix[idx, feature_index[key]] = value
         return feature_matrix
 
     @staticmethod
