@@ -1,14 +1,14 @@
-# coding: utf-8
+# built-in imports
 import logging
 
+# Third-party imports
 import numpy as np
 from lapjv import lapjv
 from itertools import chain
 from scipy.sparse import csr_matrix
-from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefQAP
 
-# Import for types
-from qbindiff.types import Bool, Int, Float, Str
+# Local imports
+from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefQAP
 from qbindiff.types import PathLike, Positive, Ratio
 from qbindiff.types import RawMapping, ExtendedMapping, Vector, Matrix, FeatureVectors, AffinityMatrix, SimMatrix, SparseMatrix
 
@@ -37,13 +37,13 @@ class Matcher:
         self.sparse_sim_matrix = None
         self.squares_matrix = None
 
-    def process(self, sparsity_ratio: Ratio=.75, compute_squares: Bool=True):
+    def process(self, sparsity_ratio: Ratio=.75, compute_squares: bool=True):
         mask = self._compute_matrix_mask(self.full_sim_matrix, sparsity_ratio)
         self.sparse_sim_matrix = self._compute_sparse_matrix(self.full_sim_matrix, mask)
         if compute_squares:
             self.squares_matrix = self._compute_squares_matrix(self.sparse_sim_matrix, self.primary_affinity, self.secondary_affinity)
 
-    def compute(self, tradeoff: Ratio=.75, epsilon: Positive=.5, maxiter: Int=1000):
+    def compute(self, tradeoff: Ratio=.75, epsilon: Positive=.5, maxiter: int=1000):
         if tradeoff == 1:
             logging.info('[+] switching to Maximum Weight Matching (tradeoff is 1)')
             belief = BeliefMWM(self.sparse_sim_matrix, epsilon)
@@ -123,5 +123,3 @@ class Matcher:
         idxx, idyy = solve_linear_assignment(score_matrix)
 
         return np.hstack((idx, idxmask[idxx])), np.hstack((idy, idymask[idyy]))
-
-        

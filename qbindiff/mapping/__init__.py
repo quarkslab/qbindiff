@@ -1,1 +1,1 @@
-from qbindiff.mapping.mapping import Mapping, AddressMapping
+from qbindiff.mapping.mapping import Mapping

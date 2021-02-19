@@ -113,3 +113,8 @@ class Function(dict):
     @name.setter
     def name(self, name):
         self._backend.name = name
+
+    def __iter__(self):
+        """
+        """
+        return iter(self.values())

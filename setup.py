@@ -9,7 +9,7 @@ setup(
     author='Elie Mengin, Robin David',
     author_email='emengin@quarkslab.com, rdavid@quarkslab.com',
     url='https://gitlab.qb/machine_learning/qbindiff',
-    package_dir=find_packages(),
+    packages=find_packages(),
     scripts=['bin/qbindiff'],
     install_requires=[
         'protobuf',
@@ -19,5 +19,6 @@ setup(
         'scipy',
         'lapjv',
         'networkx',
+        'python-louvain'
     ],
 )

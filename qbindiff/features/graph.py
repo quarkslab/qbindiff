@@ -10,7 +10,7 @@ class BBlockNb(FunctionFeature):
     key = "bnb"
 
     def visit_function(self, fun: Function, env: Environment):
-        value = fun.graph.nb_nodes()
+        value = len(fun.flowgraph.nodes)
         env.add_feature(self.key, value)
 
 
@@ -20,7 +20,7 @@ class JumpNb(FunctionFeature):
     key = "jnb"
 
     def visit_function(self, fun: Function, env: Environment):
-        value = fun.graph.nb_edges()
+        value = len(fun.flowgraph.edges)
         env.add_feature(self.key, value)
 
 
@@ -30,7 +30,9 @@ class MaxParentNb(FunctionFeature):
     key = "maxp"
 
     def visit_function(self, fun: Function, env: Environment):
-        value = max(len(bblock.predecessor() for bblock in fun))
+        # FIXME: Change to use binexport module
+        value = max(len(fun.flowgraph.predecessors(bblock) for bblock in fun.flowgraph))  # WRONG!
+        # value = max(len(bb.parents) for bb in fun)
         env.add_feature(self.key, value)
 
 
@@ -40,7 +42,9 @@ class MaxChildNb(FunctionFeature):
     key = "maxc"
 
     def visit_function(self, fun: Function, env: Environment):
-        value = max(len(bblock.successor() for bblock in fun))
+        # FIXME: Change to use binexport module
+        value = max(len(fun.flowgraph.successors(bblock) for bblock in fun.flowgraph))  # WRONG!
+        # value = max(len(bb.children) for bb in fun)
         env.add_feature(self.key, value)
 
 
@@ -60,7 +64,7 @@ class MeanInsNB(FunctionFeature):
     key = "meanins"
 
     def visit_function(self, fun: Function, env: Environment):
-        value = max(len(bblock) for bblock in fun)
+        value = sum(len(bblock) for bblock in fun) / len(fun)
         env.add_feature(self.key, value)
 
 
@@ -80,8 +84,8 @@ class GraphMeanDegree(FunctionFeature):
     key = "Gmd"
 
     def visit_function(self, fun: Function, env: Environment):
-        n_node = len(fun.graph)
-        value = sum(x for a, x in fun.graph.degree()) / n_node if n_node != 0 else 0
+        n_node = len(fun.flowgraph)
+        value = sum(x for a, x in fun.flowgraph.degree) / n_node if n_node != 0 else 0
         env.add_feature(self.key, value)
 
 
@@ -91,9 +95,8 @@ class GraphDensity(FunctionFeature):
     key = "Gd"
 
     def visit_function(self, fun: Function, env: Environment):
-        value = networkx.density(fun.graph)
+        value = networkx.density(fun.flowgraph)
         env.add_feature(self.key, value)
-
 
 
 class GraphNbComponents(FunctionFeature):
@@ -102,7 +105,7 @@ class GraphNbComponents(FunctionFeature):
     key = "Gnc"
 
     def visit_function(self, fun: Function, env: Environment):
-        value = len(list(networkx.connected_components(fun.graph.to_undirected())))
+        value = len(list(networkx.connected_components(fun.flowgraph.to_undirected())))
         env.add_feature(self.key, value)
 
 
@@ -112,9 +115,9 @@ class GraphDiameter(FunctionFeature):
     key = "Gdi"
 
     def visit_function(self, fun: Function, env: Environment):
-        components = list(networkx.connected_components(fun.graph.to_undirected()))
+        components = list(networkx.connected_components(fun.flowgraph.to_undirected()))
         if components:
-            value = max(networkx.diameter(networkx.subgraph(fun.graph, x).to_undirected()) for x in components)
+            value = max(networkx.diameter(networkx.subgraph(fun.flowgraph, x).to_undirected()) for x in components)
         else:
             value = 0
         env.add_feature(self.key, value)
@@ -126,7 +129,7 @@ class GraphTransitivity(FunctionFeature):
     key = "Gt"
 
     def visit_function(self, fun: Function, env: Environment):
-        value = networkx.transitivity(fun.graph)
+        value = networkx.transitivity(fun.flowgraph)
         env.add_feature(self.key, value)
 
 
@@ -136,10 +139,9 @@ class GraphCommunities(FunctionFeature):
     key = "Gcom"
 
     def visit_function(self, function: Function, env: Environment) -> None:
-        partition = community.best_partition(function.graph.to_undirected())
+        partition = community.best_partition(function.flowgraph.to_undirected())
         if len(function) > 1:
             value = max(x for x in partition.values() if x != function.addr)
         else:
             value = 0
         env.add_feature(self.key, value)
-

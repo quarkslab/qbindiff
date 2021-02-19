@@ -36,11 +36,6 @@ Pair of lists of user defined index correspondences. Default None.
 Anchors = List[Tuple[Item, Item]]
 
 """
-Pair of lists of user defined address correspondences. Default None.
-"""
-AddrAnchors = List[Tuple[Addr, Addr]]
-
-"""
 Pair of lists of indexes that are mapped together.
 """
 RawMapping = Tuple[List[Idx], List[Idx]]

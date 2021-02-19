@@ -1,7 +1,6 @@
 
-from qbindiff.features.visitor import OperandFeature, Environment, InstructionFeature, ExpressionFeature
-from qbindiff.loader.operand import Operand, Expr
-from qbindiff.loader.instruction import Instruction
+from qbindiff.features.visitor import ProgramFeature, FunctionFeature, Environment, InstructionFeature, ExpressionFeature
+from qbindiff.loader import Program, Function, Instruction, Operand, Expr
 
 
 class Address(InstructionFeature):

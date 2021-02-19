@@ -10,10 +10,8 @@ from tqdm import tqdm
 
 # Local imports
 from qbindiff.features import FEATURES
-from qbindiff.loader.program import Program
-from qbindiff import Differ, QBinDiff
-from qbindiff.mapping import Mapping, AddressMapping
-from qbindiff.types import PathLike
+from qbindiff import Differ, QBinDiff, Mapping, Program
+from qbindiff.types import Anchors, PathLike
 
 
 def configure_logging(verbose: int):
@@ -27,9 +25,9 @@ def configure_logging(verbose: int):
     logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
 
 
-def extract_function_anchors(primary: Program, secondary: Program) -> AddrAnchors:
-    primary_names = {function.name: function.address for function in primary}
-    secondary_names = {function.name: function.address for function in secondary}
+def extract_function_anchors(primary: Program, secondary: Program) -> Anchors:
+    primary_names = {function.name: function for function in primary}
+    secondary_names = {function.name: function for function in secondary}
     anchors = []
     for name in set(primary_names).intersection(secondary_names):
         anchors.append((primary_names[name], secondary_names[name]))
@@ -112,7 +110,9 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
     if not output.name:
         output = Path('{}_vs_{}.qbindiff'.format(primary.stem, secondary.stem))
 
+    logging.info(f"[+] Loading primary: {primary.name}")
     primary = Program(primary)
+    logging.info(f"[+] Loading secondary: {secondary.name}")
     secondary = Program(secondary)
     
     qbindiff = QBinDiff(primary, secondary)
@@ -124,17 +124,20 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
         if feature not in FEATURES_KEYS:
             logging.warning("Feature '{}' not recognized - ignored.")
             continue
-        qbindiff.register_feature(FEATURES_KEYS[feature], weight)
+        qbindiff.register_feature(FEATURES_KEYS[feature], float(weight))
 
     anchors = extract_function_anchors(primary, secondary)
 
     logging.info("[+] Initializing NAP")
-    qbindiff.compute_similarity(qbindiff.primary, qbindiff.secondary, qbindiff.primary.callgraph, qbindiff.secondary.callgraph, qbindiff._visitor, distance, anchors)
+    primary_affinity = qbindiff._get_affinity_matrix(qbindiff.primary.callgraph, qbindiff.primary)
+    secondary_affinity = qbindiff._get_affinity_matrix(qbindiff.secondary.callgraph, qbindiff.secondary)
+    qbindiff.compute_similarity(qbindiff.primary, qbindiff.secondary, primary_affinity,
+                                secondary_affinity, qbindiff._visitor, distance)
     if anchors:
         qbindiff.set_anchors(anchors)
 
     logging.info("[+] Computing NAP")
-    for _ in tqdm(qbindiff.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter), total=maxiter):
+    for _ in tqdm(qbindiff.matching_iterator(sparsity_ratio, tradeoff, epsilon, maxiter), total=maxiter):
         pass
 
     display_statistics(qbindiff, qbindiff.mapping)

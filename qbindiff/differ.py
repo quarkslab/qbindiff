@@ -3,20 +3,16 @@ import numpy as np
 import scipy.io
 import scipy.spatial.distance
 from collections import defaultdict
+from networkx import DiGraph
 
-from qbindiff.features.visitor import ProgramVisitor, Feature
-from qbindiff.matcher.matcher import Matcher
-from qbindiff.mapping.mapping import Mapping, AddressMapping
-
-# Import for types
-from qbindiff.types import Generator, Union, Iterable, Tuple, List, Dict, Anchors
-from qbindiff.types import Optional, Any, RawMapping, AddrAnchors
+from qbindiff.loader import Program, Function
+from qbindiff.matcher import Matcher
+from qbindiff.mapping import Mapping
+from qbindiff.features.visitor import Environment, Visitor, ProgramVisitor, Feature
+from qbindiff.types import Generator, Union, Iterable, Tuple, List, Dict, Anchors, Item, Idx
+from qbindiff.types import Optional, Any, RawMapping
 from qbindiff.types import PathLike, Positive, Ratio, Addr, Dtype
 from qbindiff.types import FeatureVectors, AffinityMatrix, SimMatrix
-
-from qbindiff.features.visitor import Environment, Visitor
-from qbindiff.loader.program import Program
-from qbindiff.loader.function import Function
 
 
 class Differ(object):
@@ -25,8 +21,8 @@ class Differ(object):
 
     def __init__(self):
         # All fields are computed dynamically
-        self._primary_by_items, self._primary_by_index = None, None
-        self._secondary_by_items, self._secondary_by_index = None, None
+        self._primary_items_to_idx = None
+        self._secondary_items_to_idx = None
         self.primary_affinity = None  # initialized in compute_similarity
         self.secondary_affinity = None
         self.sim_matrix = None
@@ -64,8 +60,9 @@ class Differ(object):
         :param anchors: user defined mapping correspondences
         """
         # Compute lookup and reverse lookup tables
-        self._primary_by_index, self._primary_by_items = {i: x for i, x in enumerate(primary)}, {x: i for i, x in enumerate(primary)}
-        self._secondary_by_index, self._secondary_by_items = {i: x for i, x in enumerate(secondary)}, {x: i for i, x in enumerate(secondary)}
+        # TODO: Creating a BasicBlock object / items_to_idx as list
+        self._primary_items_to_idx = {x: i for i, x in enumerate(primary)}
+        self._secondary_items_to_idx = {x: i for i, x in enumerate(secondary)}
 
         primary_features = visitor.visit(primary)
         secondary_features = visitor.visit(secondary)
@@ -79,8 +76,8 @@ class Differ(object):
         self.secondary_affinity = secondary_affinity
 
     def set_anchors(self, anchors: Anchors) -> None:
-        idx = [self._primary_by_items[x[0]] for x in anchors]  # Convert items to indexes
-        idy = [self._secondary_by_items[x[1]] for x in anchors]
+        idx = [self._primary_items_to_idx[x[0]] for x in anchors]  # Convert items to indexes
+        idy = [self._secondary_items_to_idx[x[1]] for x in anchors]
         data = self.sim_matrix[idx, idy]
         self.sim_matrix[idx] = 0
         self.sim_matrix[:, idy] = 0
@@ -122,10 +119,15 @@ class Differ(object):
         data = scipy.io.loadmat(str(filename))
         self.primary_affinity = data['A'].astype(bool)
         self.secondary_affinity = data['B'].astype(bool)
+
+        # Initialize lookup dict Item -> idx
+        self._primary_items_to_idx = {i: i for i in range(len(self.primary_affinity))}
+        self._secondary_items_to_idx = {i: i for i in range(len(self.secondary_affinity))}
+
         self.sim_matrix = data['C'].astype(Differ.DTYPE)
 
     @staticmethod
-    def _extract_feature_keys(primary_features: List[Environment], secondary_features: List[Environment]) -> Tuple[List, List]:
+    def _extract_feature_keys(primary_features: List[Environment], secondary_features: List[Environment]) -> List[str]:
         feature_keys = set()
         for program_features in (primary_features, secondary_features):
             for function_features in program_features:
@@ -141,6 +143,7 @@ class Differ(object):
         feature_index = {key: idx for idx, key in enumerate(feature_keys)}
         feature_matrix = np.zeros((len(features), len(feature_index)), dtype=Differ.DTYPE)
         for idx, env in enumerate(features):
+
             if env.features:  # if the node has features (otherwise array cells are already zeros)
                 idy, value = zip(*((feature_index[key], value) for key, value in env.features.items()))
                 feature_matrix[idx, list(idy)] += value
@@ -148,12 +151,6 @@ class Differ(object):
 
     @staticmethod
     def _compute_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: str='canberra', weights: List[Positive]=1.0) -> SimMatrix:
-        matrix = Differ._compute_feature_similarity(primary_matrix, secondary_matrix, distance, weights)
-        matrix /= matrix.max()
-        return matrix
-
-    @staticmethod
-    def _compute_feature_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: str, weights: List[Positive]) -> SimMatrix:
         matrix = scipy.spatial.distance.cdist(primary_matrix, secondary_matrix, distance, w=weights).astype(Differ.DTYPE)
         matrix /= matrix.max()
         matrix[:] = 1 - matrix
@@ -170,9 +167,12 @@ class Differ(object):
     def _convert_mapping(self, mapping: RawMapping) -> Mapping:
         idx, idy = mapping
         similarities, squares = self._compute_statistics(mapping)
-        items_x, items_y = [self._primary_by_index[x] for x in idx], [self._secondary_by_index[x] for x in idy]
-        primary_unmatched = self._primary_by_items - items_x  # All items mines ones that have been matched
-        secondary_unmatched = self._secondary_by_items - items_y
+        primary_idx_to_item = {v: k for k, v in self._primary_items_to_idx.items()}
+        secondary_idx_to_item = {v: k for k, v in self._secondary_items_to_idx.items()}
+
+        items_x, items_y = [primary_idx_to_item[x] for x in idx], [secondary_idx_to_item[x] for x in idy]
+        primary_unmatched = self._primary_items_to_idx.keys() - items_x  # All items mines ones that have been matched
+        secondary_unmatched = self._secondary_items_to_idx.keys() - items_y
         return Mapping(list(zip(items_x, items_y, similarities, squares)), (primary_unmatched, secondary_unmatched))
 
 
@@ -189,53 +189,27 @@ class QBinDiff(Differ):
         self.secondary = secondary
         self._visitor = ProgramVisitor()
 
-
-    # @staticmethod
-    # def diff(primary: Iterable,
-    #          secondary: Iterable,
-    #          primary_affinity: AffinityMatrix,
-    #          secondary_affinity: AffinityMatrix,
-    #          visitor: Visitor,
-    #          distance: str='canberra',
-    #          anchors: Anchors=None,
-    #          sparsity_ratio: Ratio=.75,
-    #          tradeoff: Ratio=.75,
-    #          epsilon: Positive=.5,
-    #          maxiter: int=1000) -> AddressMapping:
-    #
-    #     # Compute reverse index to add anchor
-    #     if anchors:
-    #         primary_index = {addr.address: idx for idx, addr in enumerate(primary)}
-    #         secondary_index = {addr.address: idx for idx, addr in enumerate(secondary)}
-    #         anchors = [(primary_index[addrx], secondary_index[addry]) for addrx, addry in anchors]
-    #
-    #     # Compute the diff using indexes
-    #     mapping = super().diff(primary, secondary, primary_affinity, secondary_affinity, visitor, distance, anchors, sparsity_ratio, tradeoff, epsilon, maxiter)
-    #
-    #     # Convert back indexes to Addresses
-    #     primary_reverse_index = {idx: addr.address for idx, addr in enumerate(primary)}
-    #     secondary_reverse_index = {idx: addr.address for idx, addr in enumerate(secondary)}
-    #     addr_mapping = [(primary_reverse_index[idx], secondary_reverse_index[idy], sim, sq) for idx, idy, sim, sq in mapping]
-    #
-    #     # Compute unmatched addresses
-    #     primary_unmatched = [primary_reverse_index[idx] for idx in mapping.primary_unmatched]
-    #     secondary_unmatched = [secondary_reverse_index[idx] for idx in mapping.secondary_unmatched]
-    #
-    #     # Recreate an AddressMapping
-    #     return AddressMapping(primary, secondary, addr_mapping, (primary_unmatched, secondary_unmatched))
-
     def diff_program(self, distance: str='canberra',
                            sparsity_ratio: Ratio=.75,
                            tradeoff: Ratio= .75,
                            epsilon: Positive= .5,
                            maxiter: int=1000,
                            anchors: Anchors=None) -> Mapping:
-        # TODO: Converting callgraphs to matrix
-        #self.mapping = self.diff(self.primary, self.secondary, self.primary.callgraph, self.secondary.callgraph, self._visitor, distance, anchors, sparsity_ratio, tradeoff, epsilon, maxiter)
-        self.compute_similarity(self.primary, self.secondary, self.primary.callgraph, self.secondary.callgraph, self._visitor, distance)
+        # Convert networkx callgraphs to numpy array
+        primary_affinity = self._get_affinity_matrix(self.primary.callgraph, self.primary)
+        secondary_affinity = self._get_affinity_matrix(self.secondary.callgraph, self.secondary)
+
+        self.compute_similarity(self.primary, self.secondary, primary_affinity, secondary_affinity, self._visitor, distance)
         if anchors:
             self.set_anchors(anchors)
         return self.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter)
+
+    @staticmethod
+    def _get_affinity_matrix(graph: DiGraph, items: Iterable):
+        tmp = {v.addr: i for i, v in enumerate(items)}
+        affinity_matrix = np.zeros((len(tmp), len(tmp)), dtype=bool)
+        for src, dst in graph.edges:
+            affinity_matrix[tmp[src], tmp[dst]] += 1
 
     def diff_function(self, primary: Function,
                             secondary: Function,
@@ -245,8 +219,11 @@ class QBinDiff(Differ):
                             epsilon: Positive= .5,
                             maxiter: int=1000,
                             anchors: Anchors=None) -> Mapping:
-        # TODO: Converting flowgraph in matrix
-        self.compute_similarity(primary, secondary, primary.flowgraph, secondary.flowgraph, self._visitor, distance)
+        # Convert networkx callgraphs to numpy array
+        primary_affinity = self._get_affinity_matrix(primary.flowgraph, primary)
+        secondary_affinity = self._get_affinity_matrix(secondary.flowgraph, secondary)
+
+        self.compute_similarity(primary, secondary, primary_affinity, secondary_affinity, self._visitor, distance)
         if anchors:
             self.set_anchors(anchors)
         return self.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter)
@@ -265,29 +242,29 @@ class QBinDiff(Differ):
         primary_features = visitor.visit(primary)
         secondary_features = visitor.visit(secondary)
 
-        feature_keys, feature_weights = self._extract_feature_keys(primary_features, secondary_features, visitor)
-        primary_matrix = self._vectorize_features(primary_features, feature_index)
-        secondary_matrix = self._vectorize_features(secondary_features, feature_index)
+        feature_keys, feature_weights = self._extract_feature_keys(primary_features, secondary_features)
+        primary_matrix = self._vectorize_features(primary_features, feature_keys)
+        secondary_matrix = self._vectorize_features(secondary_features, feature_keys)
 
         self.sim_matrix = self._compute_similarity(primary_matrix, secondary_matrix, distance, feature_weights)
         self.primary_affinity = primary_affinity
         self.secondary_affinity = secondary_affinity
 
-    def _extract_feature_keys(self, primary_features: List[Environment], secondary_features: List[Environment], visitor: ProgramVisitor) -> Tuple[List, List]:
+    def _extract_feature_keys(self, primary_features: List[Environment], secondary_features: List[Environment]) -> Tuple[List[str], List[float]]:
         feature_keys = defaultdict(set)
         for program_features in (primary_features, secondary_features):
             for function_features in program_features:
                 for key, values in function_features.features.items():
-                    if isinstance(value, dict):
-                        feature_keys[key].update(value.keys())
+                    if isinstance(values, dict):
+                        feature_keys[key].update(values.keys())
                     else:
                         feature_keys[key].update(key)
         
         features_weights = dict()
         for key, keys in feature_keys.items():
             for k in keys:
-                features_weights[k] = visitor.get_feature(key).weight / len(keys)
+                features_weights[k] = self._visitor.get_feature(key).weight / len(keys)
 
-        feature_keys = sorted([key for keys in feature_keys.values() for key in keys])
-        feature_weights = [feature_weights[key] for key in feature_keys]
+        feature_keys = sorted([key for keys in feature_keys.values() for key in keys])  # [Mnemonic, NbChild .. ]
+        feature_weights = [features_weights[key] for key in feature_keys]
         return feature_keys, feature_weights

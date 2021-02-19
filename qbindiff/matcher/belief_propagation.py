@@ -1,10 +1,9 @@
-# coding: utf-8
 import logging
+from typing import Generator
 
 import numpy as np
 
 # Import for types
-from qbindiff.types import Bool, Int, Float
 from qbindiff.types import Positive, Ratio
 from qbindiff.types import RawMapping, Vector, SparseMatrix
 
@@ -24,7 +23,7 @@ class BeliefMWM:
         self._epsilon = self._dtype(epsilon)
         self._epsilonref = self._epsilon.copy()
         
-    def compute(self, maxiter: Int=1000):
+    def compute(self, maxiter: int=1000):
         for niter in range(1, maxiter+1):
             self._update_messages()
             self._round_messages()
@@ -44,7 +43,7 @@ class BeliefMWM:
         return rows[mask], cols[mask]
 
     @property
-    def current_score(self) -> Float:
+    def current_score(self) -> float:
         return self._weigths[self._mates].sum()
 
     def _init_indices(self, similarity: SparseMatrix):
@@ -65,10 +64,13 @@ class BeliefMWM:
         self._messages = np.zeros_like(self._weigths)
         self._mates = np.zeros_like(self._weigths, dtype=bool)
 
-        if self._shape[0] < self._shape[1]:
-            self._update_messages = self._update_messages2
-
     def _update_messages(self):
+        if self._shape[0] < self._shape[1]:
+            self._update_messages2()
+        else:
+            self._update_messages1()
+
+    def _update_messages1(self):
         self._x[:] = self._weigths
         self._x += self._other_colmax(self._y) #axis=0
         self._messages[:] = self._x
@@ -89,11 +91,11 @@ class BeliefMWM:
         self._objective.append(self.current_score)
 
     @property
-    def _rowslice(self) -> Generator[Vector]:
+    def _rowslice(self) -> Generator[Vector, None, None]:
         return map(slice, self._rowmap[:-1], self._rowmap[1:])
 
     @property
-    def _colslice(self) -> Generator[Vector]:
+    def _colslice(self) -> Generator[Vector, None, None]:
         return map(slice, self._colmap[:-1], self._colmap[1:])
 
     def _other_rowmax(self, vector: Vector) -> Vector:
@@ -133,7 +135,7 @@ class BeliefMWM:
             self._maxscore = current_score
             self._epsilon = self._epsilonref
             
-    def _converged(self, window: Int=60, pattern: Int=15) -> Bool:
+    def _converged(self, window: int=60, pattern: int=15) -> bool:
         """
         Decide whether or not the algorithm have converged
 
@@ -169,13 +171,13 @@ class BeliefQAP(BeliefMWM):
         self._init_squares(squares)
 
     @property
-    def current_score(self) -> Float:
+    def current_score(self) -> float:
         objective = super(BeliefQAP, self).current_score
         objective += self.numsquares * 2
         return objective
 
     @property
-    def numsquares(self) -> Int:
+    def numsquares(self) -> int:
         return self._z[self._mates][:, self._mates].nnz / 2
 
     def _init_squares(self, squares: SparseMatrix):
@@ -185,7 +187,7 @@ class BeliefQAP(BeliefMWM):
         self._ztocol = np.argsort(squares.indices, kind="mergesort")
         np.clip(self._z.data, 0, self._zmax, out=self._z.data)
 
-    def _update_messages(self):
+    def _update_messages1(self):
         self._messages[:] = self._weigths
         self._messages += self._z.sum(0).getA1()
         self._x[:] = self._messages

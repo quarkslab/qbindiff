@@ -1,10 +1,6 @@
-from collections import OrderedDict
-import time
-import logging
 from typing import List, Any, Iterable, Dict, Union, Callable
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Expr
-from qbindiff.types import ProgramFeatures, FunctionFeatures
 
 
 class Environment(object):
@@ -16,7 +12,7 @@ class Environment(object):
     def __init__(self):
         self.features: Dict[str, Union[int, Dict[str, int]]] = {}
 
-    def add_feature(self, key: str, value: int) -> None:
+    def add_feature(self, key: str, value: Union[int, float]) -> None:
         self.features[key] = value
 
     def inc_feature(self, key: str) -> None:
@@ -25,20 +21,20 @@ class Environment(object):
         except KeyError:
             self.features[key] = 1
 
-    def add_dict_feature(self, name: str, key: str, value: int) -> None:
+    def add_dict_feature(self, name: str, key: str, value: Union[int, float]) -> None:
         if name not in self.features:
             self.features[name] = {}
         d = self.features[name]
         d[key] = value
 
-    def inc_dict_feature(self, name: str, key: str, value: int) -> None:
+    def inc_dict_feature(self, name: str, key: str) -> None:
         if name not in self.features:
             self.features[name] = {}
         d = self.features[name]
         try:
-            d[key] += value
+            d[key] += 1
         except KeyError:
-            d[key] = value
+            d[key] = 1
 
 
 class Visitor(object):

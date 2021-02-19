@@ -8,8 +8,7 @@ class MnemonicSimple(InstructionFeature):
     key = "M"
 
     def visit_instruction(self, instruction: Instruction, env: Environment):
-        key = instruction.mnemonic
-        env.inc_feature(key)
+        env.inc_dict_feature(self.key, instruction.mnemonic)
 
 
 class MnemonicTyped(InstructionFeature):
@@ -20,7 +19,7 @@ class MnemonicTyped(InstructionFeature):
     def visit_instruction(self, instruction: Instruction, env: Environment):
         keycode = ''.join(str(x.type.value) for x in instruction.operands)
         key = instruction.mnemonic+keycode
-        env.inc_feature(key)
+        env.inc_dict_feature(self.key, key)
 
 
 class GroupsCategory(InstructionFeature):
@@ -31,5 +30,4 @@ class GroupsCategory(InstructionFeature):
     def visit_instruction(self, instruction: Instruction, env: Environment):
         for key in instruction.groups:
             if key not in ['UNDEFINED', 'NOTINCS', 'NOTINIDA', 'DEPRECATED']:
-                env.inc_feature(key)
-
+                env.inc_dict_feature(self.key, key)
