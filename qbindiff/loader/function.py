@@ -24,7 +24,7 @@ class Function(dict):
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
     def __hash__(self):
-        return self.addr
+        return hash(self.addr)
 
     def load_binexport(self, *args, **kwargs):
         from qbindiff.loader.backend.binexport import FunctionBackendBinExport

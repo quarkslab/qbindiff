@@ -148,9 +148,9 @@ class Mapping:
             mapping = json.load(file)
         return Mapping(mapping['matched'], mapping['unmatched'])
 
-    def save(self, filename: PathLike) -> None:
-        with open(filename) as file:
-            json.dump({'matched': self._matches, 'unmatched': [self._primary_unmatched, self._secondary_unmatched]}, file)
+    def save(self, filename: PathLike, f) -> None:
+        with open(filename, 'w') as file:
+            json.dump({'matched': [(f(x[0]), f(x[1]) )for x in self._matches], 'unmatched': [[f(x) for x in self._primary_unmatched], [f(x) for x in self._secondary_unmatched]]}, file)
 
 
 

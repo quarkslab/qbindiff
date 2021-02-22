@@ -134,8 +134,8 @@ class Differ(object):
 
         self.mapping = self._convert_mapping(matcher.mapping)
 
-    def save(self, filename: str):
-        self.mapping.save(filename)
+    def save(self, filename: str, f):
+        self.mapping.save(filename, f)
 
     def initialize_from_file(self, filename: PathLike):
         data = scipy.io.loadmat(str(filename))
@@ -162,9 +162,7 @@ class Differ(object):
 
     @staticmethod
     def _vectorize_features(features: List[Environment], feature_keys: List[str]) -> FeatureVectors:
-        print(feature_keys)
         feature_index = {key: idx for idx, key in enumerate(feature_keys)}
-        print(feature_index)
         feature_matrix = np.zeros((len(features), len(feature_index)), dtype=Differ.DTYPE)
         for idx, env in enumerate(features):
             for key, value in env.features.items():
@@ -274,7 +272,6 @@ class QBinDiff(Differ):
 
     def compute_similarity(self, primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix,
              visitor: Visitor, distance: str='canberra'):
-        # WARNING: C'est quoi la diff ?
         self._make_indexes(primary, secondary)
 
         primary_features = visitor.visit(primary)
@@ -302,6 +299,6 @@ class QBinDiff(Differ):
             for k in ft_sub_keys:
                 features_weights[k] = self._visitor.get_feature(ft_key).weight / len(ft_sub_keys)
 
-        feature_keys = sorted([key for keys in feature_keys.values() for key in keys])  # [Mnemonic, NbChild .. ]
+        feature_keys = sorted({key for keys in feature_keys.values() for key in keys})  # [Mnemonic, NbChild .. ]
         feature_weights = [features_weights[key] for key in feature_keys]
         return feature_keys, feature_weights

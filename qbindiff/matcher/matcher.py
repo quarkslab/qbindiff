@@ -29,7 +29,7 @@ def solve_linear_assignment(sim_matrix: SimMatrix) -> RawMapping:
 
 class Matcher:
 
-    def __init__(self, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix, similarity_matrix: SimMatrix):
+    def __init__(self, similarity_matrix: SimMatrix, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix):
         self.primary_affinity = primary_affinity
         self.secondary_affinity = secondary_affinity
         self.full_sim_matrix = similarity_matrix
@@ -55,7 +55,7 @@ class Matcher:
 
         score_matrix = self.sparse_sim_matrix.copy()
         score_matrix.data[:] = belief._best_messages
-        self.mapping = self._refine(belief.mapping, score_matrix)
+        self.mapping = self._refine(belief.current_mapping, score_matrix)
 
     @staticmethod
     def _compute_matrix_mask(full_matrix: SimMatrix, sparsity_ratio: Ratio=.75) -> Matrix:
@@ -111,10 +111,10 @@ class Matcher:
         return squares_matrix
 
     @staticmethod
-    def _refine(self, mapping: RawMapping, score_matrix: SimMatrix) -> RawMapping:
+    def _refine(mapping: RawMapping, score_matrix: SimMatrix) -> RawMapping:
         idx, idy = mapping
         if len(idx) == min(score_matrix.shape):
-            return
+            return mapping
         idxmask = np.setdiff1d(range(score_matrix.shape[0]), idx)
         idymask = np.setdiff1d(range(score_matrix.shape[1]), idy)
         score_matrix = score_matrix[idxmask][:,idymask].toarray()

@@ -148,7 +148,7 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
     display_statistics(qbindiff, qbindiff.mapping)
 
     logging.info("[+] Saving")
-    qbindiff.save(output)
+    qbindiff.save(output, lambda x: x.addr)
     logging.info("[+] Mapping successfully saved to: %s" % output)
     sys.exit(0)
 
