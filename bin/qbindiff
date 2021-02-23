@@ -2,6 +2,7 @@
 # builtin-imports
 import logging
 from pathlib import Path
+import sys
 
 # Third-party imports
 import click
@@ -117,12 +118,16 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
     
     qbindiff = QBinDiff(primary, secondary)
 
+    if not features:
+        logging.error("no feature provided")
+        sys.exit(1)
+
     for feature in set(features):
         weight = 1.0
         if ':' in feature:
             feature, weight = feature.split(':')
         if feature not in FEATURES_KEYS:
-            logging.warning("Feature '{}' not recognized - ignored.")
+            logging.warning(f"Feature '{feature}' not recognized - ignored.")
             continue
         qbindiff.register_feature(FEATURES_KEYS[feature], float(weight))
 
@@ -145,7 +150,7 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
     logging.info("[+] Saving")
     qbindiff.save(output)
     logging.info("[+] Mapping successfully saved to: %s" % output)
-    exit(0)
+    sys.exit(0)
 
 
 if __name__ == '__main__':
