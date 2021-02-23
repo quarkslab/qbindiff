@@ -28,7 +28,7 @@ Addr = int
 """
 Item, entity being matched. The only constraint is to be hashable
 """
-Item = Hashable
+Item = Any
 
 """
 Pair of lists of user defined index correspondences. Default None.

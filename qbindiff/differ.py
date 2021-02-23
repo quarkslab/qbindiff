@@ -28,6 +28,29 @@ class Differ(object):
         self.sim_matrix = None
         self.mapping = None
 
+    def __make_indexes(self, primary: Iterable, secondary: Iterable):
+        try:
+            self._primary_items_to_idx = {x: i for i, x in enumerate(primary)}
+            self._secondary_items_to_idx = {x: i for i, x in enumerate(secondary)}
+        except TypeError:  # If object is not hashable store them as lists
+            self._primary_items_to_idx = list(primary)
+            self._secondary_items_to_idx = list(secondary)
+
+    def __to_index(self, mapping, obj):
+        return mapping[obj] if isinstance(mapping, dict) else mapping.index(obj)
+
+    def __primary_to_index(self, obj):
+        return self.__to_index(self._primary_items_to_idx, obj)
+
+    def __secondary_to_index(self, obj):
+        return self.__to_index(self._secondary_items_to_idx, obj)
+
+    def __rev_indexes(self):
+        if isinstance(self._primary_items_to_idx, dict):
+            return {v: k for k,v in self._primary_items_to_idx.items()}, {v: k for k,v in self._secondary_items_to_idx.items()}
+        else:
+            return {i: v for i,v in enumerate(self._primary_items_to_idx)}, {i: v for i,v in enumerate(self._secondary_items_to_idx)}
+
     @staticmethod
     def diff(primary: Iterable,
              secondary: Iterable,
@@ -61,8 +84,7 @@ class Differ(object):
         """
         # Compute lookup and reverse lookup tables
         # TODO: Creating a BasicBlock object / items_to_idx as list
-        self._primary_items_to_idx = {x: i for i, x in enumerate(primary)}
-        self._secondary_items_to_idx = {x: i for i, x in enumerate(secondary)}
+        self.__make_indexes(primary, secondary)
 
         primary_features = visitor.visit(primary)
         secondary_features = visitor.visit(secondary)
@@ -76,8 +98,8 @@ class Differ(object):
         self.secondary_affinity = secondary_affinity
 
     def set_anchors(self, anchors: Anchors) -> None:
-        idx = [self._primary_items_to_idx[x[0]] for x in anchors]  # Convert items to indexes
-        idy = [self._secondary_items_to_idx[x[1]] for x in anchors]
+        idx = [self.__primary_to_index(x[0]) for x in anchors]  # Convert items to indexes
+        idy = [self.__secondary_to_index(x[1]) for x in anchors]
         data = self.sim_matrix[idx, idy]
         self.sim_matrix[idx] = 0
         self.sim_matrix[:, idy] = 0
@@ -121,8 +143,7 @@ class Differ(object):
         self.secondary_affinity = data['B'].astype(bool)
 
         # Initialize lookup dict Item -> idx
-        self._primary_items_to_idx = {i: i for i in range(len(self.primary_affinity))}
-        self._secondary_items_to_idx = {i: i for i in range(len(self.secondary_affinity))}
+        self.__make_indexes(range(len(self.primary_affinity)), range(len(self.secondary_affinity)))
 
         self.sim_matrix = data['C'].astype(Differ.DTYPE)
 
@@ -169,12 +190,21 @@ class Differ(object):
     def _convert_mapping(self, mapping: RawMapping) -> Mapping:
         idx, idy = mapping
         similarities, squares = self._compute_statistics(mapping)
-        primary_idx_to_item = {v: k for k, v in self._primary_items_to_idx.items()}
-        secondary_idx_to_item = {v: k for k, v in self._secondary_items_to_idx.items()}
 
+        # Get reverse indexes: idx->obj
+        primary_idx_to_item, secondary_idx_to_item = self.__rev_indexes()
+
+        # Retrieve matched items from indexes
         items_x, items_y = [primary_idx_to_item[x] for x in idx], [secondary_idx_to_item[x] for x in idy]
-        primary_unmatched = self._primary_items_to_idx.keys() - items_x  # All items mines ones that have been matched
-        secondary_unmatched = self._secondary_items_to_idx.keys() - items_y
+
+        # Retrieve unmatched by doing some substractions
+        if isinstance(self._primary_items_to_idx, dict): # just do set substraction
+            primary_unmatched = self._primary_items_to_idx.keys() - items_x  # All items mines ones that have been matched
+            secondary_unmatched = self._secondary_items_to_idx.keys() - items_y
+        else:  # plays with list indexes to retrieve unmatched
+            primary_unmatched = [primary_idx_to_item[i] for i in range(len(self._primary_items_to_idx)) if i not in idx]
+            secondary_unmatched = [secondary_idx_to_item[i] for i in range(len(self._secondary_items_to_idx)) if i not in idx]
+
         return Mapping(list(zip(items_x, items_y, similarities, squares)), (primary_unmatched, secondary_unmatched))
 
 
