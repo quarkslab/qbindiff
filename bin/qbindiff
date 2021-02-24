@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 # Local imports
 from qbindiff.features import FEATURES
-from qbindiff import Differ, QBinDiff, Mapping, Program
+from qbindiff import Program, Differ, QBinDiff, Mapping
 from qbindiff.types import Anchors, PathLike
 
 
@@ -27,8 +27,8 @@ def configure_logging(verbose: int):
 
 
 def extract_function_anchors(primary: Program, secondary: Program) -> Anchors:
-    primary_names = {function.name: function for function in primary}
-    secondary_names = {function.name: function for function in secondary}
+    primary_names = {function.name: function.addr for function in primary}
+    secondary_names = {function.name: function.addr for function in secondary}
     anchors = []
     for name in set(primary_names).intersection(secondary_names):
         anchors.append((primary_names[name], secondary_names[name]))
@@ -62,7 +62,7 @@ DEFAULT_FEATURES = tuple(x.key for x in FEATURES)
 DEFAULT_DISTANCE = "canberra"
 DEFAULT_SPARSITY_RATIO = 0.75
 DEFAULT_TRADEOFF = 0.75
-DEFAULT_EPSILON = 0.05
+DEFAULT_EPSILON = 0.5
 DEFAULT_MAXITER = 1000
 
 help_features = 'The following features are available [default: all]:\n{}\n'.format('\n'.join("- {}, {}: {}".format(x.key, x.name, x.__doc__) for x in FEATURES))
@@ -148,7 +148,7 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
     display_statistics(qbindiff, qbindiff.mapping)
 
     logging.info("[+] Saving")
-    qbindiff.save(output, lambda x: x.addr)
+    qbindiff.save(output)
     logging.info("[+] Mapping successfully saved to: %s" % output)
     sys.exit(0)
 

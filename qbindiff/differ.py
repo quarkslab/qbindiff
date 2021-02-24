@@ -1,4 +1,4 @@
-# third-party imports
+        # third-party imports
 import numpy as np
 import scipy.io
 import scipy.spatial.distance
@@ -21,8 +21,8 @@ class Differ(object):
 
     def __init__(self):
         # All fields are computed dynamically
-        self._primary_items_to_idx = None
-        self._secondary_items_to_idx = None
+        self._primary_index = None
+        self._secondary_index = None
         self.primary_affinity = None  # initialized in compute_similarity
         self.secondary_affinity = None
         self.sim_matrix = None
@@ -134,18 +134,16 @@ class Differ(object):
 
         self.mapping = self._convert_mapping(matcher.mapping)
 
-    def save(self, filename: str, f):
-        self.mapping.save(filename, f)
+    def save(self, filename: str):
+        self.mapping.save(filename)
 
     def initialize_from_file(self, filename: PathLike):
         data = scipy.io.loadmat(str(filename))
         self.primary_affinity = data['A'].astype(bool)
         self.secondary_affinity = data['B'].astype(bool)
-
+        self.sim_matrix = data['C'].astype(Differ.DTYPE)
         # Initialize lookup dict Item -> idx
         self._make_indexes(range(len(self.primary_affinity)), range(len(self.secondary_affinity)))
-
-        self.sim_matrix = data['C'].astype(Differ.DTYPE)
 
     @staticmethod
     def _extract_feature_keys(primary_features: List[Environment], secondary_features: List[Environment]) -> List[str]:
@@ -157,7 +155,7 @@ class Differ(object):
                     if isinstance(value, dict):
                         feature_keys.update(value.keys())
                     else:
-                        feature_keys.update(key)
+                        feature_keys.add(key)
         return sorted(feature_keys)
 
     @staticmethod
@@ -196,17 +194,17 @@ class Differ(object):
         primary_idx_to_item, secondary_idx_to_item = self.__rev_indexes()
 
         # Retrieve matched items from indexes
-        items_x, items_y = [primary_idx_to_item[x] for x in idx], [secondary_idx_to_item[x] for x in idy]
+        primary_matched, secondary_matched = [primary_idx_to_item[x] for x in idx], [secondary_idx_to_item[x] for x in idy]
 
         # Retrieve unmatched by doing some substractions
         if isinstance(self._primary_items_to_idx, dict): # just do set substraction
-            primary_unmatched = self._primary_items_to_idx.keys() - items_x  # All items mines ones that have been matched
-            secondary_unmatched = self._secondary_items_to_idx.keys() - items_y
+            primary_unmatched = self._primary_items_to_idx.keys() - primary_matched  # All items mines ones that have been matched
+            secondary_unmatched = self._secondary_items_to_idx.keys() - secondary_matched
         else:  # plays with list indexes to retrieve unmatched
             primary_unmatched = [primary_idx_to_item[i] for i in range(len(self._primary_items_to_idx)) if i not in idx]
             secondary_unmatched = [secondary_idx_to_item[i] for i in range(len(self._secondary_items_to_idx)) if i not in idx]
 
-        return Mapping(list(zip(items_x, items_y, similarities, squares)), (primary_unmatched, secondary_unmatched))
+        return Mapping(list(zip(primary_matched, secondary_matched, similarities, squares)), (primary_unmatched, secondary_unmatched))
 
 
 class QBinDiff(Differ):
@@ -239,10 +237,10 @@ class QBinDiff(Differ):
 
     @staticmethod
     def _get_affinity_matrix(graph: DiGraph, items: Iterable):
-        tmp = {v.addr: i for i, v in enumerate(items)}
-        affinity_matrix = np.zeros((len(tmp), len(tmp)), dtype=bool)
+        item_index = {item.addr: idx for idx, item in enumerate(items)}
+        affinity_matrix = np.zeros((len(item_index), len(item_index)), dtype=bool)
         for src, dst in graph.edges:
-            affinity_matrix[tmp[src], tmp[dst]] += 1
+            affinity_matrix[item_index[src], item_index[dst]] += 1
         return affinity_matrix
 
     def diff_function(self, primary: Function,
@@ -273,7 +271,6 @@ class QBinDiff(Differ):
     def compute_similarity(self, primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix,
              visitor: Visitor, distance: str='canberra'):
         self._make_indexes(primary, secondary)
-
         primary_features = visitor.visit(primary)
         secondary_features = visitor.visit(secondary)
 
@@ -293,7 +290,7 @@ class QBinDiff(Differ):
                     if isinstance(values, dict):
                         feature_keys[key].update(values.keys())
                     else:
-                        feature_keys[key].update({key})
+                        feature_keys[key].add(key)
         features_weights = dict()
         for ft_key, ft_sub_keys in feature_keys.items():
             for k in ft_sub_keys:
