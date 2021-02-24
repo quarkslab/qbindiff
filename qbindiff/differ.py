@@ -28,7 +28,7 @@ class Differ(object):
         self.sim_matrix = None
         self.mapping = None
 
-    def __make_indexes(self, primary: Iterable, secondary: Iterable):
+    def _make_indexes(self, primary: Iterable, secondary: Iterable):
         try:
             self._primary_items_to_idx = {x: i for i, x in enumerate(primary)}
             self._secondary_items_to_idx = {x: i for i, x in enumerate(secondary)}
@@ -84,14 +84,14 @@ class Differ(object):
         """
         # Compute lookup and reverse lookup tables
         # TODO: Creating a BasicBlock object / items_to_idx as list
-        self.__make_indexes(primary, secondary)
+        self._make_indexes(primary, secondary)
 
         primary_features = visitor.visit(primary)
         secondary_features = visitor.visit(secondary)
 
         feature_keys = self._extract_feature_keys(primary_features, secondary_features)
-        primary_matrix = self._vectorize_features(primary_features, feature_index)
-        secondary_matrix = self._vectorize_features(secondary_features, feature_index)
+        primary_matrix = self._vectorize_features(primary_features, feature_keys)
+        secondary_matrix = self._vectorize_features(secondary_features, feature_keys)
 
         self.sim_matrix = self._compute_similarity(primary_matrix, secondary_matrix, distance)
         self.primary_affinity = primary_affinity
@@ -127,7 +127,7 @@ class Differ(object):
         :param epsilon: perturbation parameter to enforce convergence and speed up computation. The greatest the fastest, but least accurate
         :param maxiter: maximum number of message passing iterations
         """
-        matcher = Matcher(self.sim_matrix, self.primary_affinity, self.secondary_affinity)
+        matcher = Matcher(self.primary_affinity, self.secondary_affinity, self.sim_matrix)
         matcher.process(sparsity_ratio)
 
         yield from matcher.compute(tradeoff, epsilon, maxiter)
@@ -143,7 +143,7 @@ class Differ(object):
         self.secondary_affinity = data['B'].astype(bool)
 
         # Initialize lookup dict Item -> idx
-        self.__make_indexes(range(len(self.primary_affinity)), range(len(self.secondary_affinity)))
+        self._make_indexes(range(len(self.primary_affinity)), range(len(self.secondary_affinity)))
 
         self.sim_matrix = data['C'].astype(Differ.DTYPE)
 
@@ -152,6 +152,7 @@ class Differ(object):
         feature_keys = set()
         for features in (primary_features, secondary_features):
             for env in features:
+                print(env.features)
                 for key, value in env.features.items():
                     if isinstance(value, dict):
                         feature_keys.update(value.keys())
@@ -161,13 +162,15 @@ class Differ(object):
 
     @staticmethod
     def _vectorize_features(features: List[Environment], feature_keys: List[str]) -> FeatureVectors:
+        print(feature_keys)
         feature_index = {key: idx for idx, key in enumerate(feature_keys)}
+        print(feature_index)
         feature_matrix = np.zeros((len(features), len(feature_index)), dtype=Differ.DTYPE)
         for idx, env in enumerate(features):
             for key, value in env.features.items():
                 if isinstance(value, dict):
                     idy, value = zip(*((feature_index[key], value) for key, value in value.items()))
-                    feature_matrix[idx, list(idy)] 
+                    feature_matrix[idx, list(idy)] = value
                 else:
                     feature_matrix[idx, feature_index[key]] = value
         return feature_matrix
@@ -242,6 +245,7 @@ class QBinDiff(Differ):
         affinity_matrix = np.zeros((len(tmp), len(tmp)), dtype=bool)
         for src, dst in graph.edges:
             affinity_matrix[tmp[src], tmp[dst]] += 1
+        return affinity_matrix
 
     def diff_function(self, primary: Function,
                             secondary: Function,
@@ -271,6 +275,8 @@ class QBinDiff(Differ):
     def compute_similarity(self, primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix,
              visitor: Visitor, distance: str='canberra'):
         # WARNING: C'est quoi la diff ?
+        self._make_indexes(primary, secondary)
+
         primary_features = visitor.visit(primary)
         secondary_features = visitor.visit(secondary)
 
@@ -282,20 +288,19 @@ class QBinDiff(Differ):
         self.primary_affinity = primary_affinity
         self.secondary_affinity = secondary_affinity
 
-    def _extract_feature_keys(self, primary_features: List[Environment], secondary_features: List[Environment]) -> Tuple[List[str], List[float]]:
+    def _extract_feature_keys(self, primary_envs: List[Environment], secondary_envs: List[Environment]) -> Tuple[List[str], List[float]]:
         feature_keys = defaultdict(set)
-        for program_features in (primary_features, secondary_features):
-            for function_features in program_features:
-                for key, values in function_features.features.items():
+        for envs in (primary_envs, secondary_envs):
+            for env in envs:
+                for key, values in env.features.items():
                     if isinstance(values, dict):
                         feature_keys[key].update(values.keys())
                     else:
-                        feature_keys[key].update(key)
-        
+                        feature_keys[key].update({key})
         features_weights = dict()
-        for key, keys in feature_keys.items():
-            for k in keys:
-                features_weights[k] = self._visitor.get_feature(key).weight / len(keys)
+        for ft_key, ft_sub_keys in feature_keys.items():
+            for k in ft_sub_keys:
+                features_weights[k] = self._visitor.get_feature(ft_key).weight / len(ft_sub_keys)
 
         feature_keys = sorted([key for keys in feature_keys.values() for key in keys])  # [Mnemonic, NbChild .. ]
         feature_weights = [features_weights[key] for key in feature_keys]
