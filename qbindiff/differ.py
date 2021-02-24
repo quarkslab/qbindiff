@@ -132,6 +132,9 @@ class Differ(object):
             json.dump({'matched': [(x[0].addr, x[1].addr) for x in self.mapping],
                        'unmatched': [[x.addr for x in self.mapping.primary_unmatched], [x.addr for x in self.mapping.secondary_unmatched]]}, file, indent=2)
 
+    def load(self):
+        pass
+
     def initialize_from_file(self, filename: PathLike):
         data = scipy.io.loadmat(str(filename))
         self.primary_affinity = data['A'].astype(bool)
