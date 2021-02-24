@@ -135,7 +135,9 @@ class Differ(object):
         self.mapping = self._convert_mapping(matcher.mapping)
 
     def save(self, filename: str):
-        self.mapping.save(filename)
+        with open(filename, 'w') as file:
+            json.dump({'matched': [(x[0].addr, x[1].addr) for x in self._matches],
+                       'unmatched': [[x.addr for x in self._primary_unmatched], [x.addr for x in self._secondary_unmatched]]}, file)
 
     def initialize_from_file(self, filename: PathLike):
         data = scipy.io.loadmat(str(filename))
