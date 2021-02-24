@@ -43,16 +43,6 @@ class Visitor(object):
     must implements to work with a Differ object.
     """
 
-    def visit_item(self, item: Any, env: Environment) -> None:
-        """
-        Abstract method meant to perform the visit of the item.
-        It receives an environment in parameter that is meant to be filled.
-
-        :param item: item to be visited
-        :param env: Environment to fill during the visit
-        """
-        raise NotImplementedError()
-
     def visit(self, it: Iterable[Any]) -> List[Environment]:
         """
         Function performing the iteration of all items to visit.
@@ -68,6 +58,22 @@ class Visitor(object):
             self.visit_item(item, env)
             envs.append(env)
         return envs
+
+    def visit_item(self, item: Any, env: Environment) -> None:
+        """
+        Abstract method meant to perform the visit of the item.
+        It receives an environment in parameter that is meant to be filled.
+
+        :param item: item to be visited
+        :param env: Environment to fill during the visit
+        """
+        raise NotImplementedError()
+
+    def feature_keys(self) -> List[str]:
+        raise NotImplementedError()
+
+    def feature_weight(self, key: str) -> float:
+        raise NotImplementedError()
 
 
 class Feature(object):
@@ -155,7 +161,7 @@ class ProgramVisitor(Visitor):
         elif isinstance(item, Expr):
             self.visit_expression(item, env)
 
-    def register_feature(self, ft: Feature, weight: float = 1.) -> None:
+    def register_feature(self, ft: Feature) -> None:
         """
         Register an instanciated feature extractor on the visitor.
         :param ft: Feature extractor instance
@@ -280,5 +286,9 @@ class ProgramVisitor(Visitor):
         for callback in self.expression_callbacks:
             callback(expression, env)
 
-    def get_feature(self, key: str) -> Feature:
-        return self.features[key]
+    def feature_keys(self) -> List[str]:
+        return list(self.features.keys())
+
+    def feature_weight(self, key: str) -> float:
+        return self.features[key].weight
+

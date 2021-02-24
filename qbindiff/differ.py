@@ -90,11 +90,11 @@ class Differ(object):
         primary_features = visitor.visit(primary)
         secondary_features = visitor.visit(secondary)
 
-        feature_keys = self._extract_feature_keys(primary_features, secondary_features)
+        feature_keys, feature_weights = self._extract_feature_keys(primary_features, secondary_features)
         primary_matrix = self._vectorize_features(primary_features, feature_keys)
         secondary_matrix = self._vectorize_features(secondary_features, feature_keys)
 
-        self.sim_matrix = self._compute_similarity(primary_matrix, secondary_matrix, distance)
+        self.sim_matrix = self._compute_similarity(primary_matrix, secondary_matrix, feature_weights, distance)
         self.primary_affinity = primary_affinity
         self.secondary_affinity = secondary_affinity
 
@@ -120,14 +120,6 @@ class Differ(object):
         return self.mapping
 
     def matching_iterator(self, sparsity_ratio: Ratio=.75, tradeoff: Ratio=.75, epsilon: Positive=.5, maxiter: int=1000) -> Generator[int, None, None]:
-        """
-        Run the belief propagation algorithm. This method hangs until the computation is done.
-        The resulting matching is then converted into a binary-based format.
-        :param sparsity_ratio: ratio of most probable correspondences to consider during the matching
-        :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0) and edge similarity (tradeoff=0.0)
-        :param epsilon: perturbation parameter to enforce convergence and speed up computation. The greatest the fastest, but least accurate
-        :param maxiter: maximum number of message passing iterations
-        """
         matcher = Matcher(self.sim_matrix, self.primary_affinity, self.secondary_affinity)
         matcher.process(sparsity_ratio)
 
@@ -148,18 +140,24 @@ class Differ(object):
         # Initialize lookup dict Item -> idx
         self._make_indexes(range(len(self.primary_affinity)), range(len(self.secondary_affinity)))
 
-    @staticmethod
-    def _extract_feature_keys(primary_features: List[Environment], secondary_features: List[Environment]) -> List[str]:
-        feature_keys = set()
-        for features in (primary_features, secondary_features):
-            for env in features:
-                print(env.features)
-                for key, value in env.features.items():
-                    if isinstance(value, dict):
-                        feature_keys.update(value.keys())
+    def _extract_feature_keys(self, primary_envs: List[Environment], secondary_envs: List[Environment]) -> Tuple[List[str], List[float]]:
+        feature_keys = defaultdict(set)
+        for envs in (primary_envs, secondary_envs):
+            for env in envs:
+                for key, values in env.features.items():
+                    if isinstance(values, dict):
+                        feature_keys[key].update(values.keys())
                     else:
-                        feature_keys.add(key)
-        return sorted(feature_keys)
+                        feature_keys[key].add(key)
+
+        features_weights = dict()
+        for ft_key, ft_sub_keys in feature_keys.items():
+            for k in ft_sub_keys:
+                features_weights[k] = self._visitor.feature_weight(ft_key) / len(ft_sub_keys)
+
+        feature_keys = sorted({key for keys in feature_keys.values() for key in keys})  # [Mnemonic, NbChild .. ]
+        feature_weights = [features_weights[key] for key in feature_keys]
+        return feature_keys, feature_weights
 
     @staticmethod
     def _vectorize_features(features: List[Environment], feature_keys: List[str]) -> FeatureVectors:
@@ -175,7 +173,7 @@ class Differ(object):
         return feature_matrix
 
     @staticmethod
-    def _compute_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, distance: str='canberra', weights: List[Positive]=1.0) -> SimMatrix:
+    def _compute_similarity(primary_matrix: FeatureVectors, secondary_matrix: FeatureVectors, weights: List[Positive], distance: str='canberra') -> SimMatrix:
         matrix = scipy.spatial.distance.cdist(primary_matrix, secondary_matrix, distance, w=weights).astype(Differ.DTYPE)
         matrix /= matrix.max()
         matrix[:] = 1 - matrix
@@ -269,36 +267,6 @@ class QBinDiff(Differ):
     def register_feature(self, feature: Union[type, Feature], weight: Positive = 1.0):
         if not isinstance(feature, Feature):
             feature = feature(weight)
-        self._visitor.register_feature(feature, weight)
+        self._visitor.register_feature(feature)
 
-    def compute_similarity(self, primary: Iterable, secondary: Iterable, primary_affinity: AffinityMatrix, secondary_affinity: AffinityMatrix,
-             visitor: Visitor, distance: str='canberra'):
-        self._make_indexes(primary, secondary)
-        primary_features = visitor.visit(primary)
-        secondary_features = visitor.visit(secondary)
 
-        feature_keys, feature_weights = self._extract_feature_keys(primary_features, secondary_features)
-        primary_matrix = self._vectorize_features(primary_features, feature_keys)
-        secondary_matrix = self._vectorize_features(secondary_features, feature_keys)
-
-        self.sim_matrix = self._compute_similarity(primary_matrix, secondary_matrix, distance, feature_weights)
-        self.primary_affinity = primary_affinity
-        self.secondary_affinity = secondary_affinity
-
-    def _extract_feature_keys(self, primary_envs: List[Environment], secondary_envs: List[Environment]) -> Tuple[List[str], List[float]]:
-        feature_keys = defaultdict(set)
-        for envs in (primary_envs, secondary_envs):
-            for env in envs:
-                for key, values in env.features.items():
-                    if isinstance(values, dict):
-                        feature_keys[key].update(values.keys())
-                    else:
-                        feature_keys[key].add(key)
-        features_weights = dict()
-        for ft_key, ft_sub_keys in feature_keys.items():
-            for k in ft_sub_keys:
-                features_weights[k] = self._visitor.get_feature(ft_key).weight / len(ft_sub_keys)
-
-        feature_keys = sorted({key for keys in feature_keys.values() for key in keys})  # [Mnemonic, NbChild .. ]
-        feature_weights = [features_weights[key] for key in feature_keys]
-        return feature_keys, feature_weights
