@@ -1,6 +1,7 @@
         # third-party imports
 import numpy as np
 import scipy.io
+import json
 import scipy.spatial.distance
 from collections import defaultdict
 from networkx import DiGraph
@@ -127,7 +128,7 @@ class Differ(object):
         :param epsilon: perturbation parameter to enforce convergence and speed up computation. The greatest the fastest, but least accurate
         :param maxiter: maximum number of message passing iterations
         """
-        matcher = Matcher(self.primary_affinity, self.secondary_affinity, self.sim_matrix)
+        matcher = Matcher(self.sim_matrix, self.primary_affinity, self.secondary_affinity)
         matcher.process(sparsity_ratio)
 
         yield from matcher.compute(tradeoff, epsilon, maxiter)
@@ -136,8 +137,8 @@ class Differ(object):
 
     def save(self, filename: str):
         with open(filename, 'w') as file:
-            json.dump({'matched': [(x[0].addr, x[1].addr) for x in self._matches],
-                       'unmatched': [[x.addr for x in self._primary_unmatched], [x.addr for x in self._secondary_unmatched]]}, file)
+            json.dump({'matched': [(x[0].addr, x[1].addr) for x in self.mapping],
+                       'unmatched': [[x.addr for x in self.mapping.primary_unmatched], [x.addr for x in self.mapping.secondary_unmatched]]}, file, indent=2)
 
     def initialize_from_file(self, filename: PathLike):
         data = scipy.io.loadmat(str(filename))
