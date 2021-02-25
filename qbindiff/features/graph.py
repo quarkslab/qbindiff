@@ -9,8 +9,8 @@ class BBlockNb(FunctionFeature):
     name = "bblock_nb"
     key = "bnb"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = len(fun.flowgraph.nodes)
+    def visit_function(self, function: Function, env: Environment):
+        value = len(function.flowgraph.nodes)
         env.add_feature(self.key, value)
 
 
@@ -19,8 +19,8 @@ class JumpNb(FunctionFeature):
     name = "jump_nb"
     key = "jnb"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = len(fun.flowgraph.edges)
+    def visit_function(self, function: Function, env: Environment):
+        value = len(function.flowgraph.edges)
         env.add_feature(self.key, value)
 
 
@@ -29,10 +29,10 @@ class MaxParentNb(FunctionFeature):
     name = "max_parent_nb"
     key = "maxp"
 
-    def visit_function(self, fun: Function, env: Environment):
+    def visit_function(self, function: Function, env: Environment):
         # FIXME: Change to use binexport module
-        value = max(len(fun.flowgraph.predecessors(bblock) for bblock in fun.flowgraph))  # WRONG!
-        # value = max(len(bb.parents) for bb in fun)
+        value = max(len(function.flowgraph.predecessors(bblock) for bblock in function.flowgraph))  # WRONG!
+        # value = max(len(bb.parents) for bb in function)
         env.add_feature(self.key, value)
 
 
@@ -41,10 +41,10 @@ class MaxChildNb(FunctionFeature):
     name = "max_child_nb"
     key = "maxc"
 
-    def visit_function(self, fun: Function, env: Environment):
+    def visit_function(self, function: Function, env: Environment):
         # FIXME: Change to use binexport module
-        value = max(len(fun.flowgraph.successors(bblock) for bblock in fun.flowgraph))  # WRONG!
-        # value = max(len(bb.children) for bb in fun)
+        value = max(len(function.flowgraph.successors(bblock) for bblock in function.flowgraph))  # WRONG!
+        # value = max(len(bb.children) for bb in function)
         env.add_feature(self.key, value)
 
 
@@ -53,8 +53,8 @@ class MaxInsNB(FunctionFeature):
     name = "max_ins_nb"
     key = "maxins"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = max(len(bblock) for bblock in fun)
+    def visit_function(self, function: Function, env: Environment):
+        value = max(len(bblock) for bblock in function)
         env.add_feature(self.key, value)
 
 
@@ -63,8 +63,8 @@ class MeanInsNB(FunctionFeature):
     name = "mean_ins_nb"
     key = "meanins"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = sum(len(bblock) for bblock in fun) / len(fun)
+    def visit_function(self, function: Function, env: Environment):
+        value = sum(len(bblock) for bblock in function) / len(function)
         env.add_feature(self.key, value)
 
 
@@ -73,8 +73,8 @@ class InstNB(FunctionFeature):
     name = "ins_nb"
     key = "inb"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = sum(len(bblock) for bblock in fun)
+    def visit_function(self, function: Function, env: Environment):
+        value = sum(len(bblock) for bblock in function)
         env.add_feature(self.key, value)
 
 
@@ -83,9 +83,9 @@ class GraphMeanDegree(FunctionFeature):
     name = "graph_mean_degree"
     key = "Gmd"
 
-    def visit_function(self, fun: Function, env: Environment):
-        n_node = len(fun.flowgraph)
-        value = sum(x for a, x in fun.flowgraph.degree) / n_node if n_node != 0 else 0
+    def visit_function(self, function: Function, env: Environment):
+        n_node = len(function.flowgraph)
+        value = sum(x for a, x in function.flowgraph.degree) / n_node if n_node != 0 else 0
         env.add_feature(self.key, value)
 
 
@@ -94,8 +94,8 @@ class GraphDensity(FunctionFeature):
     name = "graph_density"
     key = "Gd"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = networkx.density(fun.flowgraph)
+    def visit_function(self, function: Function, env: Environment):
+        value = networkx.density(function.flowgraph)
         env.add_feature(self.key, value)
 
 
@@ -104,8 +104,8 @@ class GraphNbComponents(FunctionFeature):
     name = "graph_num_components"
     key = "Gnc"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = len(list(networkx.connected_components(fun.flowgraph.to_undirected())))
+    def visit_function(self, function: Function, env: Environment):
+        value = len(list(networkx.connected_components(function.flowgraph.to_undirected())))
         env.add_feature(self.key, value)
 
 
@@ -114,10 +114,10 @@ class GraphDiameter(FunctionFeature):
     name = "graph_diameter"
     key = "Gdi"
 
-    def visit_function(self, fun: Function, env: Environment):
-        components = list(networkx.connected_components(fun.flowgraph.to_undirected()))
+    def visit_function(self, function: Function, env: Environment):
+        components = list(networkx.connected_components(function.flowgraph.to_undirected()))
         if components:
-            value = max(networkx.diameter(networkx.subgraph(fun.flowgraph, x).to_undirected()) for x in components)
+            value = max(networkx.diameter(networkx.subgraph(function.flowgraph, x).to_undirected()) for x in components)
         else:
             value = 0
         env.add_feature(self.key, value)
@@ -128,8 +128,8 @@ class GraphTransitivity(FunctionFeature):
     name = "graph_transitivity"
     key = "Gt"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = networkx.transitivity(fun.flowgraph)
+    def visit_function(self, function: Function, env: Environment):
+        value = networkx.transitivity(function.flowgraph)
         env.add_feature(self.key, value)
 
 

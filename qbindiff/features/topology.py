@@ -7,8 +7,8 @@ class ChildNb(FunctionFeature):
     name = "child_nb"
     key = "cnb"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = len(fun.children)
+    def visit_function(self, function: Function, env: Environment):
+        value = len(function.children)
         env.add_feature(self.key, value)
 
 
@@ -17,8 +17,8 @@ class ParentNb(FunctionFeature):
     name = "parent_nb"
     key = "pnb"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = len(fun.parents)
+    def visit_function(self, function: Function, env: Environment):
+        value = len(function.parents)
         env.add_feature(self.key, value)
 
 
@@ -27,6 +27,6 @@ class RelativeNb(FunctionFeature):
     name = "relative_nb"
     key = "rnb"
 
-    def visit_function(self, fun: Function, env: Environment):
-        value = len(fun.parents) + len(fun.children)
+    def visit_function(self, function: Function, env: Environment):
+        value = len(function.parents) + len(function.children)
         env.add_feature(self.key, value)

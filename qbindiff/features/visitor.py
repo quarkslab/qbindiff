@@ -148,6 +148,7 @@ class ProgramVisitor(Visitor):
         :param item: Can be a Program, Function, Instruction etc..
         :param env: Environment to be filled
         """
+        print(item, Expr)
         if isinstance(item, Program):
             self.visit_program(item, env)
         elif isinstance(item, Function):
@@ -158,7 +159,8 @@ class ProgramVisitor(Visitor):
             self.visit_instruction(item, env)
         elif isinstance(item, Operand):
             self.visit_operand(item, env)
-        elif isinstance(item, Expr):
+        #elif isinstance(item, Expr):
+        elif isinstance(item, dict):
             self.visit_expression(item, env)
 
     def register_feature(self, ft: Feature) -> None:

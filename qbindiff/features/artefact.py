@@ -31,9 +31,9 @@ class LibName(ExpressionFeature):
     name = "libname"
     key = "lib"
 
-    def visit_expression(self, expr: Expr, env: Environment):
-        if expr['type'] == 'libname':
-            env.inc_feature(expr['value'])
+    def visit_expression(self, expression: Expr, env: Environment):
+        if expression['type'] == 'libname':
+            env.inc_feature(expression['value'])
 
 
 class DatName(ExpressionFeature):
@@ -41,9 +41,9 @@ class DatName(ExpressionFeature):
     name = "datname"
     key = 'dat'
 
-    def visit_expression(self, expr: Expr, env: Environment) -> None:
-        if expr['type'] == 'datname':
-            env.inc_feature(expr['value'])
+    def visit_expression(self, expression: Expr, env: Environment) -> None:
+        if expression['type'] == 'datname':
+            env.inc_feature(expression['value'])
 
 
 class ImpName(ExpressionFeature):
@@ -51,9 +51,9 @@ class ImpName(ExpressionFeature):
     name = 'impname'
     key = 'imp'
 
-    def visit_expression(self, expr: Expr, env: Environment) -> None:
-        if expr['type'] == 'impname':
-            env.inc_feature(expr['value'])
+    def visit_expression(self, expression: Expr, env: Environment) -> None:
+        if expression['type'] == 'impname':
+            env.inc_feature(expression['value'])
 
 
 class Constant(ExpressionFeature):
@@ -61,15 +61,15 @@ class Constant(ExpressionFeature):
     name = "cstname"
     key = 'cst'
 
-    def visit_expression(self, expr: Expr, env: Environment) -> None:
-        if expr['type'] == "number":
+    def visit_expression(self, expression: Expr, env: Environment) -> None:
+        if expression['type'] == "number":
             try:
-                val = expr['value']
+                val = expression['value']
                 if isinstance(val, str):
                     val = int(val[:-1], 16) if val[-1] == "h" else int(val)
                 if 0xFFFF < val <= 0xFFFFFF00:
                     if val not in [0x80000000]:
                         env.inc_feature('cst_0x%x' % val)
             except ValueError:
-                print('Invalid constant: %s' % (expr['value']))
+                print('Invalid constant: %s' % (expression['value']))
 
