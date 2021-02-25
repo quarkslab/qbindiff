@@ -106,7 +106,7 @@ class Matcher:
             idxx.extend(idx.tolist())
             idxy.extend(idy.tolist())
         ones = np.ones(len(idxx), dtype=sparse_matrix.dtype)
-        squares_matrix = csr_matrix((ones, (idxx, idxy)), shape=(size, size), dtype=sparse_matrix.dtype)
+        squares_matrix = csr_matrix((ones, (idxx, idxy)), shape=(size, size), dtype=np.uint8)
         squares_matrix += squares_matrix.T
         return squares_matrix
 
