@@ -119,7 +119,7 @@ automated code formatter Black. If you want to retrieve the old, clean `git blam
 you can either run it with `git blame [file] --ignore-revs-file .git-blame-ignore-revs`
 or configure git to automatically ignore that revision with
 ```bash
-git config blame.ignoreRevsFile .git-blame-ignore-revs
+$ git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
 _Please note that GitLab doesn't blame interface doesn't support this feature yet (but there's an [open issue](https://gitlab.com/gitlab-org/gitlab/-/issues/31423))
