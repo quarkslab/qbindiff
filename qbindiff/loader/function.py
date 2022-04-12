@@ -13,6 +13,7 @@ class Function(dict):
     Function representation of a binary function. This class is a dict
     of basic block addreses to the basic block (list of instruction).
     """
+
     def __init__(self, loader, *args, **kwargs):
         super(dict, self).__init__()
         self._backend = None
@@ -28,10 +29,12 @@ class Function(dict):
 
     def load_binexport(self, *args, **kwargs):
         from qbindiff.loader.backend.binexport import FunctionBackendBinExport
+
         self._backend = FunctionBackendBinExport(self, *args, **kwargs)
 
     def load_ida(self, addr):
         from qbindiff.loader.backend.ida import FunctionBackendIDA
+
         self._backend = FunctionBackendIDA(self, addr)
 
     @property
@@ -83,7 +86,7 @@ class Function(dict):
 
     @type.setter
     def type(self, value) -> None:
-        """ Set the type value """
+        """Set the type value"""
         self._backend.type = value
 
     def is_import(self) -> bool:
@@ -107,7 +110,7 @@ class Function(dict):
         return True
 
     def __repr__(self):
-        return '<Function: 0x%x>' % self.addr
+        return "<Function: 0x%x>" % self.addr
 
     @property
     def name(self):
@@ -118,6 +121,5 @@ class Function(dict):
         self._backend.name = name
 
     def __iter__(self):
-        """
-        """
+        """ """
         return iter(self.values())

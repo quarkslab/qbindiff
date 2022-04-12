@@ -6,6 +6,7 @@ import community
 
 class BBlockNb(FunctionFeature):
     """Number of basic blocks in the function"""
+
     name = "bblock_nb"
     key = "bnb"
 
@@ -16,6 +17,7 @@ class BBlockNb(FunctionFeature):
 
 class JumpNb(FunctionFeature):
     """Number of jumps in the function"""
+
     name = "jump_nb"
     key = "jnb"
 
@@ -26,30 +28,39 @@ class JumpNb(FunctionFeature):
 
 class MaxParentNb(FunctionFeature):
     """Maximum number of parent of a bblock in the function"""
+
     name = "max_parent_nb"
     key = "maxp"
 
     def visit_function(self, function: Function, env: Environment):
         # FIXME: Change to use binexport module
-        value = max(len(function.flowgraph.predecessors(bblock) for bblock in function.flowgraph))  # WRONG!
+        value = max(
+            len(
+                function.flowgraph.predecessors(bblock) for bblock in function.flowgraph
+            )
+        )  # WRONG!
         # value = max(len(bb.parents) for bb in function)
         env.add_feature(self.key, value)
 
 
 class MaxChildNb(FunctionFeature):
     """Maximum number of children of a bblock in the function"""
+
     name = "max_child_nb"
     key = "maxc"
 
     def visit_function(self, function: Function, env: Environment):
         # FIXME: Change to use binexport module
-        value = max(len(function.flowgraph.successors(bblock) for bblock in function.flowgraph))  # WRONG!
+        value = max(
+            len(function.flowgraph.successors(bblock) for bblock in function.flowgraph)
+        )  # WRONG!
         # value = max(len(bb.children) for bb in function)
         env.add_feature(self.key, value)
 
 
 class MaxInsNB(FunctionFeature):
     """Max number of instructions per basic blocks in the function"""
+
     name = "max_ins_nb"
     key = "maxins"
 
@@ -60,6 +71,7 @@ class MaxInsNB(FunctionFeature):
 
 class MeanInsNB(FunctionFeature):
     """Mean number of instructions per basic blocks in the function"""
+
     name = "mean_ins_nb"
     key = "meanins"
 
@@ -70,6 +82,7 @@ class MeanInsNB(FunctionFeature):
 
 class InstNB(FunctionFeature):
     """Number of instructions per basic blocks in the function"""
+
     name = "ins_nb"
     key = "inb"
 
@@ -80,17 +93,21 @@ class InstNB(FunctionFeature):
 
 class GraphMeanDegree(FunctionFeature):
     """Mean degree of the function"""
+
     name = "graph_mean_degree"
     key = "Gmd"
 
     def visit_function(self, function: Function, env: Environment):
         n_node = len(function.flowgraph)
-        value = sum(x for a, x in function.flowgraph.degree) / n_node if n_node != 0 else 0
+        value = (
+            sum(x for a, x in function.flowgraph.degree) / n_node if n_node != 0 else 0
+        )
         env.add_feature(self.key, value)
 
 
 class GraphDensity(FunctionFeature):
     """Density of the function flow graph"""
+
     name = "graph_density"
     key = "Gd"
 
@@ -101,23 +118,34 @@ class GraphDensity(FunctionFeature):
 
 class GraphNbComponents(FunctionFeature):
     """Number of components in the function (non-connected flow graphs)"""
+
     name = "graph_num_components"
     key = "Gnc"
 
     def visit_function(self, function: Function, env: Environment):
-        value = len(list(networkx.connected_components(function.flowgraph.to_undirected())))
+        value = len(
+            list(networkx.connected_components(function.flowgraph.to_undirected()))
+        )
         env.add_feature(self.key, value)
 
 
 class GraphDiameter(FunctionFeature):
     """Diamater of the function flow graph"""
+
     name = "graph_diameter"
     key = "Gdi"
 
     def visit_function(self, function: Function, env: Environment):
-        components = list(networkx.connected_components(function.flowgraph.to_undirected()))
+        components = list(
+            networkx.connected_components(function.flowgraph.to_undirected())
+        )
         if components:
-            value = max(networkx.diameter(networkx.subgraph(function.flowgraph, x).to_undirected()) for x in components)
+            value = max(
+                networkx.diameter(
+                    networkx.subgraph(function.flowgraph, x).to_undirected()
+                )
+                for x in components
+            )
         else:
             value = 0
         env.add_feature(self.key, value)
@@ -125,6 +153,7 @@ class GraphDiameter(FunctionFeature):
 
 class GraphTransitivity(FunctionFeature):
     """Transitivity of the function flow graph"""
+
     name = "graph_transitivity"
     key = "Gt"
 
@@ -135,6 +164,7 @@ class GraphTransitivity(FunctionFeature):
 
 class GraphCommunities(FunctionFeature):
     """Number of graph communities (Louvain modularity)"""
+
     name = "graph_community"
     key = "Gcom"
 

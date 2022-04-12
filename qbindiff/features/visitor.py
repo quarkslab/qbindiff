@@ -9,6 +9,7 @@ class Environment(object):
     and the value is an integer summing the number of occurrence of that
     feature.
     """
+
     def __init__(self):
         self.features: Dict[str, Union[int, Dict[str, int]]] = {}
 
@@ -82,10 +83,11 @@ class Feature(object):
     are to define name, key and a function call that is to be called by the
     visitor.
     """
+
     name = ""
     key = ""
 
-    def __init__(self, weight: float = 1.):
+    def __init__(self, weight: float = 1.0):
         self._weight = weight
 
     @property
@@ -132,6 +134,7 @@ class ProgramVisitor(Visitor):
     Class aiming at providing a generic program visitor which calls
     the different feature extractor on the appropriate items.
     """
+
     def __init__(self):
         self.features = {}
         self.program_callbacks = []
@@ -159,7 +162,7 @@ class ProgramVisitor(Visitor):
             self.visit_instruction(item, env)
         elif isinstance(item, Operand):
             self.visit_operand(item, env)
-        #elif isinstance(item, Expr):
+        # elif isinstance(item, Expr):
         elif isinstance(item, dict):
             self.visit_expression(item, env)
 
@@ -170,7 +173,7 @@ class ProgramVisitor(Visitor):
         :param weight: Weight to apply to the feature
         :return: None
         """
-        assert(isinstance(ft, Feature))
+        assert isinstance(ft, Feature)
         if isinstance(ft, ProgramFeature):
             self.register_program_feature_callback(ft.visit_program)
         if isinstance(ft, FunctionFeature):
@@ -294,4 +297,3 @@ class ProgramVisitor(Visitor):
 
     def feature_weight(self, key: str) -> float:
         return self.features[key].weight
-

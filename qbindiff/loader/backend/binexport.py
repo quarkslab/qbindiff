@@ -13,7 +13,7 @@ from qbindiff.loader.types import LoaderType
 # === General purpose binexport functions ===
 def _get_instruction_address(pb, inst_idx):
     inst = pb.instruction[inst_idx]
-    if inst.HasField('address'):
+    if inst.HasField("address"):
         return inst.address
     else:
         return _backtrack_instruction_address(pb, inst_idx)
@@ -27,7 +27,7 @@ def _backtrack_instruction_address(pb, idx):
     while True:
         tmp_idx -= 1
         tmp_sz += len(pb.instruction[tmp_idx].raw_bytes)
-        if pb.instruction[tmp_idx].HasField('address'):
+        if pb.instruction[tmp_idx].HasField("address"):
             break
     return pb.instruction[tmp_idx].address + tmp_sz
 
@@ -42,8 +42,26 @@ def _get_basic_block_addr(pb, bb_idx):
 
 class OperandBackendBinexport:
 
-    __sz_lookup = {'b1': 1, 'b2': 2, 'b4': 4, 'b8': 8, 'b10': 10, 'b16': 16, 'b32': 32, 'b64': 64}
-    __sz_name = {1: 'byte', 2: 'word', 4: 'dword', 8: "qword", 10: 'b10', 16: "xmmword", 32: "ymmword", 64: "zmmword"}
+    __sz_lookup = {
+        "b1": 1,
+        "b2": 2,
+        "b4": 4,
+        "b8": 8,
+        "b10": 10,
+        "b16": 16,
+        "b32": 32,
+        "b64": 64,
+    }
+    __sz_name = {
+        1: "byte",
+        2: "word",
+        4: "dword",
+        8: "qword",
+        10: "b10",
+        16: "xmmword",
+        32: "ymmword",
+        64: "zmmword",
+    }
 
     def __init__(self, program, fun, inst, op_idx):
         self._program = program
@@ -55,7 +73,9 @@ class OperandBackendBinexport:
         return self._program.proto.operand[self._idx]
 
     def _pb_expressions(self):
-        for it in (self._program.proto.expression[idx] for idx in self._me().expression_index):
+        for it in (
+            self._program.proto.expression[idx] for idx in self._me().expression_index
+        ):
             yield it
 
     @property
@@ -63,43 +83,52 @@ class OperandBackendBinexport:
         # is_deref = False
         size = None
         for exp in self._pb_expressions():
-            if exp.type == BinExport2.Expression.SYMBOL:  # If the expression is a symbol
+            if (
+                exp.type == BinExport2.Expression.SYMBOL
+            ):  # If the expression is a symbol
                 if exp.symbol in self._program.fun_names:  # If it is a function name
                     f = self._program.fun_names[exp.symbol]
                     if f.type == FunctionType.normal:
-                        yield {'type': 'codname', 'value': exp.symbol}
+                        yield {"type": "codname", "value": exp.symbol}
                     elif f.type == FunctionType.library:
-                        yield {'type': 'libname', 'value': exp.symbol}
+                        yield {"type": "libname", "value": exp.symbol}
                     elif f.type == FunctionType.imported:
-                        yield {'type': 'impname', 'value': exp.symbol}
+                        yield {"type": "impname", "value": exp.symbol}
                     elif f.type == FunctionType.thunk:
-                        yield {'type': 'cname', 'value': exp.symbol}
+                        yield {"type": "cname", "value": exp.symbol}
                     else:
                         pass  # invalid fucntion type just ignore it
                 else:
-                    yield {'type': 'locname', 'value': exp.symbol}  # for var_, arg_
+                    yield {"type": "locname", "value": exp.symbol}  # for var_, arg_
 
-            elif exp.type == BinExport2.Expression.IMMEDIATE_INT:  # If the expression is an immediate
+            elif (
+                exp.type == BinExport2.Expression.IMMEDIATE_INT
+            ):  # If the expression is an immediate
                 if exp.immediate in self._instruction.data_refs:
                     # TODO: (near future) using the addr_refs to return the symbol
                     s = "%s_%X" % (self.__sz_name[size], exp.immediate)
-                    yield {'type': 'datname', 'value': s}
+                    yield {"type": "datname", "value": s}
                 else:
                     if exp.immediate in self._program.program:  # if it is a function
-                        yield {'type': 'codname', 'value': "sub_%X" % exp.immediate}
-                    elif exp.immediate in self._function.function:  # its a basic block address
-                        yield {'type': 'codname', 'value': 'loc_%X' % exp.immediate}
+                        yield {"type": "codname", "value": "sub_%X" % exp.immediate}
+                    elif (
+                        exp.immediate in self._function.function
+                    ):  # its a basic block address
+                        yield {"type": "codname", "value": "loc_%X" % exp.immediate}
                     else:
-                        yield {'type': 'number', 'value': self._program.addr_mask(exp.immediate)}
+                        yield {
+                            "type": "number",
+                            "value": self._program.addr_mask(exp.immediate),
+                        }
 
             elif exp.type == BinExport2.Expression.IMMEDIATE_FLOAT:
                 print("IMMEDIATE FLOAT ignored:", exp)
             elif exp.type == BinExport2.Expression.OPERATOR:
-                yield {'type': 'symbol', 'value': exp.symbol}
+                yield {"type": "symbol", "value": exp.symbol}
             elif exp.type == BinExport2.Expression.REGISTER:
-                yield {'type': 'reg', 'value': exp.symbol}
+                yield {"type": "reg", "value": exp.symbol}
             elif exp.type == BinExport2.Expression.DEREFERENCE:
-                yield {'type': 'symbol', 'value': exp.symbol}
+                yield {"type": "symbol", "value": exp.symbol}
                 # is_deref = True
             elif exp.type == BinExport2.Expression.SIZE_PREFIX:
                 size = self.__sz_lookup[exp.symbol]
@@ -115,13 +144,17 @@ class OperandBackendBinexport:
 
     @property
     def type(self) -> OperandType:
-        for exp in (self._program.proto.expression[idx] for idx in self._me().expression_index):
+        for exp in (
+            self._program.proto.expression[idx] for idx in self._me().expression_index
+        ):
             if exp.type == BinExport2.Expression.SIZE_PREFIX:
                 continue
             elif exp.type == BinExport2.Expression.SYMBOL:
                 return OperandType.memory  # As it is either a ref to data or function
             elif exp.type == BinExport2.Expression.IMMEDIATE_INT:
-                return OperandType.immediate  # Could also have been far, near and memory?
+                return (
+                    OperandType.immediate
+                )  # Could also have been far, near and memory?
             elif exp.type == BinExport2.Expression.IMMEDIATE_FLOAT:
                 return OperandType.specific0
             elif exp.type == BinExport2.Expression.OPERATOR:
@@ -134,17 +167,28 @@ class OperandBackendBinexport:
                 print("wooot", exp.type)
 
         # if we reach here something necessarily went wrong
-        if len(self._me().expression_index) == 1 and self._program.architecture.startswith("ARM"):
-            if self._program.proto.expression[self._me().expression_index[0]].type == BinExport2.Expression.OPERATOR:
-                return OperandType.specific5  # Specific handling of some ARM flags typed as OPERATOR
+        if len(
+            self._me().expression_index
+        ) == 1 and self._program.architecture.startswith("ARM"):
+            if (
+                self._program.proto.expression[self._me().expression_index[0]].type
+                == BinExport2.Expression.OPERATOR
+            ):
+                return (
+                    OperandType.specific5
+                )  # Specific handling of some ARM flags typed as OPERATOR
             else:
                 logging.error("Unknown case for operand type on ARM: %s" % str(self))
         else:
             logging.error("No type found for operand: %s" % str(self))
 
     def __str__(self):
-        return ''.join(self._program.proto.expression[idx].symbol for idx in self._me().expression_index if
-                       self._program.proto.expression[idx].type != BinExport2.Expression.SIZE_PREFIX)
+        return "".join(
+            self._program.proto.expression[idx].symbol
+            for idx in self._me().expression_index
+            if self._program.proto.expression[idx].type
+            != BinExport2.Expression.SIZE_PREFIX
+        )
 
     def __repr__(self):
         return "<Op:%s>" % str(self)
@@ -165,15 +209,19 @@ class InstructionBackendBinExport:
 
     @property
     def mnemonic(self):
-        return self._program.proto.mnemonic[self._program.proto.instruction[self._idx].mnemonic_index].name
+        return self._program.proto.mnemonic[
+            self._program.proto.instruction[self._idx].mnemonic_index
+        ].name
 
     def _me(self):
         return self._program.proto.instruction[self._idx]
 
     @property
     def operands(self):
-        return [Operand(LoaderType.binexport, self._program, self._function, self, op_idx)
-                for op_idx in self._me().operand_index]
+        return [
+            Operand(LoaderType.binexport, self._program, self._function, self, op_idx)
+            for op_idx in self._me().operand_index
+        ]
 
     @property
     def groups(self):
@@ -203,7 +251,9 @@ class InstructionBackendBinExport:
 
 
 class FunctionBackendBinExport(object):
-    def __init__(self, fun, program, data_refs, addr_refs, pb_fun, is_import=False, addr=None):
+    def __init__(
+        self, fun, program, data_refs, addr_refs, pb_fun, is_import=False, addr=None
+    ):
         self._function = fun
         self.addr = addr
         self.parents = set()
@@ -222,24 +272,35 @@ class FunctionBackendBinExport(object):
         tmp_mapping = {}
         bb_count = 0
         for bb_idx in pb_fun.basic_block_index:
-            for rng in program.proto.basic_block[bb_idx].instruction_index:  # Ranges are in fact the true basic blocks!
+            for rng in program.proto.basic_block[
+                bb_idx
+            ].instruction_index:  # Ranges are in fact the true basic blocks!
                 bb_count += 1
                 bb_addr = None
                 bb_data = []
-                for idx in range(rng.begin_index, (rng.end_index if rng.end_index else rng.begin_index+1)):
+                for idx in range(
+                    rng.begin_index,
+                    (rng.end_index if rng.end_index else rng.begin_index + 1),
+                ):
 
-                    if idx != prev_idx+1:  # if the current idx is different from the previous range or bb
+                    if (
+                        idx != prev_idx + 1
+                    ):  # if the current idx is different from the previous range or bb
                         cur_addr = None  # reset the addr has we have no guarantee on the continuity of the address
 
                     pb_inst = program.proto.instruction[idx]
 
-                    if pb_inst.HasField('address'):  # If the instruction have an address set (can be 0)
+                    if pb_inst.HasField(
+                        "address"
+                    ):  # If the instruction have an address set (can be 0)
                         if cur_addr is not None and cur_addr != pb_inst.address:
                             # logging.warning("cur_addr different from inst address: %x != %x (%d) (%d->%d)" %
                             #                                    (cur_addr, pb_inst.address, bb_idx, prev_idx, idx))
-                            pass    # might be legit if within the basic block there is data
-                                    # thus within the same range not contiguous address can co-exists
-                        cur_addr = pb_inst.address  # set the address to the one of inst regardless cur_addr was set
+                            pass  # might be legit if within the basic block there is data
+                            # thus within the same range not contiguous address can co-exists
+                        cur_addr = (
+                            pb_inst.address
+                        )  # set the address to the one of inst regardless cur_addr was set
                     else:
                         if not cur_addr:  # if cur_addr_not set backtrack to get it
                             cur_addr = _get_instruction_address(program.proto, idx)
@@ -249,25 +310,34 @@ class FunctionBackendBinExport(object):
                         bb_addr = cur_addr
 
                     # At this point do the instruction initialization
-                    inst = Instruction(LoaderType.binexport, program, self, cur_addr, idx)
+                    inst = Instruction(
+                        LoaderType.binexport, program, self, cur_addr, idx
+                    )
                     bb_data.append(inst)
                     if idx in data_refs:  # Add some
                         inst._backend.data_refs = data_refs[idx]
                     if idx in addr_refs:
                         inst._backend.addr_refs = addr_refs[idx]
 
-                    cur_addr += len(pb_inst.raw_bytes)  # increment the cur_addr with the address size
+                    cur_addr += len(
+                        pb_inst.raw_bytes
+                    )  # increment the cur_addr with the address size
                     prev_idx = idx
 
                 if bb_addr in self._function:
-                    logging.error("0x%x basic block address (0x%x) already in(idx:%d)" % (self.addr, bb_addr, bb_idx))
+                    logging.error(
+                        "0x%x basic block address (0x%x) already in(idx:%d)"
+                        % (self.addr, bb_addr, bb_idx)
+                    )
                 self._function[bb_addr] = bb_data
                 tmp_mapping[bb_idx] = bb_addr
                 self._graph.add_node(bb_addr)
 
         if bb_count != len(self._function):
-            logging.error("Wrong basic block number %x, bb:%d, self:%d" %
-                          (self.addr, len(pb_fun.basic_block_index), len(self._function)))
+            logging.error(
+                "Wrong basic block number %x, bb:%d, self:%d"
+                % (self.addr, len(pb_fun.basic_block_index), len(self._function))
+            )
 
         # Load the edges between blocks
         for edge in pb_fun.edge:
@@ -293,11 +363,13 @@ class FunctionBackendBinExport(object):
 
     @property
     def type(self):
-        return {BinExport2.CallGraph.Vertex.NORMAL: FunctionType.normal,
-                BinExport2.CallGraph.Vertex.LIBRARY: FunctionType.library,
-                BinExport2.CallGraph.Vertex.IMPORTED: FunctionType.imported,
-                BinExport2.CallGraph.Vertex.THUNK: FunctionType.thunk,
-                BinExport2.CallGraph.Vertex.INVALID: FunctionType.invalid}[self._pb_type]
+        return {
+            BinExport2.CallGraph.Vertex.NORMAL: FunctionType.normal,
+            BinExport2.CallGraph.Vertex.LIBRARY: FunctionType.library,
+            BinExport2.CallGraph.Vertex.IMPORTED: FunctionType.imported,
+            BinExport2.CallGraph.Vertex.THUNK: FunctionType.thunk,
+            BinExport2.CallGraph.Vertex.INVALID: FunctionType.invalid,
+        }[self._pb_type]
 
     @type.setter
     def type(self, value):
@@ -311,9 +383,11 @@ class ProgramBackendBinExport(object):
     def __init__(self, program, file):
         self._program = program
         self._pb = BinExport2()
-        with open(file, 'rb') as f:
+        with open(file, "rb") as f:
             self._pb.ParseFromString(f.read())
-        self._mask = 0xFFFFFFFF if self.architecture.endswith("32") else 0xFFFFFFFFFFFFFFFF
+        self._mask = (
+            0xFFFFFFFF if self.architecture.endswith("32") else 0xFFFFFFFFFFFFFFFF
+        )
         self.fun_names = {}
         self._callgraph = networkx.DiGraph()
 
@@ -329,15 +403,19 @@ class ProgramBackendBinExport(object):
         addr_refs = {}
         for entry in self.proto.address_comment[::-1]:
             if entry.instruction_index in addr_refs:
-                addr_refs[entry.instruction_index].append(self.proto.string_table[entry.string_table_index])
+                addr_refs[entry.instruction_index].append(
+                    self.proto.string_table[entry.string_table_index]
+                )
             else:
-                addr_refs[entry.instruction_index] = [self.proto.string_table[entry.string_table_index]]
+                addr_refs[entry.instruction_index] = [
+                    self.proto.string_table[entry.string_table_index]
+                ]
 
         count_f = 0
         coll = 0
         # Load all the functions
         for i, pb_fun in enumerate(self.proto.flow_graph):
-            #logging.warning("Parse function idx: %d" % i)
+            # logging.warning("Parse function idx: %d" % i)
             f = Function(LoaderType.binexport, self, data_refs, addr_refs, pb_fun)
             if f.addr in self._program:
                 logging.error("Address collision for 0x%x" % f.addr)
@@ -351,11 +429,20 @@ class ProgramBackendBinExport(object):
         for node in cg.vertex:
             self._callgraph.add_node(node.address)
             if node.address not in self._program and node.type == cg.Vertex.IMPORTED:
-                self._program[node.address] = Function(LoaderType.binexport, self, data_refs, addr_refs, None,
-                                                       is_import=True, addr=node.address)
+                self._program[node.address] = Function(
+                    LoaderType.binexport,
+                    self,
+                    data_refs,
+                    addr_refs,
+                    None,
+                    is_import=True,
+                    addr=node.address,
+                )
                 count_imp += 1
             if node.address not in self._program and node.type == cg.Vertex.NORMAL:
-                logging.error("Missing function address: 0x%x (%d)" % (node.address, node.type))
+                logging.error(
+                    "Missing function address: 0x%x (%d)" % (node.address, node.type)
+                )
 
             self._program[node.address].type = node.type
             self._program[node.address].name = node.mangled_name
@@ -366,11 +453,17 @@ class ProgramBackendBinExport(object):
             self._program[src].children.add(dst)
             self._program[dst].parents.add(src)
 
-        for f in self._program.values():  # Create a map of function names for quick lookup later on
+        for (
+            f
+        ) in (
+            self._program.values()
+        ):  # Create a map of function names for quick lookup later on
             self.fun_names[f.name] = f
 
-        logging.debug("total all:%d, imported:%d collision:%d (total:%d)" %
-                      (count_f, count_imp, coll, (count_f+count_imp+coll)))
+        logging.debug(
+            "total all:%d, imported:%d collision:%d (total:%d)"
+            % (count_f, count_imp, coll, (count_f + count_imp + coll))
+        )
 
     def addr_mask(self, value):
         return value & self._mask
@@ -392,7 +485,7 @@ class ProgramBackendBinExport(object):
         return self.proto.meta_information.architecture_name
 
     def __repr_(self):
-        return '<Program:%s>' % self.name
+        return "<Program:%s>" % self.name
 
     @property
     def callgraph(self) -> networkx.DiGraph:

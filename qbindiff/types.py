@@ -1,4 +1,16 @@
-from typing import Iterable, Generator, Iterator, Union, Tuple, List, Set, Dict, Optional, Any, Hashable
+from typing import (
+    Iterable,
+    Generator,
+    Iterator,
+    Union,
+    Tuple,
+    List,
+    Set,
+    Dict,
+    Optional,
+    Any,
+    Hashable,
+)
 
 import numpy
 from pathlib import Path
@@ -40,9 +52,9 @@ Pair of lists of indexes that are mapped together.
 """
 RawMapping = Tuple[List[Idx], List[Idx]]
 
-'''
+"""
 Match represent the matching between two functions and can hold the similarity between the two
-'''
+"""
 Match = namedtuple("Match", "primary secondary similarity squares")
 
 

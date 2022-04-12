@@ -4,7 +4,9 @@ from qbindiff.loader.types import LoaderType
 from typing import Dict, Iterator
 from qbindiff.loader.types import OperandType
 
-Expr = Dict[str, str]  # each dict contains two keys 'types' and 'value' with their associated value
+Expr = Dict[
+    str, str
+]  # each dict contains two keys 'types' and 'value' with their associated value
 
 
 class Operand(object):
@@ -12,6 +14,7 @@ class Operand(object):
     Represent an operand object which hide the underlying
     backend implementation
     """
+
     def __init__(self, loader, *args):
         self._backend = None
         if loader == LoaderType.binexport:
@@ -28,16 +31,18 @@ class Operand(object):
         :return: None
         """
         from qbindiff.loader.backend.binexport import OperandBackendBinexport
+
         self._backend = OperandBackendBinexport(*args)
 
     def load_ida(self, op_t, ea) -> None:
-        '''
+        """
         Instanciate the operand using IDA API
         :param op_t: op_t* as defined in the IDA SDK
         :param ea: address of the instruction
         :return: None
-        '''
+        """
         from qbindiff.loader.backend.ida import OperandBackendIDA
+
         self._backend = OperandBackendIDA(op_t, ea)
 
     @property
