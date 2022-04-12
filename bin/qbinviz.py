@@ -27,7 +27,6 @@ VIEW_B = "QBinViz View-B"
 
 
 class Hooker(ida_kernwin.View_Hooks):
-
     def __init__(self):
         ida_kernwin.View_Hooks.__init__(self)
         self.mapping = None
@@ -62,18 +61,22 @@ class Hooker(ida_kernwin.View_Hooks):
         place_a, _, _ = ida_kernwin.get_custom_viewer_place(view_a, False)
         view_b = ida_kernwin.find_widget(VIEW_B)
         if view_b is None:
-            print(VIEW_B+" is None stop")
+            print(VIEW_B + " is None stop")
             return
         ida_kernwin.jumpto(view_b, place_a, -1, -1)
 
         # and that we show the right place (slightly zoomed out)
         widget_a_center_gli = ida_moves.graph_location_info_t()
-        if ida_graph.viewer_get_gli(widget_a_center_gli, view_a, ida_graph.GLICTL_CENTER):
+        if ida_graph.viewer_get_gli(
+            widget_a_center_gli, view_a, ida_graph.GLICTL_CENTER
+        ):
             widget_b_center_gli = ida_moves.graph_location_info_t()
             widget_b_center_gli.orgx = widget_a_center_gli.orgx
             widget_b_center_gli.orgy = widget_a_center_gli.orgy
             widget_b_center_gli.zoom = widget_a_center_gli.zoom  # * 0.5
-            ida_graph.viewer_set_gli(view_b, widget_b_center_gli, ida_graph.GLICTL_CENTER)
+            ida_graph.viewer_set_gli(
+                view_b, widget_b_center_gli, ida_graph.GLICTL_CENTER
+            )
 
     def view_loc_changed(self, view, now, was):
         name = ida_kernwin.get_widget_title(view)
@@ -95,16 +98,18 @@ class Hooker(ida_kernwin.View_Hooks):
                     self.mirror_widget.switch_to_unknown()
                 ida_graph.viewer_fit_window(view)  # Can't as it activate max recursion
                 self.switch_button = True
-                ida_graph.viewer_fit_window(ida_kernwin.find_widget(VIEW_B))  # Fit VIEW_B
+                ida_graph.viewer_fit_window(
+                    ida_kernwin.find_widget(VIEW_B)
+                )  # Fit VIEW_B
             else:
                 pass  # Just update the position of the view B
-                #print("Update widget B")
-                #self.update_widget_b(view)
+                # print("Update widget B")
+                # self.update_widget_b(view)
 
     def view_switched(self, view, rt):
         print("View switched")
         pass  # TODO: do something when switching to listing view ?
-    
+
     # TODO: Write other handle even if not used
 
 
@@ -120,11 +125,11 @@ class VirtualFunctionViewer(ida_graph.GraphViewer):
         self._edges = map(lambda x: (mapping[x[0]], mapping[x[1]]), f.edges)
         # RMQ: if too slow precomputing these lists!
         self.Refresh()
-        #ida_graph.viewer_fit_window(ida_kernwin.find_widget(self._title))
+        # ida_graph.viewer_fit_window(ida_kernwin.find_widget(self._title))
 
     def switch_to_unknown(self):
         self.Clear()
-        self._nodes = ['NO MATCH']
+        self._nodes = ["NO MATCH"]
         self._edges = []
         self.Refresh()
 
@@ -158,7 +163,9 @@ class FileSelectionForm(ida_kernwin.Form):
         self.secondaryD = ida_kernwin.Form.DirInput(swidth=25)
         self.loader_items = sorted(x.name for x in LoaderType)
 
-        ida_kernwin.Form.__init__(self, r"""STARTITEM 0
+        ida_kernwin.Form.__init__(
+            self,
+            r"""STARTITEM 0
 BUTTON YES* Ok
 BUTTON CANCEL Cancel
 QBinViz
@@ -170,19 +177,20 @@ QBinDiff vizualization configuration:
 <Secondary : {iSecondary}>
 <Matching : {iMatching}>
 <Primary is current binary:{rIsCurrent}>{cGroupSame}>
-""", {
-            'iLoader': ida_kernwin.Form.DropdownListControl(
-                items=sorted(x.name for x in LoaderType),
-                readonly=True,
-                selval=0),
-            'iPrimary': self.primary,
-            'iSecondary': self.secondary,
-            'iMatching': ida_kernwin.Form.FileInput(open=True, swidth=25),
-            #'iDir': ida_kernwin.Form.DirInput(swidth=23.2),
-            'cGroupSame': ida_kernwin.Form.ChkGroupControl(("rIsCurrent",)),
-            #'cBox': ida_kernwin.Form.ChkGroupControl(('rSameFile')),
-            'FormChangeCb': ida_kernwin.Form.FormChangeCb(self.OnFormChange)
-        })
+""",
+            {
+                "iLoader": ida_kernwin.Form.DropdownListControl(
+                    items=sorted(x.name for x in LoaderType), readonly=True, selval=0
+                ),
+                "iPrimary": self.primary,
+                "iSecondary": self.secondary,
+                "iMatching": ida_kernwin.Form.FileInput(open=True, swidth=25),
+                #'iDir': ida_kernwin.Form.DirInput(swidth=23.2),
+                "cGroupSame": ida_kernwin.Form.ChkGroupControl(("rIsCurrent",)),
+                #'cBox': ida_kernwin.Form.ChkGroupControl(('rSameFile')),
+                "FormChangeCb": ida_kernwin.Form.FormChangeCb(self.OnFormChange),
+            },
+        )
         self.Compile()
 
         self.rIsCurrent.checked = True
@@ -204,8 +212,8 @@ QBinDiff vizualization configuration:
             typ = LoaderType[self.loader_items[v]]
             if typ in [LoaderType.binexport, LoaderType.diaphora]:
                 print("binexport/diaphora set: put file mode")
-                self.controls['iPrimary'] = self.primary
-                self.controls['iSecondary'] = self.secondary
+                self.controls["iPrimary"] = self.primary
+                self.controls["iSecondary"] = self.secondary
             else:
                 assert False
             self.iLoader.value = v
@@ -218,7 +226,7 @@ QBinDiff vizualization configuration:
 
     def get_primary_filepath(self):
         return self.iPrimary.value
-        
+
     def get_secondary_filepath(self):
         return self.iSecondary.value
 
@@ -251,7 +259,7 @@ class QBinVizPlugin(ida_idaapi.plugin_t):
             self.hooker.reset()
         else:
             print("Start qBinViz")
-        
+
         form = FileSelectionForm()
         res = form.Execute()
         if res:
@@ -261,7 +269,7 @@ class QBinVizPlugin(ida_idaapi.plugin_t):
             else:
                 print("Non-local primary are not yet supported")
                 return
-                #primary = Program(form.get_type().name, form.get_primary_filepath())
+                # primary = Program(form.get_type().name, form.get_primary_filepath())
             f_path = form.get_secondary_filepath()
             typ = form.get_type()
             if typ == LoaderType.binexport:
@@ -276,15 +284,15 @@ class QBinVizPlugin(ida_idaapi.plugin_t):
         else:
             print("qBinViz cancelled")
         form.Free()
-        
+
     def init_views(self):
         # Put both views in graph mode
         # TODO: If not local primary open a VirtualFunctionViewer (like VIEW_B)
         widget_a = ida_kernwin.find_widget(VIEW_A)
         if not widget_a:
-            widget_a = ida_kernwin.open_disasm_window('A')
+            widget_a = ida_kernwin.open_disasm_window("A")
         ida_kernwin.set_view_renderer_type(widget_a, ida_kernwin.TCCRT_GRAPH)
-        #ida_graph.viewer_fit_window(self.widget_a)
+        # ida_graph.viewer_fit_window(self.widget_a)
 
         widget_b = ida_kernwin.find_widget(VIEW_B)
         if not widget_b:
@@ -293,7 +301,7 @@ class QBinVizPlugin(ida_idaapi.plugin_t):
             self.hooker.mirror_widget.Show()
             widget_b = ida_kernwin.find_widget(VIEW_B)
             # self.widget_b = ida_kernwin.open_disasm_window('B')
-        self.hooker.view_activated(widget_a) # to update widget b automatically
+        self.hooker.view_activated(widget_a)  # to update widget b automatically
 
         # self.widget_b = ida_kernwin.find_widget(self.VIEW_B)  # TODO: To remove when it will be working
         ida_kernwin.set_view_renderer_type(widget_b, ida_kernwin.TCCRT_GRAPH)

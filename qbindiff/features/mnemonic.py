@@ -4,6 +4,7 @@ from qbindiff.loader.instruction import Instruction
 
 class MnemonicSimple(InstructionFeature):
     """Mnemonic of instructions feature"""
+
     name = "mnemonic"
     key = "M"
 
@@ -13,21 +14,23 @@ class MnemonicSimple(InstructionFeature):
 
 class MnemonicTyped(InstructionFeature):
     """Mnemonic and type of operand feature"""
+
     name = "mnemonic_typed"
     key = "Mt"
 
     def visit_instruction(self, instruction: Instruction, env: Environment):
-        keycode = ''.join(str(x.type.value) for x in instruction.operands)
-        key = instruction.mnemonic+keycode
+        keycode = "".join(str(x.type.value) for x in instruction.operands)
+        key = instruction.mnemonic + keycode
         env.inc_dict_feature(self.key, key)
 
 
 class GroupsCategory(InstructionFeature):
     """Group of the instruction (FPU, SSE, stack..)"""
+
     name = "groups_category"
     key = "Gp"
 
     def visit_instruction(self, instruction: Instruction, env: Environment):
         for key in instruction.groups:
-            if key not in ['UNDEFINED', 'NOTINCS', 'NOTINIDA', 'DEPRECATED']:
+            if key not in ["UNDEFINED", "NOTINCS", "NOTINIDA", "DEPRECATED"]:
                 env.inc_dict_feature(self.key, key)

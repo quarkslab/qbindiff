@@ -12,12 +12,16 @@ class Program(dict):
     It inherits from dict which keys are function addresses and
     values are Function object.
     """
-    def __init__(self, file_path: str = None, loader: LoaderType = LoaderType.binexport):
+
+    def __init__(
+        self, file_path: str = None, loader: LoaderType = LoaderType.binexport
+    ):
         dict.__init__(self)
         self._backend = None
 
         if file_path is None:  # Inside IDA just call Program()
             from qbindiff.loader.backend.ida import ProgramBackendIDA
+
             self._backend = ProgramBackendIDA(self)
         elif loader == LoaderType.binexport:
             self._backend = ProgramBackendBinExport(self, file_path)
@@ -26,7 +30,7 @@ class Program(dict):
         self._filter = lambda x: True
 
     @staticmethod
-    def from_binexport(file_path: str) -> 'Program':
+    def from_binexport(file_path: str) -> "Program":
         """
         Load the Program using the binexport backend. This function
         is meant to be used with an empty instanciation: Program()
@@ -36,7 +40,7 @@ class Program(dict):
         return Program(file_path, LoaderType.binexport)
 
     @staticmethod
-    def from_ida() -> 'Program':
+    def from_ida() -> "Program":
         """
         Load the program using the idapython API
         :return: None
@@ -44,7 +48,7 @@ class Program(dict):
         return Program()
 
     def __repr__(self):
-        return '<Program:%s>' % self.name
+        return "<Program:%s>" % self.name
 
     @property
     def name(self) -> str:

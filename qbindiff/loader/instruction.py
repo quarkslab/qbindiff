@@ -8,6 +8,7 @@ class Instruction(object):
     """
     Defines an Instruction object that wrap the backend using under the scene.
     """
+
     def __init__(self, loader, *args):
         self._backend = None
         if loader == LoaderType.binexport:
@@ -24,6 +25,7 @@ class Instruction(object):
         :return:
         """
         from qbindiff.loader.backend.binexport import InstructionBackendBinExport
+
         self._backend = InstructionBackendBinExport(*args)
 
     def load_ida(self, addr) -> None:
@@ -33,6 +35,7 @@ class Instruction(object):
         :return: None
         """
         from qbindiff.loader.backend.ida import InstructionBackendIDA
+
         self._backend = InstructionBackendIDA(addr)
 
     @property
@@ -79,7 +82,10 @@ class Instruction(object):
         return self._backend.comment
 
     def __str__(self):
-        return "%s %s" % (self.mnemonic, ', '.join(str(op) for op in self._backend.operands))
+        return "%s %s" % (
+            self.mnemonic,
+            ", ".join(str(op) for op in self._backend.operands),
+        )
 
     def __repr__(self):
         return "<Inst:%s>" % str(self)

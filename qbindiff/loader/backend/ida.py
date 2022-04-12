@@ -27,9 +27,20 @@ class OperandBackendIDA(object):
 
     @property
     def expressions(self):
-        blacklist = ["SCOLOR_ON", "SCOLOR_OFF", "SCOLOR_ESC", "SCOLOR_INV", "SCOLOR_UTF8", "SCOLOR_FG_MAX"]
-        tag_mapping = {getattr(ida_lines, x): x for x in dir(ida_lines) if (x.startswith("SCOLOR_") and x not in blacklist)}
-        opnds = {'opnd1', 'opnd2', 'opnd3', 'opnd4', 'opnd5', 'opnd6'}
+        blacklist = [
+            "SCOLOR_ON",
+            "SCOLOR_OFF",
+            "SCOLOR_ESC",
+            "SCOLOR_INV",
+            "SCOLOR_UTF8",
+            "SCOLOR_FG_MAX",
+        ]
+        tag_mapping = {
+            getattr(ida_lines, x): x
+            for x in dir(ida_lines)
+            if (x.startswith("SCOLOR_") and x not in blacklist)
+        }
+        opnds = {"opnd1", "opnd2", "opnd3", "opnd4", "opnd5", "opnd6"}
 
         i = 0
         data = []  # {'type': XXX, 'value':XXX, childs
@@ -45,19 +56,19 @@ class OperandBackendIDA(object):
                     if type not in opnds:
                         if data:
                             yield data[-1]
-                        data.append({'type': type})
+                        data.append({"type": type})
                 i += ida_lines.tag_skipcode(raw[i:])
             elif c == ida_lines.SCOLOR_OFF:
                 b_opened = False
                 i += 2
             else:
                 if not data:  # for operand not in tags (yes it happens)
-                    yield {'type': 'unk', 'value': c}
-                    data.append({'type': 'unk', 'value': c})
+                    yield {"type": "unk", "value": c}
+                    data.append({"type": "unk", "value": c})
                 elif b_opened:
-                    if 'value' not in data[-1]:
-                        data[-1]['value'] = ''
-                    data[-1]['value'] += c
+                    if "value" not in data[-1]:
+                        data[-1]["value"] = ""
+                    data[-1]["value"] += c
                 else:  # if there is data and all brackets are closed (we ignore blank spaces)
                     pass
                 i += 1
@@ -65,7 +76,7 @@ class OperandBackendIDA(object):
             yield i
 
     def __str__(self):
-        return ''.join(y['value'] for y in self.expressions)
+        return "".join(y["value"] for y in self.expressions)
 
 
 class InstructionBackendIDA(object):
@@ -82,6 +93,7 @@ class InstructionBackendIDA(object):
                 return i
             else:
                 i += 1
+
     @property
     def addr(self):
         return self._addr
@@ -92,7 +104,9 @@ class InstructionBackendIDA(object):
 
     @property
     def operands(self):
-        return [Operand(LoaderType.ida, self.insn[i], self.addr) for i in range(self.nb_ops)]
+        return [
+            Operand(LoaderType.ida, self.insn[i], self.addr) for i in range(self.nb_ops)
+        ]
 
     @property
     def groups(self):
@@ -103,7 +117,7 @@ class InstructionBackendIDA(object):
         return ""  # TODO: Adding it to the export
 
     def __str__(self):
-        return "%s %s" % (self.mnemonic, ', '.join((str(op) for op in self.operands)))
+        return "%s %s" % (self.mnemonic, ", ".join((str(op) for op in self.operands)))
 
 
 class FunctionBackendIDA(object):
@@ -125,7 +139,9 @@ class FunctionBackendIDA(object):
                 bb.append(Instruction(LoaderType.ida, cur_addr))
                 cur_addr = ida_bytes.next_head(cur_addr, idabb.end_ea)
             self._function[idabb.start_ea] = bb
-            self._graph.add_node(idabb.start_ea)  # also add the bb as attribute in the graph
+            self._graph.add_node(
+                idabb.start_ea
+            )  # also add the bb as attribute in the graph
 
         for idabb in cfg:  # Second pass to add edges
             for succs in idabb.succs():
@@ -139,10 +155,10 @@ class FunctionBackendIDA(object):
 
     @property
     def type(self):
-        '''
+        """
         We could have used lags & ida_funcs.FUNC_LIB etc, but
         as imports are not supported yet we just raise NotImplemented
-        '''
+        """
         raise NotImplementedError("function type not implemented for IDA backend")
 
     def is_import(self):
@@ -180,7 +196,7 @@ class ProgramBackendIDA(object):
                     self._program[pred].children.add(fun_addr)
 
     def __repr__(self):
-        return '<Program:%s>' % self.name
+        return "<Program:%s>" % self.name
 
     @property
     def callgraph(self) -> networkx.DiGraph:
