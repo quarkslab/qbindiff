@@ -111,6 +111,19 @@ will find it. A simple solution is to create a symbolic link of qbindiff into $I
 qBinViz can then be triggered as a script with Ctrl+F7 or as a plugin by putting it
 in the $IDA_ROOT/plugins directory.
 
+For developers
+-------
+
+Since the commit ad057ae9 "Change coding style to `black`" the project switched to the
+automated code formatter Black. If you want to retrieve the old, clean `git blame` output
+you can either run it with `git blame [file] --ignore-revs-file .git-blame-ignore-revs`
+or configure git to automatically ignore that revision with
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+_Please note that GitLab doesn't blame interface doesn't support this feature yet (but there's an [open issue](https://gitlab.com/gitlab-org/gitlab/-/issues/31423))
+
 TODO LIST
 ---------
 If you want to help us improve the tools, here are some items we want to work on. Feel free to contribute
