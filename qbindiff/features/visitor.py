@@ -1,41 +1,30 @@
 from typing import List, Any, Iterable, Dict, Union, Callable
+from collections import defaultdict
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Expr
 
 
-class Environment(object):
+class FeatureCollector:
     """
-    Dict wrapper, representing features where the feature name is the key
-    and the value is an integer summing the number of occurrence of that
-    feature.
+    Dict wrapper, representing a collection of features where the key is the feature
+    name and the value is the feature score which can be either a number or a dict.
     """
 
     def __init__(self):
-        self.features: Dict[str, Union[int, Dict[str, int]]] = {}
+        self._features: Dict[str, Union[int, float, Dict[str, Union[int, float]]]] = {}
 
     def add_feature(self, key: str, value: Union[int, float]) -> None:
-        self.features[key] = value
+        self._features.setdefault(key, 0)
+        self._features[key] += value
 
-    def inc_feature(self, key: str) -> None:
-        try:
-            self.features[key] += 1
-        except KeyError:
-            self.features[key] = 1
+    def add_dict_feature(self, key: str, value: Dict[str, Union[int, float]]) -> None:
+        self._features.setdefault(key, defaultdict(int))
+        for k, v in value.items():
+            self._features[key][k] += v
 
-    def add_dict_feature(self, name: str, key: str, value: Union[int, float]) -> None:
-        if name not in self.features:
-            self.features[name] = {}
-        d = self.features[name]
-        d[key] = value
-
-    def inc_dict_feature(self, name: str, key: str) -> None:
-        if name not in self.features:
-            self.features[name] = {}
-        d = self.features[name]
-        try:
-            d[key] += 1
-        except KeyError:
-            d[key] = 1
+    def to_vector(self) -> List:
+        """Transform the collection to a feature vector"""
+        raise NotImplementedError()
 
 
 class Visitor(object):
@@ -44,7 +33,7 @@ class Visitor(object):
     must implements to work with a Differ object.
     """
 
-    def visit(self, it: Iterable[Any]) -> List[Environment]:
+    def visit(self, it: Iterable[Any]) -> List[FeatureCollector]:
         """
         Function performing the iteration of all items to visit.
         For each of them call visit_item with an environment meant
@@ -53,14 +42,14 @@ class Visitor(object):
         :param it: iterator of items.
         :return: List of environments for all items
         """
-        envs = []
+        featuresList = []
         for item in it:
-            env = Environment()
-            self.visit_item(item, env)
-            envs.append(env)
-        return envs
+            collector = FeatureCollector()
+            self.visit_item(item, collector)
+            featuresList.append(collector)
+        return featuresList
 
-    def visit_item(self, item: Any, env: Environment) -> None:
+    def visit_item(self, item: Any, collector: FeatureCollector) -> None:
         """
         Abstract method meant to perform the visit of the item.
         It receives an environment in parameter that is meant to be filled.
@@ -100,32 +89,36 @@ class Feature(object):
 
 
 class ProgramFeature(Feature):
-    def visit_program(self, program: Program, env: Environment) -> None:
+    def visit_program(self, program: Program, collector: FeatureCollector) -> None:
         pass
 
 
 class FunctionFeature(Feature):
-    def visit_function(self, function: Function, env: Environment) -> None:
+    def visit_function(self, function: Function, collector: FeatureCollector) -> None:
         pass
 
 
 class BasicBlockFeature(Feature):
-    def visit_basic_block(self, basicblock: BasicBlock, env: Environment) -> None:
+    def visit_basic_block(
+        self, basicblock: BasicBlock, collector: FeatureCollector
+    ) -> None:
         pass
 
 
 class InstructionFeature(Feature):
-    def visit_instruction(self, instruction: Instruction, env: Environment) -> None:
+    def visit_instruction(
+        self, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
         pass
 
 
 class OperandFeature(Feature):
-    def visit_operand(self, operand: Operand, env: Environment) -> None:
+    def visit_operand(self, operand: Operand, collector: FeatureCollector) -> None:
         pass
 
 
 class ExpressionFeature(Feature):
-    def visit_expression(self, expr: Expr, env: Environment) -> None:
+    def visit_expression(self, expr: Expr, collector: FeatureCollector) -> None:
         pass
 
 
@@ -144,7 +137,7 @@ class ProgramVisitor(Visitor):
         self.operand_callbacks = []
         self.expression_callbacks = []
 
-    def visit_item(self, item: Any, env: Environment) -> None:
+    def visit_item(self, item: Any, collector: FeatureCollector) -> None:
         """
         Visit a program item according to its type.
 
@@ -153,18 +146,18 @@ class ProgramVisitor(Visitor):
         """
         print(item, Expr)
         if isinstance(item, Program):
-            self.visit_program(item, env)
+            self.visit_program(item, collector)
         elif isinstance(item, Function):
-            self.visit_function(item, env)
+            self.visit_function(item, collector)
         elif isinstance(item, BasicBlock):
-            self.visit_basic_block(item, env)
+            self.visit_basic_block(item, collector)
         elif isinstance(item, Instruction):
-            self.visit_instruction(item, env)
+            self.visit_instruction(item, collector)
         elif isinstance(item, Operand):
-            self.visit_operand(item, env)
+            self.visit_operand(item, collector)
         # elif isinstance(item, Expr):
         elif isinstance(item, dict):
-            self.visit_expression(item, env)
+            self.visit_expression(item, collector)
 
     def register_feature(self, ft: Feature) -> None:
         """
@@ -206,7 +199,7 @@ class ProgramVisitor(Visitor):
     def register_expression_feature_callback(self, callback: Callable) -> None:
         self.expression_callbacks.append(callback)
 
-    def visit_program(self, program: Program, env: Environment) -> None:
+    def visit_program(self, program: Program, collector: FeatureCollector) -> None:
         """
         Visit the given program with the feature extractor registered beforehand
         with register_feature.
@@ -216,13 +209,13 @@ class ProgramVisitor(Visitor):
         """
         # Call all features attached to the program
         for cb in self.program_callbacks:
-            cb(program, env)
+            cb(program, collector)
 
         # Recursively call visit on all functions
         for fun in program:
-            self.visit_function(fun, env)
+            self.visit_function(fun, collector)
 
-    def visit_function(self, func: Function, env: Environment) -> None:
+    def visit_function(self, func: Function, collector: FeatureCollector) -> None:
         """
         Visit the given function with the feature extractors registered beforehand.
         :param func: Function to visit
@@ -232,13 +225,15 @@ class ProgramVisitor(Visitor):
         # Call all callbacks attacked to a function
         for callback in self.function_callbacks:
             if not func.is_import():
-                callback(func, env)
+                callback(func, collector)
 
         # Recursively call visit for all basic blocks
         for bb in func:
-            self.visit_basic_block(bb, env)
+            self.visit_basic_block(bb, collector)
 
-    def visit_basic_block(self, basic_block: BasicBlock, env: Environment) -> None:
+    def visit_basic_block(
+        self, basic_block: BasicBlock, collector: FeatureCollector
+    ) -> None:
         """
         Visit the given basic block with the feature extractors registered beforehand.
         :param basic_block: Basic Block to visit
@@ -246,13 +241,15 @@ class ProgramVisitor(Visitor):
         """
         # Call all callbacks attacked to a basic block
         for callback in self.basic_block_callbacks:
-            callback(basic_block, env)
+            callback(basic_block, collector)
 
         # Recursively call visit for all instructions
         for inst in basic_block:
-            self.visit_instruction(inst, env)
+            self.visit_instruction(inst, collector)
 
-    def visit_instruction(self, instruction: Instruction, env: Environment) -> None:
+    def visit_instruction(
+        self, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
         """
         Visit the instruction with the feature extractor registered beforehand. The visit
         does not yield new features but update the given environment
@@ -262,13 +259,13 @@ class ProgramVisitor(Visitor):
         """
         # Call all callbacks attached to an instruction
         for callback in self.instruction_callbacks:
-            callback(instruction, env)
+            callback(instruction, collector)
         # Recursively iter on all operands if there are any features registered
         if self.operand_callbacks:
             for op in instruction.operands:
-                self.visit_operand(op, env)
+                self.visit_operand(op, collector)
 
-    def visit_operand(self, operand: Operand, env: Environment) -> None:
+    def visit_operand(self, operand: Operand, collector: FeatureCollector) -> None:
         """
         Visit the given operand and update the environment accordingly.
         :param operand: Operand
@@ -277,12 +274,12 @@ class ProgramVisitor(Visitor):
         """
         # Call all callbacks attached to an operand
         for callback in self.operand_callbacks:
-            callback(operand, env)
+            callback(operand, collector)
         if self.expression_callbacks:
             for exp in operand.expressions:
-                self.visit_expression(exp, env)
+                self.visit_expression(exp, collector)
 
-    def visit_expression(self, expression: Expr, env: Environment) -> None:
+    def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
         """
         Visit the given operand and update the environment accordingly.
         :param expression: Expression object to visit
@@ -290,7 +287,7 @@ class ProgramVisitor(Visitor):
         """
         # Call all callbacks attached to an expression
         for callback in self.expression_callbacks:
-            callback(expression, env)
+            callback(expression, collector)
 
     def feature_keys(self) -> List[str]:
         return list(self.features.keys())

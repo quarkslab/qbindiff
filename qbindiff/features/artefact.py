@@ -1,7 +1,7 @@
 from qbindiff.features.visitor import (
     ProgramFeature,
     FunctionFeature,
-    Environment,
+    FeatureCollector,
     InstructionFeature,
     ExpressionFeature,
 )
@@ -14,9 +14,11 @@ class Address(InstructionFeature):
     name = "address"
     key = "addr"
 
-    def visit_instruction(self, instruction: Instruction, env: Environment) -> None:
+    def visit_instruction(
+        self, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
         value = instruction.addr
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
 class AddressIndex(ProgramFeature, FunctionFeature):
@@ -25,11 +27,11 @@ class AddressIndex(ProgramFeature, FunctionFeature):
     key = "address_index"
     key = "addridx"
 
-    def visit_program(self, program: Program, env: Environment):
+    def visit_program(self, program: Program, collector: FeatureCollector):
         self._function_idx = 0
 
-    def visit_function(self, function: Function, env: Environment):
-        env.add_feature(self.key, self._function_idx)
+    def visit_function(self, function: Function, collector: FeatureCollector):
+        collector.add_feature(self.key, self._function_idx)
         self._function_idx += 1
 
 
@@ -39,9 +41,9 @@ class LibName(ExpressionFeature):
     name = "libname"
     key = "lib"
 
-    def visit_expression(self, expression: Expr, env: Environment):
+    def visit_expression(self, expression: Expr, collector: FeatureCollector):
         if expression["type"] == "libname":
-            env.inc_feature(expression["value"])
+            collector.add_feature(expression["value"], 1)
 
 
 class DatName(ExpressionFeature):
@@ -50,9 +52,9 @@ class DatName(ExpressionFeature):
     name = "datname"
     key = "dat"
 
-    def visit_expression(self, expression: Expr, env: Environment) -> None:
+    def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
         if expression["type"] == "datname":
-            env.inc_feature(expression["value"])
+            collector.add_feature(expression["value"], 1)
 
 
 class ImpName(ExpressionFeature):
@@ -61,9 +63,9 @@ class ImpName(ExpressionFeature):
     name = "impname"
     key = "imp"
 
-    def visit_expression(self, expression: Expr, env: Environment) -> None:
+    def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
         if expression["type"] == "impname":
-            env.inc_feature(expression["value"])
+            collector.add_feature(expression["value"], 1)
 
 
 class Constant(ExpressionFeature):
@@ -72,7 +74,7 @@ class Constant(ExpressionFeature):
     name = "cstname"
     key = "cst"
 
-    def visit_expression(self, expression: Expr, env: Environment) -> None:
+    def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
         if expression["type"] == "number":
             try:
                 val = expression["value"]
@@ -80,6 +82,6 @@ class Constant(ExpressionFeature):
                     val = int(val[:-1], 16) if val[-1] == "h" else int(val)
                 if 0xFFFF < val <= 0xFFFFFF00:
                     if val not in [0x80000000]:
-                        env.inc_feature("cst_0x%x" % val)
+                        collector.add_feature("cst_0x%x" % val, 1)
             except ValueError:
                 print("Invalid constant: %s" % (expression["value"]))

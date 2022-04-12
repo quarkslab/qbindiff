@@ -9,7 +9,7 @@ from networkx import DiGraph
 from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
-from qbindiff.features.visitor import Environment, Visitor, ProgramVisitor, Feature
+from qbindiff.features.visitor import FeatureCollector, Visitor, ProgramVisitor, Feature
 from qbindiff.types import (
     Generator,
     Union,
@@ -200,7 +200,9 @@ class Differ(object):
         )
 
     def _extract_feature_keys(
-        self, primary_envs: List[Environment], secondary_envs: List[Environment]
+        self,
+        primary_envs: List[FeatureCollector],
+        secondary_envs: List[FeatureCollector],
     ) -> Tuple[List[str], List[float]]:
         feature_keys = defaultdict(set)
         for envs in (primary_envs, secondary_envs):
@@ -226,7 +228,7 @@ class Differ(object):
 
     @staticmethod
     def _vectorize_features(
-        features: List[Environment], feature_keys: List[str]
+        features: List[FeatureCollector], feature_keys: List[str]
     ) -> FeatureVectors:
         feature_index = {key: idx for idx, key in enumerate(feature_keys)}
         feature_matrix = np.zeros(
