@@ -228,7 +228,8 @@ class ProgramVisitor(Visitor):
         """
         # Call all callbacks attacked to a function
         for callback in self.function_callbacks:
-            callback(func, env)
+            if not func.is_import():
+                callback(func, env)
 
         # Recursively call visit for all basic blocks
         for bb in func:
