@@ -20,7 +20,8 @@ class Address(InstructionFeatureExtractor):
         collector.add_feature(self.key, value)
 
 
-class AddressIndex(ProgramFeature, FunctionFeature):
+# Currently not implemented
+'''class AddressIndex(ProgramFeature, FunctionFeature):
     """Address index of the function as a feature"""
 
     key = "address_index"
@@ -31,7 +32,7 @@ class AddressIndex(ProgramFeature, FunctionFeature):
 
     def visit_function(self, function: Function, collector: FeatureCollector):
         collector.add_feature(self.key, self._function_idx)
-        self._function_idx += 1
+        self._function_idx += 1'''
 
 
 class LibName(ExpressionFeatureExtractor):
