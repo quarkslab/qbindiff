@@ -1,10 +1,10 @@
 import networkx
-from qbindiff.features.visitor import FunctionFeature, FeatureCollector
+from qbindiff.features.visitor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader.function import Function
 import community
 
 
-class BBlockNb(FunctionFeature):
+class BBlockNb(FunctionFeatureExtractor):
     """Number of basic blocks in the function"""
 
     name = "bblock_nb"
@@ -15,7 +15,7 @@ class BBlockNb(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class JumpNb(FunctionFeature):
+class JumpNb(FunctionFeatureExtractor):
     """Number of jumps in the function"""
 
     name = "jump_nb"
@@ -26,7 +26,7 @@ class JumpNb(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class MaxParentNb(FunctionFeature):
+class MaxParentNb(FunctionFeatureExtractor):
     """Maximum number of parent of a bblock in the function"""
 
     name = "max_parent_nb"
@@ -43,7 +43,7 @@ class MaxParentNb(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class MaxChildNb(FunctionFeature):
+class MaxChildNb(FunctionFeatureExtractor):
     """Maximum number of children of a bblock in the function"""
 
     name = "max_child_nb"
@@ -58,7 +58,7 @@ class MaxChildNb(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class MaxInsNB(FunctionFeature):
+class MaxInsNB(FunctionFeatureExtractor):
     """Max number of instructions per basic blocks in the function"""
 
     name = "max_ins_nb"
@@ -69,7 +69,7 @@ class MaxInsNB(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class MeanInsNB(FunctionFeature):
+class MeanInsNB(FunctionFeatureExtractor):
     """Mean number of instructions per basic blocks in the function"""
 
     name = "mean_ins_nb"
@@ -80,7 +80,7 @@ class MeanInsNB(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class InstNB(FunctionFeature):
+class InstNB(FunctionFeatureExtractor):
     """Number of instructions per basic blocks in the function"""
 
     name = "ins_nb"
@@ -91,7 +91,7 @@ class InstNB(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class GraphMeanDegree(FunctionFeature):
+class GraphMeanDegree(FunctionFeatureExtractor):
     """Mean degree of the function"""
 
     name = "graph_mean_degree"
@@ -105,7 +105,7 @@ class GraphMeanDegree(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class GraphDensity(FunctionFeature):
+class GraphDensity(FunctionFeatureExtractor):
     """Density of the function flow graph"""
 
     name = "graph_density"
@@ -116,7 +116,7 @@ class GraphDensity(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class GraphNbComponents(FunctionFeature):
+class GraphNbComponents(FunctionFeatureExtractor):
     """Number of components in the function (non-connected flow graphs)"""
 
     name = "graph_num_components"
@@ -129,7 +129,7 @@ class GraphNbComponents(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class GraphDiameter(FunctionFeature):
+class GraphDiameter(FunctionFeatureExtractor):
     """Diamater of the function flow graph"""
 
     name = "graph_diameter"
@@ -151,7 +151,7 @@ class GraphDiameter(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class GraphTransitivity(FunctionFeature):
+class GraphTransitivity(FunctionFeatureExtractor):
     """Transitivity of the function flow graph"""
 
     name = "graph_transitivity"
@@ -162,7 +162,7 @@ class GraphTransitivity(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class GraphCommunities(FunctionFeature):
+class GraphCommunities(FunctionFeatureExtractor):
     """Number of graph communities (Louvain modularity)"""
 
     name = "graph_community"

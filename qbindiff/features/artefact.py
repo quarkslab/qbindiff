@@ -1,14 +1,13 @@
 from qbindiff.features.visitor import (
-    ProgramFeature,
-    FunctionFeature,
+    FunctionFeatureExtractor,
     FeatureCollector,
-    InstructionFeature,
-    ExpressionFeature,
+    InstructionFeatureExtractor,
+    ExpressionFeatureExtractor,
 )
 from qbindiff.loader import Program, Function, Instruction, Operand, Expr
 
 
-class Address(InstructionFeature):
+class Address(InstructionFeatureExtractor):
     """Address of the function as a feature"""
 
     name = "address"
@@ -35,7 +34,7 @@ class AddressIndex(ProgramFeature, FunctionFeature):
         self._function_idx += 1
 
 
-class LibName(ExpressionFeature):
+class LibName(ExpressionFeatureExtractor):
     """Call to library functions (local function)"""
 
     name = "libname"
@@ -46,7 +45,7 @@ class LibName(ExpressionFeature):
             collector.add_feature(expression["value"], 1)
 
 
-class DatName(ExpressionFeature):
+class DatName(ExpressionFeatureExtractor):
     """References to data in the instruction"""
 
     name = "datname"
@@ -57,7 +56,7 @@ class DatName(ExpressionFeature):
             collector.add_feature(expression["value"], 1)
 
 
-class ImpName(ExpressionFeature):
+class ImpName(ExpressionFeatureExtractor):
     """References to imports in the instruction"""
 
     name = "impname"
@@ -68,7 +67,7 @@ class ImpName(ExpressionFeature):
             collector.add_feature(expression["value"], 1)
 
 
-class Constant(ExpressionFeature):
+class Constant(ExpressionFeatureExtractor):
     """Constant (32/64bits) in the instruction (not addresses)"""
 
     name = "cstname"

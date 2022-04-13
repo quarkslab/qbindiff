@@ -1,8 +1,8 @@
-from qbindiff.features.visitor import InstructionFeature, FeatureCollector
+from qbindiff.features.visitor import InstructionFeatureExtractor, FeatureCollector
 from qbindiff.loader.instruction import Instruction
 
 
-class MnemonicSimple(InstructionFeature):
+class MnemonicSimple(InstructionFeatureExtractor):
     """Mnemonic of instructions feature"""
 
     name = "mnemonic"
@@ -12,7 +12,7 @@ class MnemonicSimple(InstructionFeature):
         collector.add_dict_feature(self.key, {instruction.mnemonic: 1})
 
 
-class MnemonicTyped(InstructionFeature):
+class MnemonicTyped(InstructionFeatureExtractor):
     """Mnemonic and type of operand feature"""
 
     name = "mnemonic_typed"
@@ -24,7 +24,7 @@ class MnemonicTyped(InstructionFeature):
         collector.add_dict_feature(self.key, {key: 1})
 
 
-class GroupsCategory(InstructionFeature):
+class GroupsCategory(InstructionFeatureExtractor):
     """Group of the instruction (FPU, SSE, stack..)"""
 
     name = "groups_category"

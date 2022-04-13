@@ -129,7 +129,7 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
         if feature not in FEATURES_KEYS:
             logging.warning(f"Feature '{feature}' not recognized - ignored.")
             continue
-        qbindiff.register_feature(FEATURES_KEYS[feature], float(weight))
+        qbindiff.register_feature_extractor(FEATURES_KEYS[feature], float(weight))
 
     anchors = extract_function_anchors(primary, secondary)
 

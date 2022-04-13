@@ -1,8 +1,8 @@
-from qbindiff.features.visitor import FunctionFeature, FeatureCollector
+from qbindiff.features.visitor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader.function import Function
 
 
-class ChildNb(FunctionFeature):
+class ChildNb(FunctionFeatureExtractor):
     """Number of children of the function"""
 
     name = "child_nb"
@@ -13,7 +13,7 @@ class ChildNb(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class ParentNb(FunctionFeature):
+class ParentNb(FunctionFeatureExtractor):
     """Number of parents of the function"""
 
     name = "parent_nb"
@@ -24,7 +24,7 @@ class ParentNb(FunctionFeature):
         collector.add_feature(self.key, value)
 
 
-class RelativeNb(FunctionFeature):
+class RelativeNb(FunctionFeatureExtractor):
     """Number of relatives of the function"""
 
     name = "relative_nb"

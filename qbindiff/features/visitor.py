@@ -65,11 +65,10 @@ class Visitor:
         raise NotImplementedError()
 
 
-class Feature(object):
+class FeatureExtractor:
     """
-    Abstract class that represent a feature extractor which sole contraints
-    are to define name, key and a function call that is to be called by the
-    visitor.
+    Abstract class that represent a feature extractor which sole contraints are to
+    define name, key and a function call that is to be called by the visitor.
     """
 
     name = ""
@@ -87,38 +86,33 @@ class Feature(object):
         self._weight = value
 
 
-class ProgramFeature(Feature):
-    def visit_program(self, program: Program, collector: FeatureCollector) -> None:
-        pass
-
-
-class FunctionFeature(Feature):
+class FunctionFeatureExtractor(FeatureExtractor):
     def visit_function(self, function: Function, collector: FeatureCollector) -> None:
-        pass
+        raise NotImplementedError()
 
 
-class BasicBlockFeature(Feature):
+class BasicBlockFeatureExtractor(FeatureExtractor):
     def visit_basic_block(
         self, basicblock: BasicBlock, collector: FeatureCollector
     ) -> None:
-        pass
+        raise NotImplementedError()
 
 
-class InstructionFeature(Feature):
+class InstructionFeatureExtractor(FeatureExtractor):
     def visit_instruction(
         self, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        pass
+        raise NotImplementedError()
 
 
-class OperandFeature(Feature):
+class OperandFeatureExtractor(FeatureExtractor):
     def visit_operand(self, operand: Operand, collector: FeatureCollector) -> None:
-        pass
+        raise NotImplementedError()
 
 
-class ExpressionFeature(Feature):
+class ExpressionFeatureExtractor(FeatureExtractor):
     def visit_expression(self, expr: Expr, collector: FeatureCollector) -> None:
-        pass
+        raise NotImplementedError()
 
 
 class ProgramVisitor(Visitor):
@@ -154,7 +148,7 @@ class ProgramVisitor(Visitor):
         elif isinstance(item, dict):
             self.visit_expression(item, collector)
 
-    def register_feature_extractor(self, fte: Feature) -> None:
+    def register_feature_extractor(self, fte: FeatureExtractor) -> None:
         """
         Register an instanciated feature extractor on the visitor.
 
@@ -162,16 +156,16 @@ class ProgramVisitor(Visitor):
         :param weight: Weight to apply to the feature
         :return: None
         """
-        assert isinstance(fte, Feature)
-        if isinstance(fte, FunctionFeature):
+        assert isinstance(fte, FeatureExtractor)
+        if isinstance(fte, FunctionFeatureExtractor):
             self.register_function_feature_callback(fte.visit_function)
-        if isinstance(fte, BasicBlockFeature):
+        if isinstance(fte, BasicBlockFeatureExtractor):
             self.register_basic_block_feature_callback(fte.visit_basic_block)
-        if isinstance(fte, InstructionFeature):
+        if isinstance(fte, InstructionFeatureExtractor):
             self.register_instruction_feature_callback(fte.visit_instruction)
-        if isinstance(fte, OperandFeature):
+        if isinstance(fte, OperandFeatureExtractor):
             self.register_operand_feature_callback(fte.visit_operand)
-        if isinstance(fte, ExpressionFeature):
+        if isinstance(fte, ExpressionFeatureExtractor):
             self.register_expression_feature_callback(fte.visit_expression)
         self.feature_extractors[fte.key] = fte
 

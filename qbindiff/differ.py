@@ -9,7 +9,12 @@ from networkx import DiGraph
 from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
-from qbindiff.features.visitor import FeatureCollector, Visitor, ProgramVisitor, Feature
+from qbindiff.features.visitor import (
+    FeatureCollector,
+    Visitor,
+    ProgramVisitor,
+    FeatureExtractor,
+)
 from qbindiff.types import (
     Generator,
     Union,
@@ -385,7 +390,6 @@ class QBinDiff(Differ):
     def save_sqlite(self, filename: PathLike):
         self.mapping.save_sqlite(filename)
 
-    def register_feature(self, feature: Union[type, Feature], weight: Positive = 1.0):
-        if not isinstance(feature, Feature):
-            feature = feature(weight)
-        self._visitor.register_feature(feature)
+    def register_feature_extractor(self, extractorClass: type, weight: Positive = 1.0):
+        extractor = extractorClass(weight)
+        self._visitor.register_feature_extractor(extractor)
