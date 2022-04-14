@@ -186,52 +186,6 @@ class QBinDiff:
             range(len(self.primary_affinity)), range(len(self.secondary_affinity))
         )
 
-    def _extract_feature_keys(
-        self,
-        primary_envs: List[FeatureCollector],
-        secondary_envs: List[FeatureCollector],
-    ) -> Tuple[List[str], List[float]]:
-        feature_keys = defaultdict(set)
-        for envs in (primary_envs, secondary_envs):
-            for env in envs:
-                for key, values in env.features.items():
-                    if isinstance(values, dict):
-                        feature_keys[key].update(values.keys())
-                    else:
-                        feature_keys[key].add(key)
-
-        features_weights = dict()
-        for ft_key, ft_sub_keys in feature_keys.items():
-            for k in ft_sub_keys:
-                features_weights[k] = self._visitor.feature_weight(ft_key) / len(
-                    ft_sub_keys
-                )
-
-        feature_keys = sorted(
-            {key for keys in feature_keys.values() for key in keys}
-        )  # [Mnemonic, NbChild .. ]
-        feature_weights = [features_weights[key] for key in feature_keys]
-        return feature_keys, feature_weights
-
-    @staticmethod
-    def _vectorize_features(
-        features: List[FeatureCollector], feature_keys: List[str]
-    ) -> FeatureVectors:
-        feature_index = {key: idx for idx, key in enumerate(feature_keys)}
-        feature_matrix = np.zeros(
-            (len(features), len(feature_index)), dtype=QBinDiff.DTYPE
-        )
-        for idx, env in enumerate(features):
-            for key, value in env.features.items():
-                if isinstance(value, dict):
-                    idy, value = zip(
-                        *((feature_index[key], value) for key, value in value.items())
-                    )
-                    feature_matrix[idx, list(idy)] = value
-                else:
-                    feature_matrix[idx, feature_index[key]] = value
-        return feature_matrix
-
     def _compute_statistics(self, mapping: RawMapping) -> Tuple[List[float], List[int]]:
         idx, idy = mapping
         similarities = self.sim_matrix[idx, idy]
@@ -305,14 +259,6 @@ class QBinDiff:
         if anchors:
             self.set_anchors(anchors)
         return self.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter)
-
-    @staticmethod
-    def _get_affinity_matrix(graph: DiGraph, items: Iterable):
-        item_index = {item.addr: idx for idx, item in enumerate(items)}
-        affinity_matrix = np.zeros((len(item_index), len(item_index)), dtype=bool)
-        for src, dst in graph.edges:
-            affinity_matrix[item_index[src], item_index[dst]] += 1
-        return affinity_matrix
 
     def diff_function(
         self,
