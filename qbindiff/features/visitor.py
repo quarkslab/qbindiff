@@ -38,7 +38,7 @@ class FeatureCollector:
     def to_vector(self, key_order: Dict[str, Iterable[str]]) -> List[float]:
         """
         Transform the collection to a feature vector
-        
+
         :param key_order: The order in which the keys are accessed
         """
         vector = []
@@ -49,7 +49,7 @@ class FeatureCollector:
                     vector.append(feature.get(subkey, 0))
             else:
                 vector.append(self._features.get(main_key, 0))
-        
+
         return vector
 
 
@@ -289,7 +289,9 @@ class ProgramVisitor(Visitor):
         return list(self.features.keys())
 
     def get_features_weight(self) -> Dict[str, float]:
-        return {key: extractor.weight for key, extractor in self._feature_extractors.items()}
+        return {
+            key: extractor.weight for key, extractor in self._feature_extractors.items()
+        }
 
     @property
     def feature_extractors(self):

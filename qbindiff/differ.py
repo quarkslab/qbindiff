@@ -72,11 +72,13 @@ class Differ:
             differ.set_anchors(anchors)
         return differ.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter)
 
-    def compute_similarity(self, primary: Program, secondary: Program, distance: str = "canberra") -> None:
+    def compute_similarity(
+        self, primary: Program, secondary: Program, distance: str = "canberra"
+    ) -> None:
         """
         Initialize the diffing instance by computing the pairwise similarity between the
         nodes of the two graphs to diff.
-        
+
         :param primary: primary Program
         :param secondary: secondary Program
         :param distance: distance metric to use (will be later converted into a similarity metric)
@@ -84,15 +86,12 @@ class Differ:
         # Extract the features
         primary_features = self._visitor.visit(primary)
         secondary_features = self._visitor.visit(secondary)
-        
-        p_i2n = list(primary_features.keys())
-        s_i2n = list(secondary_features.keys())
-        
+
         # Get the weights of each feature
         f_weights = {}
         for extractor in self._visitor.feature_extractors:
             f_weights[extractor.key] = extractor.weight
-        
+
         # Get all the keys and subkeys of the features
         # features_keys is a dict: {main_key: set(subkeys), ...}
         features_keys = {}
@@ -102,33 +101,37 @@ class Differ:
                     features_keys.setdefault(main_key, set())
                     if subkey_list:
                         features_keys[main_key].update(subkey_list)
-        
+
         # Build the weights vector
         weights = []
         for main_key, subkey_list in features_keys.items():
             if subkey_list:
                 dim = len(subkey_list)
-                weights.extend(f_weights[main_key]/dim for _ in range(dim))
+                weights.extend(f_weights[main_key] / dim for _ in range(dim))
             else:
                 weights.append(f_weights[main_key])
-        
+
         # Build the feature matrix
-        primary_feature_matrix = np.zeros((len(primary_features), len(weights)), dtype=Differ.DTYPE)
-        secondary_feature_matrix = np.zeros((len(secondary_features), len(weights)), dtype=Differ.DTYPE)
+        primary_feature_matrix = np.zeros(
+            (len(primary_features), len(weights)), dtype=Differ.DTYPE
+        )
+        secondary_feature_matrix = np.zeros(
+            (len(secondary_features), len(weights)), dtype=Differ.DTYPE
+        )
         for i, feature in enumerate(primary_features.values()):
             primary_feature_matrix[i] = feature.to_vector(features_keys)
         for i, feature in enumerate(secondary_features.values()):
             secondary_feature_matrix[i] = feature.to_vector(features_keys)
 
         # Generate the similarity matrix
-        self.sim_matrix = scipy.spatial.distance.cdist(primary_feature_matrix, secondary_feature_matrix, distance, w=weights).astype(Differ.DTYPE)
+        self.sim_matrix = scipy.spatial.distance.cdist(
+            primary_feature_matrix, secondary_feature_matrix, distance, w=weights
+        ).astype(Differ.DTYPE)
         self.sim_matrix /= self.sim_matrix.max()
         self.sim_matrix[:] = 1 - self.sim_matrix
 
         # ~ self.primary_affinity = primary_affinity
         # ~ self.secondary_affinity = secondary_affinity
-        
-        return (p_i2n, s_i2n)
 
     def set_anchors(self, anchors: Anchors) -> None:
         idx = [
