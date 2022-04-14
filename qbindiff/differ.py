@@ -51,9 +51,12 @@ class QBinDiff:
         self.primary_i2f = {}  # index to function address
         self.secondary_f2i = {}
         self.secondary_i2f = {}
-        
+
     def _extract_adj_matrix(self):
-        for p, matrix, func_to_idx in ((self.primary, self.primary_adj_matrix, self.primary_f2i), (self.secondary, self.secondary_adj_matrix, self.secondary_f2i)):
+        for p, matrix, func_to_idx in (
+            (self.primary, self.primary_adj_matrix, self.primary_f2i),
+            (self.secondary, self.secondary_adj_matrix, self.secondary_f2i),
+        ):
             matrix = np.zeros((len(p), len(p)), bool)
             for func in p:
                 f_idx = func_to_idx[func.addr]
@@ -133,7 +136,7 @@ class QBinDiff:
             self.secondary_f2i[func_addr] = i
             self.secondary_i2f[i] = func_addr
             secondary_feature_matrix[i] = feature.to_vector(features_keys)
-        
+
         # Extract the adjacency matrix
         self._extract_adj_matrix()
 
