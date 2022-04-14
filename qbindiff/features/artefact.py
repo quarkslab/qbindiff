@@ -1,10 +1,9 @@
 from qbindiff.features.visitor import (
-    FunctionFeatureExtractor,
     FeatureCollector,
     InstructionFeatureExtractor,
     ExpressionFeatureExtractor,
 )
-from qbindiff.loader import Program, Function, Instruction, Operand, Expr
+from qbindiff.loader import Instruction, Expr
 
 
 class Address(InstructionFeatureExtractor):

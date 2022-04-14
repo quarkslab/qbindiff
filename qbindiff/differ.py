@@ -3,32 +3,14 @@ import numpy as np
 import scipy.io
 import json
 import scipy.spatial.distance
-from collections import defaultdict
 from networkx import DiGraph
 
 from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
-from qbindiff.features.visitor import (
-    FeatureCollector,
-    Visitor,
-    ProgramVisitor,
-    FeatureExtractor,
-)
-from qbindiff.types import (
-    Generator,
-    Union,
-    Iterable,
-    Tuple,
-    List,
-    Dict,
-    Anchors,
-    Item,
-    Idx,
-)
-from qbindiff.types import Optional, Any, RawMapping
-from qbindiff.types import PathLike, Positive, Ratio, Addr, Dtype
-from qbindiff.types import FeatureVectors, AffinityMatrix, SimMatrix
+from qbindiff.features.visitor import FeatureCollector, ProgramVisitor
+from typing import Generator, Tuple, List
+from qbindiff.types import Anchors, RawMapping, PathLike, Positive, Ratio
 
 
 class QBinDiff:
