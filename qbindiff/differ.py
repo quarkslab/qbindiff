@@ -31,26 +31,15 @@ from qbindiff.types import PathLike, Positive, Ratio, Addr, Dtype
 from qbindiff.types import FeatureVectors, AffinityMatrix, SimMatrix
 
 
-class Differ(object):
+class Differ:
 
     DTYPE = np.float32
 
     def __init__(self):
         # All fields are computed dynamically
-        self._primary_index = None
-        self._secondary_index = None
-        self.primary_affinity = None  # initialized in compute_similarity
-        self.secondary_affinity = None
+        self._visitor = None
         self.sim_matrix = None
         self.mapping = None
-
-    def _make_indexes(self, primary: Iterable, secondary: Iterable):
-        try:
-            self._primary_items_to_idx = {x: i for i, x in enumerate(primary)}
-            self._secondary_items_to_idx = {x: i for i, x in enumerate(secondary)}
-        except TypeError:  # If object is not hashable store them as lists
-            self._primary_items_to_idx = list(primary)
-            self._secondary_items_to_idx = list(secondary)
 
     def __to_index(self, mapping, obj):
         return mapping[obj] if isinstance(mapping, dict) else mapping.index(obj)
@@ -60,16 +49,6 @@ class Differ(object):
 
     def __secondary_to_index(self, obj):
         return self.__to_index(self._secondary_items_to_idx, obj)
-
-    def __rev_indexes(self):
-        if isinstance(self._primary_items_to_idx, dict):
-            return {v: k for k, v in self._primary_items_to_idx.items()}, {
-                v: k for k, v in self._secondary_items_to_idx.items()
-            }
-        else:
-            return {i: v for i, v in enumerate(self._primary_items_to_idx)}, {
-                i: v for i, v in enumerate(self._secondary_items_to_idx)
-            }
 
     @staticmethod
     def diff(
@@ -93,44 +72,63 @@ class Differ(object):
             differ.set_anchors(anchors)
         return differ.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter)
 
-    def compute_similarity(
-        self,
-        primary: Iterable,
-        secondary: Iterable,
-        primary_affinity: AffinityMatrix,
-        secondary_affinity: AffinityMatrix,
-        visitor: Visitor,
-        distance: str = "canberra",
-    ):
+    def compute_similarity(self, primary: Program, secondary: Program, distance: str = "canberra") -> None:
         """
-        Initialize the diffing instance by computing the pairwise similarity between the nodes
-        of the two graphs to diff.
-        :param primary: iterable to extract features from
-        :param secondary: iterable to extract features from
-        :param primary_affinity: primary affinity matrix
-        :param secondary_affinity: secondary affinity matrix
-        :param visitor: list of features extractors to apply
+        Initialize the diffing instance by computing the pairwise similarity between the
+        nodes of the two graphs to diff.
+        
+        :param primary: primary Program
+        :param secondary: secondary Program
         :param distance: distance metric to use (will be later converted into a similarity metric)
-        :param anchors: user defined mapping correspondences
         """
-        # Compute lookup and reverse lookup tables
-        # TODO: Creating a BasicBlock object / items_to_idx as list
-        self._make_indexes(primary, secondary)
+        # Extract the features
+        primary_features = self._visitor.visit(primary)
+        secondary_features = self._visitor.visit(secondary)
+        
+        p_i2n = list(primary_features.keys())
+        s_i2n = list(secondary_features.keys())
+        
+        # Get the weights of each feature
+        f_weights = {}
+        for extractor in self._visitor.feature_extractors:
+            f_weights[extractor.key] = extractor.weight
+        
+        # Get all the keys and subkeys of the features
+        # features_keys is a dict: {main_key: set(subkeys), ...}
+        features_keys = {}
+        for features in (primary_features, secondary_features):
+            for f_collector in features.values():
+                for main_key, subkey_list in f_collector.full_keys().items():
+                    features_keys.setdefault(main_key, set())
+                    if subkey_list:
+                        features_keys[main_key].update(subkey_list)
+        
+        # Build the weights vector
+        weights = []
+        for main_key, subkey_list in features_keys.items():
+            if subkey_list:
+                dim = len(subkey_list)
+                weights.extend(f_weights[main_key]/dim for _ in range(dim))
+            else:
+                weights.append(f_weights[main_key])
+        
+        # Build the feature matrix
+        primary_feature_matrix = np.zeros((len(primary_features), len(weights)), dtype=Differ.DTYPE)
+        secondary_feature_matrix = np.zeros((len(secondary_features), len(weights)), dtype=Differ.DTYPE)
+        for i, feature in enumerate(primary_features.values()):
+            primary_feature_matrix[i] = feature.to_vector(features_keys)
+        for i, feature in enumerate(secondary_features.values()):
+            secondary_feature_matrix[i] = feature.to_vector(features_keys)
 
-        primary_features = visitor.visit(primary)
-        secondary_features = visitor.visit(secondary)
+        # Generate the similarity matrix
+        self.sim_matrix = scipy.spatial.distance.cdist(primary_feature_matrix, secondary_feature_matrix, distance, w=weights).astype(Differ.DTYPE)
+        self.sim_matrix /= self.sim_matrix.max()
+        self.sim_matrix[:] = 1 - self.sim_matrix
 
-        feature_keys, feature_weights = self._extract_feature_keys(
-            primary_features, secondary_features
-        )
-        primary_matrix = self._vectorize_features(primary_features, feature_keys)
-        secondary_matrix = self._vectorize_features(secondary_features, feature_keys)
-
-        self.sim_matrix = self._compute_similarity(
-            primary_matrix, secondary_matrix, feature_weights, distance
-        )
-        self.primary_affinity = primary_affinity
-        self.secondary_affinity = secondary_affinity
+        # ~ self.primary_affinity = primary_affinity
+        # ~ self.secondary_affinity = secondary_affinity
+        
+        return (p_i2n, s_i2n)
 
     def set_anchors(self, anchors: Anchors) -> None:
         idx = [
@@ -249,20 +247,6 @@ class Differ(object):
                 else:
                     feature_matrix[idx, feature_index[key]] = value
         return feature_matrix
-
-    @staticmethod
-    def _compute_similarity(
-        primary_matrix: FeatureVectors,
-        secondary_matrix: FeatureVectors,
-        weights: List[Positive],
-        distance: str = "canberra",
-    ) -> SimMatrix:
-        matrix = scipy.spatial.distance.cdist(
-            primary_matrix, secondary_matrix, distance, w=weights
-        ).astype(Differ.DTYPE)
-        matrix /= matrix.max()
-        matrix[:] = 1 - matrix
-        return matrix
 
     def _compute_statistics(self, mapping: RawMapping) -> Tuple[List[float], List[int]]:
         idx, idy = mapping

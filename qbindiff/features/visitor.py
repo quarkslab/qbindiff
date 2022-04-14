@@ -1,4 +1,4 @@
-from typing import List, Any, Iterable, Dict, Union, Callable
+from typing import List, Set, Any, Iterable, Dict, Union, Callable
 from collections import defaultdict
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Expr
@@ -11,20 +11,46 @@ class FeatureCollector:
     """
 
     def __init__(self):
-        self._features: Dict[str, Union[int, float, Dict[str, Union[int, float]]]] = {}
+        self._features: Dict[str, Union[float, Dict[str, float]]] = {}
 
-    def add_feature(self, key: str, value: Union[int, float]) -> None:
+    def add_feature(self, key: str, value: float) -> None:
         self._features.setdefault(key, 0)
         self._features[key] += value
 
-    def add_dict_feature(self, key: str, value: Dict[str, Union[int, float]]) -> None:
+    def add_dict_feature(self, key: str, value: Dict[str, float]) -> None:
         self._features.setdefault(key, defaultdict(int))
         for k, v in value.items():
             self._features[key][k] += v
 
-    def to_vector(self) -> List:
-        """Transform the collection to a feature vector"""
-        raise NotImplementedError()
+    def full_keys(self) -> Dict[str, Set[str]]:
+        """
+        Returns a dict in which keys are the keys of the features and values are the
+        subkeys.
+        Ex: {feature_key1: [], feature_key2: [], ..., feature_keyN: [subkey1, ...], ...}
+        """
+        keys = {}
+        for main_key, feature in self._features.items():
+            keys.setdefault(main_key, set())
+            if isinstance(feature, dict):
+                keys[main_key].update(feature.keys())
+        return keys
+
+    def to_vector(self, key_order: Dict[str, Iterable[str]]) -> List[float]:
+        """
+        Transform the collection to a feature vector
+        
+        :param key_order: The order in which the keys are accessed
+        """
+        vector = []
+        for main_key, subkey_list in key_order.items():
+            if subkey_list:
+                feature = self._features.get(main_key, {})
+                for subkey in subkey_list:
+                    vector.append(feature.get(subkey, 0))
+            else:
+                vector.append(self._features.get(main_key, 0))
+        
+        return vector
 
 
 class Visitor:
@@ -122,7 +148,7 @@ class ProgramVisitor(Visitor):
     """
 
     def __init__(self):
-        self.feature_extractors = {}
+        self._feature_extractors = {}
         self.function_callbacks = []
         self.basic_block_callbacks = []
         self.instruction_callbacks = []
@@ -167,7 +193,7 @@ class ProgramVisitor(Visitor):
             self.register_operand_feature_callback(fte.visit_operand)
         if isinstance(fte, ExpressionFeatureExtractor):
             self.register_expression_feature_callback(fte.visit_expression)
-        self.feature_extractors[fte.key] = fte
+        self._feature_extractors[fte.key] = fte
 
     def register_function_feature_callback(self, callback: Callable) -> None:
         self.function_callbacks.append(callback)
@@ -262,5 +288,9 @@ class ProgramVisitor(Visitor):
     def feature_keys(self) -> List[str]:
         return list(self.features.keys())
 
-    def feature_weight(self, key: str) -> float:
-        return self.features[key].weight
+    def get_features_weight(self) -> Dict[str, float]:
+        return {key: extractor.weight for key, extractor in self._feature_extractors.items()}
+
+    @property
+    def feature_extractors(self):
+        return self._feature_extractors.values()

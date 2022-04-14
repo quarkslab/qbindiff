@@ -43,7 +43,7 @@ class LibName(ExpressionFeatureExtractor):
 
     def visit_expression(self, expression: Expr, collector: FeatureCollector):
         if expression["type"] == "libname":
-            collector.add_feature(expression["value"], 1)
+            collector.add_dict_feature(self.key, {expression["value"]: 1})
 
 
 class DatName(ExpressionFeatureExtractor):
@@ -54,7 +54,7 @@ class DatName(ExpressionFeatureExtractor):
 
     def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
         if expression["type"] == "datname":
-            collector.add_feature(expression["value"], 1)
+            collector.add_dict_feature(self.key, {expression["value"]: 1})
 
 
 class ImpName(ExpressionFeatureExtractor):
@@ -65,7 +65,7 @@ class ImpName(ExpressionFeatureExtractor):
 
     def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
         if expression["type"] == "impname":
-            collector.add_feature(expression["value"], 1)
+            collector.add_dict_feature(self.key, {expression["value"]: 1})
 
 
 class Constant(ExpressionFeatureExtractor):
@@ -82,6 +82,6 @@ class Constant(ExpressionFeatureExtractor):
                     val = int(val[:-1], 16) if val[-1] == "h" else int(val)
                 if 0xFFFF < val <= 0xFFFFFF00:
                     if val not in [0x80000000]:
-                        collector.add_feature("cst_0x%x" % val, 1)
+                        collector.add_dict_feature(self.key, {"cst_0x%x" % val: 1})
             except ValueError:
                 print("Invalid constant: %s" % (expression["value"]))
