@@ -8,12 +8,75 @@ from networkx import DiGraph
 from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
-from qbindiff.features.visitor import FeatureCollector, ProgramVisitor
+from qbindiff.features.visitor import FeatureCollector, Visitor, ProgramVisitor
 from typing import Generator, Tuple, List
-from qbindiff.types import Anchors, RawMapping, PathLike, Positive, Ratio
+from qbindiff.types import Anchors, RawMapping, PathLike, Positive, Ratio, Graph
 
 
-class QBinDiff:
+class Differ:
+    """
+    Abstract class that perform the NAP diffing between two generic graphs.
+    """
+
+    def __init__(self, primary: Graph, secondary: Graph, visitor: Visitor):
+        self.primary = primary
+        self.secondary = secondary
+        self._visitor = visitor
+
+        self.primary_adj_matrix = np.zeros((len(primary), len(primary)), bool)
+        self.secondary_adj_matrix = np.zeros((len(secondary), len(secondary)), bool)
+        self.sim_matrix = None
+
+        self.mapping = None
+
+    def register_feature_extractor(self, extractorClass: type, weight: Positive = 1.0):
+        extractor = extractorClass(weight)
+        self._visitor.register_feature_extractor(extractor)
+
+    def compute_similarity(self, *args, **kwargs) -> None:
+        """
+        Populate the self.sim_matrix similarity matrix by computing the pairwise
+        similarity between the nodes of the two graphs to diff.
+        """
+        raise NotImplementedError()
+
+    def compute_matching(
+        self,
+        sparsity_ratio: Ratio = 0.75,
+        tradeoff: Ratio = 0.75,
+        epsilon: Positive = 0.5,
+        maxiter: int = 1000,
+    ) -> Mapping:
+        """
+        Run the belief propagation algorithm. This method hangs until the computation is done.
+        The resulting matching is then converted into a binary-based format.
+        :param sparsity_ratio: ratio of most probable correspondences to consider during the matching
+        :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0) and edge similarity (tradeoff=0.0)
+        :param epsilon: perturbation parameter to enforce convergence and speed up computation. The greatest the fastest, but least accurate
+        :param maxiter: maximum number of message passing iterations
+        """
+        for _ in self.matching_iterator(sparsity_ratio, tradeoff, epsilon, maxiter):
+            pass
+        return self.mapping
+
+    def matching_iterator(
+        self,
+        sparsity_ratio: Ratio = 0.75,
+        tradeoff: Ratio = 0.75,
+        epsilon: Positive = 0.5,
+        maxiter: int = 1000,
+    ) -> Generator[int, None, None]:
+        matcher = Matcher(
+            self.sim_matrix, self.primary_affinity, self.secondary_affinity
+        )
+        matcher.process(sparsity_ratio)
+
+        yield from matcher.compute(tradeoff, epsilon, maxiter)
+
+        self.mapping = self._convert_mapping(matcher.mapping)
+
+
+class QBinDiff(Differ):
     """
     QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
     """
@@ -21,9 +84,8 @@ class QBinDiff:
     DTYPE = np.float32
 
     def __init__(self, primary: Program, secondary: Program):
-        self.primary = primary
-        self.secondary = secondary
-        self._visitor = ProgramVisitor()
+        super(QBinDiff, self).__init__(primary, secondary, ProgramVisitor())
+
         self.primary_adj_matrix = np.zeros((len(primary), len(primary)), bool)
         self.secondary_adj_matrix = np.zeros((len(secondary), len(secondary)), bool)
         self.sim_matrix = None
@@ -53,8 +115,9 @@ class QBinDiff:
         :param distance: distance metric to use (will be later converted into a similarity metric)
         """
         # Extract the features
-        primary_features = self._visitor.visit(self.primary)
-        secondary_features = self._visitor.visit(self.secondary)
+        key_fun = lambda func, i: func.addr
+        primary_features = self._visitor.visit(self.primary, key_fun=key_fun)
+        secondary_features = self._visitor.visit(self.secondary, key_fun=key_fun)
 
         # Get the weights of each feature
         f_weights = {}
@@ -105,41 +168,6 @@ class QBinDiff:
         ).astype(QBinDiff.DTYPE)
         self.sim_matrix /= self.sim_matrix.max()
         self.sim_matrix[:] = 1 - self.sim_matrix
-
-    def compute_matching(
-        self,
-        sparsity_ratio: Ratio = 0.75,
-        tradeoff: Ratio = 0.75,
-        epsilon: Positive = 0.5,
-        maxiter: int = 1000,
-    ) -> Mapping:
-        """
-        Run the belief propagation algorithm. This method hangs until the computation is done.
-        The resulting matching is then converted into a binary-based format.
-        :param sparsity_ratio: ratio of most probable correspondences to consider during the matching
-        :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0) and edge similarity (tradeoff=0.0)
-        :param epsilon: perturbation parameter to enforce convergence and speed up computation. The greatest the fastest, but least accurate
-        :param maxiter: maximum number of message passing iterations
-        """
-        for _ in self.matching_iterator(sparsity_ratio, tradeoff, epsilon, maxiter):
-            pass
-        return self.mapping
-
-    def matching_iterator(
-        self,
-        sparsity_ratio: Ratio = 0.75,
-        tradeoff: Ratio = 0.75,
-        epsilon: Positive = 0.5,
-        maxiter: int = 1000,
-    ) -> Generator[int, None, None]:
-        matcher = Matcher(
-            self.sim_matrix, self.primary_affinity, self.secondary_affinity
-        )
-        matcher.process(sparsity_ratio)
-
-        yield from matcher.compute(tradeoff, epsilon, maxiter)
-
-        self.mapping = self._convert_mapping(matcher.mapping)
 
     def save(self, filename: str):
         with open(filename, "w") as file:
@@ -271,7 +299,3 @@ class QBinDiff:
 
     def save_sqlite(self, filename: PathLike):
         self.mapping.save_sqlite(filename)
-
-    def register_feature_extractor(self, extractorClass: type, weight: Positive = 1.0):
-        extractor = extractorClass(weight)
-        self._visitor.register_feature_extractor(extractor)

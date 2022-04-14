@@ -18,7 +18,7 @@ class FeatureCollector:
         self._features[key] += value
 
     def add_dict_feature(self, key: str, value: Dict[str, float]) -> None:
-        self._features.setdefault(key, defaultdict(int))
+        self._features.setdefault(key, defaultdict(float))
         for k, v in value.items():
             self._features[key][k] += v
 
@@ -59,20 +59,25 @@ class Visitor:
     must implements to work with a Differ object.
     """
 
-    def visit(self, prog: Program) -> Dict[int, FeatureCollector]:
+    def visit(
+        self, it: Iterable, key_fun: Callable = lambda e, i: i
+    ) -> Dict[Any, FeatureCollector]:
         """
-        Function performing the visit on the Program by calling visit_item with a
+        Function performing the visit on a Iterable object by calling visit_item with a
         FeatureCollector meant to be filled.
 
-        :param prog: the Program.
-        :return: A Dict in which keys are function addresses and values are the FeatureCollector
+        :param it: an Iterator.
+        :param key_fun: a function that takes 2 input arguments, namely the current item and
+                        the current iteration number, and returns a unique key for that item.
+                        By default the iteration number is used.
+        :return: A Dict in which keys are key_fun(item, i) and values are the FeatureCollector
         """
-        functionsFeatures = {}
-        for func in prog:
+        obj_features = {}
+        for i, item in enumerate(it):
             collector = FeatureCollector()
-            self.visit_item(func, collector)
-            functionsFeatures[func.addr] = collector
-        return functionsFeatures
+            self.visit_item(item, collector)
+            obj_features[key_fun(item, i)] = collector
+        return obj_features
 
     def visit_item(self, item: Any, collector: FeatureCollector) -> None:
         """

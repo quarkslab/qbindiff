@@ -16,7 +16,7 @@ from qbindiff.types import (
     Vector,
     Matrix,
     FeatureVectors,
-    AffinityMatrix,
+    AdjacencyMatrix,
     SimMatrix,
     SparseMatrix,
 )
@@ -40,8 +40,8 @@ class Matcher:
     def __init__(
         self,
         similarity_matrix: SimMatrix,
-        primary_affinity: AffinityMatrix,
-        secondary_affinity: AffinityMatrix,
+        primary_affinity: AdjacencyMatrix,
+        secondary_affinity: AdjacencyMatrix,
     ):
         self.primary_affinity = primary_affinity
         self.secondary_affinity = secondary_affinity
@@ -107,8 +107,8 @@ class Matcher:
     @staticmethod
     def _compute_squares_matrix(
         sparse_matrix: SparseMatrix,
-        primary_affinity: AffinityMatrix,
-        secondary_affinity: AffinityMatrix,
+        primary_affinity: AdjacencyMatrix,
+        secondary_affinity: AdjacencyMatrix,
     ) -> SparseMatrix:
         size = sparse_matrix.nnz
         edgelist1 = [list(edges.nonzero()[0]) for edges in primary_affinity]
