@@ -63,28 +63,6 @@ class QBinDiff:
                     f2_idx = func_to_idx[func2_addr]
                     matrix[f_idx, f2_idx] = True
 
-    @staticmethod
-    def diff(
-        primary: Iterable,
-        secondary: Iterable,
-        primary_affinity: AffinityMatrix,
-        secondary_affinity: AffinityMatrix,
-        visitor: Visitor,
-        distance: str = "canberra",
-        anchors: Anchors = None,
-        sparsity_ratio: Ratio = 0.75,
-        tradeoff: Ratio = 0.75,
-        epsilon: Positive = 0.5,
-        maxiter: int = 1000,
-    ) -> Mapping:
-        differ = QBinDiff()
-        differ.compute_similarity(
-            primary, secondary, primary_affinity, secondary_affinity, visitor, distance
-        )
-        if anchors:
-            differ.set_anchors(anchors)
-        return differ.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter)
-
     def compute_similarity(self, distance: str = "canberra") -> None:
         """
         Initialize the diffing instance by computing the pairwise similarity between the
