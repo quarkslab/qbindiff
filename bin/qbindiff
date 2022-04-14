@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 # Local imports
 from qbindiff.features import FEATURES
-from qbindiff import Program, Differ, QBinDiff, Mapping
+from qbindiff import Program, QBinDiff, Mapping
 
 
 def configure_logging(verbose: int):
@@ -25,7 +25,7 @@ def configure_logging(verbose: int):
     logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
 
 
-def display_statistics(differ: Differ, mapping: Mapping) -> None:
+def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
     nb_matches = mapping.nb_match
     similarity = mapping.similarity
     nb_squares = mapping.squares

@@ -31,13 +31,17 @@ from qbindiff.types import PathLike, Positive, Ratio, Addr, Dtype
 from qbindiff.types import FeatureVectors, AffinityMatrix, SimMatrix
 
 
-class Differ:
+class QBinDiff:
+    """
+    QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
+    """
 
     DTYPE = np.float32
 
-    def __init__(self):
-        # All fields are computed dynamically
-        self._visitor = None
+    def __init__(self, primary: Program, secondary: Program):
+        self.primary = primary
+        self.secondary = secondary
+        self._visitor = ProgramVisitor()
         self.sim_matrix = None
         self.mapping = None
 
@@ -60,7 +64,7 @@ class Differ:
         epsilon: Positive = 0.5,
         maxiter: int = 1000,
     ) -> Mapping:
-        differ = Differ()
+        differ = QBinDiff()
         differ.compute_similarity(
             primary, secondary, primary_affinity, secondary_affinity, visitor, distance
         )
@@ -105,10 +109,10 @@ class Differ:
 
         # Build the feature matrix
         primary_feature_matrix = np.zeros(
-            (len(primary_features), len(weights)), dtype=Differ.DTYPE
+            (len(primary_features), len(weights)), dtype=QBinDiff.DTYPE
         )
         secondary_feature_matrix = np.zeros(
-            (len(secondary_features), len(weights)), dtype=Differ.DTYPE
+            (len(secondary_features), len(weights)), dtype=QBinDiff.DTYPE
         )
         for (i, (func_addr, feature)) in enumerate(primary_features.items()):
             self.primary_f2i[func_addr] = i
@@ -122,7 +126,7 @@ class Differ:
         # Generate the similarity matrix
         self.sim_matrix = scipy.spatial.distance.cdist(
             primary_feature_matrix, secondary_feature_matrix, distance, w=weights
-        ).astype(Differ.DTYPE)
+        ).astype(QBinDiff.DTYPE)
         self.sim_matrix /= self.sim_matrix.max()
         self.sim_matrix[:] = 1 - self.sim_matrix
 
@@ -182,7 +186,7 @@ class Differ:
         data = scipy.io.loadmat(str(filename))
         self.primary_affinity = data["A"].astype(bool)
         self.secondary_affinity = data["B"].astype(bool)
-        self.sim_matrix = data["C"].astype(Differ.DTYPE)
+        self.sim_matrix = data["C"].astype(QBinDiff.DTYPE)
         # Initialize lookup dict Item -> idx
         self._make_indexes(
             range(len(self.primary_affinity)), range(len(self.secondary_affinity))
@@ -221,7 +225,7 @@ class Differ:
     ) -> FeatureVectors:
         feature_index = {key: idx for idx, key in enumerate(feature_keys)}
         feature_matrix = np.zeros(
-            (len(features), len(feature_index)), dtype=Differ.DTYPE
+            (len(features), len(feature_index)), dtype=QBinDiff.DTYPE
         )
         for idx, env in enumerate(features):
             for key, value in env.features.items():
@@ -278,20 +282,6 @@ class Differ:
             list(zip(primary_matched, secondary_matched, similarities, squares)),
             (primary_unmatched, secondary_unmatched),
         )
-
-
-class QBinDiff(Differ):
-    """
-    QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
-    """
-
-    name = "QBinDiff"
-
-    def __init__(self, primary: Program, secondary: Program):
-        super(QBinDiff, self).__init__()
-        self.primary = primary
-        self.secondary = secondary
-        self._visitor = ProgramVisitor()
 
     def diff_program(
         self,
