@@ -42,8 +42,8 @@ class QBinDiff:
         self.primary = primary
         self.secondary = secondary
         self._visitor = ProgramVisitor()
-        self.primary_adj_matrix = None
-        self.secondary_adj_matrix = None
+        self.primary_adj_matrix = np.zeros((len(primary), len(primary)), bool)
+        self.secondary_adj_matrix = np.zeros((len(secondary), len(secondary)), bool)
         self.sim_matrix = None
         self.mapping = None
 
@@ -57,7 +57,6 @@ class QBinDiff:
             (self.primary, self.primary_adj_matrix, self.primary_f2i),
             (self.secondary, self.secondary_adj_matrix, self.secondary_f2i),
         ):
-            matrix = np.zeros((len(p), len(p)), bool)
             for func in p:
                 f_idx = func_to_idx[func.addr]
                 for func2_addr in func.children:
