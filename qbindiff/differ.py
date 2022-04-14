@@ -42,13 +42,24 @@ class QBinDiff:
         self.primary = primary
         self.secondary = secondary
         self._visitor = ProgramVisitor()
+        self.primary_adj_matrix = None
+        self.secondary_adj_matrix = None
         self.sim_matrix = None
         self.mapping = None
 
-        self.primary_f2i = {}  # function address to index in sim_matrix
-        self.primary_i2f = {}  # sim_matrix index to function address
+        self.primary_f2i = {}  # function address to index
+        self.primary_i2f = {}  # index to function address
         self.secondary_f2i = {}
         self.secondary_i2f = {}
+        
+    def _extract_adj_matrix(self):
+        for p, matrix, func_to_idx in ((self.primary, self.primary_adj_matrix, self.primary_f2i), (self.secondary, self.secondary_adj_matrix, self.secondary_f2i)):
+            matrix = np.zeros((len(p), len(p)), bool)
+            for func in p:
+                f_idx = func_to_idx[func.addr]
+                for func2_addr in func.children:
+                    f2_idx = func_to_idx[func2_addr]
+                    matrix[f_idx, f2_idx] = True
 
     @staticmethod
     def diff(
@@ -122,6 +133,9 @@ class QBinDiff:
             self.secondary_f2i[func_addr] = i
             self.secondary_i2f[i] = func_addr
             secondary_feature_matrix[i] = feature.to_vector(features_keys)
+        
+        # Extract the adjacency matrix
+        self._extract_adj_matrix()
 
         # Generate the similarity matrix
         self.sim_matrix = scipy.spatial.distance.cdist(
