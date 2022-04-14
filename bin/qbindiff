@@ -122,10 +122,7 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
         qbindiff.register_feature_extractor(FEATURES_KEYS[feature], float(weight))
 
     logging.info("[+] Initializing NAP")
-    primary_affinity = qbindiff._get_affinity_matrix(qbindiff.primary.callgraph, qbindiff.primary)
-    secondary_affinity = qbindiff._get_affinity_matrix(qbindiff.secondary.callgraph, qbindiff.secondary)
-    qbindiff.compute_similarity(qbindiff.primary, qbindiff.secondary, primary_affinity,
-                                secondary_affinity, qbindiff._visitor, distance)
+    qbindiff.compute_similarity(distance)
 
     logging.info("[+] Computing NAP")
     for _ in tqdm(qbindiff.matching_iterator(sparsity_ratio, tradeoff, epsilon, maxiter), total=maxiter):

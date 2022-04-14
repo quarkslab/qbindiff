@@ -41,14 +41,10 @@ class Differ:
         self.sim_matrix = None
         self.mapping = None
 
-    def __to_index(self, mapping, obj):
-        return mapping[obj] if isinstance(mapping, dict) else mapping.index(obj)
-
-    def __primary_to_index(self, obj):
-        return self.__to_index(self._primary_items_to_idx, obj)
-
-    def __secondary_to_index(self, obj):
-        return self.__to_index(self._secondary_items_to_idx, obj)
+        self.primary_f2i = {}  # function address to index in sim_matrix
+        self.primary_i2f = {}  # sim_matrix index to function address
+        self.secondary_f2i = {}
+        self.secondary_i2f = {}
 
     @staticmethod
     def diff(
@@ -72,20 +68,16 @@ class Differ:
             differ.set_anchors(anchors)
         return differ.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter)
 
-    def compute_similarity(
-        self, primary: Program, secondary: Program, distance: str = "canberra"
-    ) -> None:
+    def compute_similarity(self, distance: str = "canberra") -> None:
         """
         Initialize the diffing instance by computing the pairwise similarity between the
         nodes of the two graphs to diff.
 
-        :param primary: primary Program
-        :param secondary: secondary Program
         :param distance: distance metric to use (will be later converted into a similarity metric)
         """
         # Extract the features
-        primary_features = self._visitor.visit(primary)
-        secondary_features = self._visitor.visit(secondary)
+        primary_features = self._visitor.visit(self.primary)
+        secondary_features = self._visitor.visit(self.secondary)
 
         # Get the weights of each feature
         f_weights = {}
@@ -118,9 +110,13 @@ class Differ:
         secondary_feature_matrix = np.zeros(
             (len(secondary_features), len(weights)), dtype=Differ.DTYPE
         )
-        for i, feature in enumerate(primary_features.values()):
+        for (i, (func_addr, feature)) in enumerate(primary_features.items()):
+            self.primary_f2i[func_addr] = i
+            self.primary_i2f[i] = func_addr
             primary_feature_matrix[i] = feature.to_vector(features_keys)
-        for i, feature in enumerate(secondary_features.values()):
+        for (i, (func_addr, feature)) in enumerate(secondary_features.items()):
+            self.secondary_f2i[func_addr] = i
+            self.secondary_i2f[i] = func_addr
             secondary_feature_matrix[i] = feature.to_vector(features_keys)
 
         # Generate the similarity matrix
