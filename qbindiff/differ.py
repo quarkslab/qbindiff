@@ -130,19 +130,6 @@ class Differ:
         self.sim_matrix /= self.sim_matrix.max()
         self.sim_matrix[:] = 1 - self.sim_matrix
 
-        # ~ self.primary_affinity = primary_affinity
-        # ~ self.secondary_affinity = secondary_affinity
-
-    def set_anchors(self, anchors: Anchors) -> None:
-        idx = [
-            self.__primary_to_index(x[0]) for x in anchors
-        ]  # Convert items to indexes
-        idy = [self.__secondary_to_index(x[1]) for x in anchors]
-        data = self.sim_matrix[idx, idy]
-        self.sim_matrix[idx] = 0
-        self.sim_matrix[:, idy] = 0
-        self.sim_matrix[idx, idy] = data
-
     def compute_matching(
         self,
         sparsity_ratio: Ratio = 0.75,
