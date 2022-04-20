@@ -67,7 +67,7 @@ class Differ:
         maxiter: int = 1000,
     ) -> Generator[int, None, None]:
         matcher = Matcher(
-            self.sim_matrix, self.primary_affinity, self.secondary_affinity
+            self.sim_matrix, self.primary_adj_matrix, self.secondary_adj_matrix
         )
         matcher.process(sparsity_ratio)
 
