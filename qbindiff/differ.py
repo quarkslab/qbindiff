@@ -107,6 +107,21 @@ class QBinDiff(Differ):
                     f2_idx = func_to_idx[func2_addr]
                     matrix[f_idx, f2_idx] = True
 
+    def match_import_functions(self) -> None:
+        primary_import = {}
+        for addr, func in self.primary.items():
+            if func.is_import():
+                primary_import[func.name] = addr
+                self.sim_matrix[self.primary_f2i[addr]] = 0
+        for addr, func in self.secondary.items():
+            if func.is_import():
+                s_idx = self.secondary_f2i[addr]
+                self.sim_matrix[:, s_idx] = 0
+
+                if func.name in primary_import:
+                    p_idx = self.primary_f2i[primary_import[func.name]]
+                    self.sim_matrix[p_idx, s_idx] = 1
+
     def compute_similarity(self, distance: str = "canberra") -> None:
         """
         Initialize the diffing instance by computing the pairwise similarity between the
@@ -168,6 +183,9 @@ class QBinDiff(Differ):
         ).astype(QBinDiff.DTYPE)
         self.sim_matrix /= self.sim_matrix.max()
         self.sim_matrix[:] = 1 - self.sim_matrix
+
+        # match imported functions
+        self.match_import_functions()
 
     def save(self, filename: str):
         with open(filename, "w") as file:
