@@ -8,13 +8,10 @@ from scipy.sparse import csr_matrix, lil_matrix
 
 # Local imports
 from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefQAP
-from qbindiff.types import PathLike, Positive, Ratio
 from qbindiff.types import (
+    Positive,
+    Ratio,
     RawMapping,
-    ExtendedMapping,
-    Vector,
-    Matrix,
-    FeatureVectors,
     AdjacencyMatrix,
     SimMatrix,
     SparseMatrix,
