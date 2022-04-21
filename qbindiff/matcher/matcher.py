@@ -90,6 +90,8 @@ class Matcher:
           - (nodeB, nodeC) is a directed edge in G2
           - (nodeA, nodeB) is a edge in the similarity matrix (non-zero score)
           - (nodeC, nodeD) is a edge in the similarity matrix (non-zero score)
+        Note that the nodes are not necessarily different since (nodeX, nodeX) might be
+        a valid edge.
 
         (A) <---sim_edge---> (B)
          |                    |
