@@ -1,11 +1,10 @@
 import logging
-from typing import Generator
 
 import numpy as np
 
 # Import for types
-from qbindiff.types import Positive, Ratio
-from qbindiff.types import RawMapping, Vector, SparseMatrix
+from typing import Generator
+from qbindiff.types import Positive, Ratio, RawMapping, Vector, SparseMatrix
 
 
 class BeliefMWM:
@@ -14,30 +13,159 @@ class BeliefMWM:
     Computes the optimal solution to the **Maxmimum Weight Matching problem**.
     """
 
-    def __init__(self, similarity: SparseMatrix, epsilon: Positive = 0.5):
-        self._init_indices(similarity)
+    def __init__(self, sim_matrix: SparseMatrix, epsilon: Positive = 0.5):
+        # The weights sparse matrix
+        self.weights = sim_matrix.copy()
+        self._shape = sim_matrix.shape
+        self._dtype = sim_matrix.dtype.type
+
         self._init_messages()
 
-        self._objective = []
-        self._maxscore = 0.0
-        self._epsilon = self._dtype(epsilon)
-        self._epsilonref = self._epsilon.copy()
+        self.scores = []
+        self.max_avg_score = 0.0
+        self.epsilon = self._dtype(epsilon)
+        self._epsilonref = self.epsilon.copy()
+
+    def _init_messages(self):
+        # Messages from node to factor targeting the node in the first graph. m(X[ii`] -> f[i])
+        self.msg_n2f = self.weights.copy()
+        # Messages from node to factor targeting the node in the second graph. m(X[ii`] -> g[i`])
+        self.msg_n2g = self.weights.copy()
+        # Messages from factor to node targeting the node in the first graph. m(f[i] -> X[ii`])
+        self.msg_f2n = self.weights.copy()
+        # Messages from factor to node targeting the node in the second graph. m(g[i`] -> X[ii`])
+        self.msg_g2n = self.weights.copy()
+        # Messages to the node, also known as max-marginal probability of the node. P(X[ii`])
+        self.marginals = self.weights.copy()
+
+        # The matching matrix between the two graphs. It is a mask that has to be applied
+        # to self.weights.data
+        self.matches_mask = np.zeros_like(self.weights.data, dtype=bool)
 
     def compute(self, maxiter: int = 1000):
         for niter in range(1, maxiter + 1):
-            self._update_messages()
-            self._round_messages()
-            self._update_epsilon()
+            self.update_messages()
+            self.round_messages()
+            self.update_epsilon()
             yield niter
-            if self._converged():
+            if self.converged():
                 logging.info("[+] Converged after %i iterations" % niter)
                 return
         logging.info("[+] Did not converged after %i iterations" % maxiter)
 
+    def update_messages(self):
+        """Update the messages considering if it's better to start from the first graph or the second"""
+        if self._shape[0] <= self._shape[1]:
+            self.update_messages_primary()
+        else:
+            self.update_messages_secondary()
+
+    def update_messages_primary(self):
+        """Update messages starting from the first graph"""
+
+        # Update messages from node to f
+        self.msg_n2f.data[:] = self.weights.data
+        self.update_factor_g_messages()
+        self.msg_n2f.data += self.msg_g2n.data
+
+        self.marginals.data[:] = self.msg_n2f.data
+
+        # Update messages fron node to g
+        self.msg_n2g.data[:] = self.weights.data
+        self.update_factor_f_messages()
+        self.msg_n2g.data += self.msg_f2n.data
+
+        self.marginals.data += self.msg_f2n.data
+
+    def update_messages_secondary(self):
+        """Update messages starting from the second graph"""
+
+        # Update messages from node to g
+        self.msg_n2g.data[:] = self.weights.data
+        self.update_factor_f_messages()
+        self.msg_n2g.data += self.msg_f2n.data
+
+        self.marginals.data[:] = self.msg_n2g.data
+
+        # Update messages from node to f
+        self.msg_n2f.data[:] = self.weights.data
+        self.update_factor_g_messages()
+        self.msg_n2f.data += self.msg_g2n.data
+
+        self.marginals.data += self.msg_g2n.data
+
+    def update_factor_msg(self, messages):
+        """Update the messages from factor to node. It is done in-place."""
+        if len(messages) > 1:
+            arg2, arg1 = np.argpartition(messages, -2)[-2:]
+            max2, max1 = np.maximum(0, messages[[arg2, arg1]], dtype=self._dtype)
+            messages[:] = -max1 - self.epsilon
+            messages[arg1] = -max2
+        else:
+            messages[:] = self._dtype(0)
+
+    def update_factor_g_messages(self):
+        """Update all the messages from factor g to node"""
+        for k in range(self._shape[1]):
+            col = self.msg_n2g[:, k]
+            self.update_factor_msg(col.data)
+            self.msg_g2n[:, k] = col
+
+    def update_factor_f_messages(self):
+        """Update all the messages from factor f to node"""
+        for k in range(self._shape[0]):
+            row = self.msg_n2f[k]
+            self.update_factor_msg(row.data)
+            self.msg_f2n[k] = row
+
+    def round_messages(self):
+        self.matches_mask[:] = self.marginals.data > 0
+        self.scores.append(self.current_score)
+
+    def update_epsilon(self) -> None:
+        if len(self.scores) < 10:
+            return
+        avg_score = self.scores[-1] / max(self.matches_mask.sum(), 1)
+        if self.max_avg_score >= avg_score:
+            self.epsilon *= 1.2
+        else:
+            self.best_mapping = self.current_mapping
+            self.best_marginals = self.marginals.copy()
+            self.max_avg_score = avg_score
+            self.epsilon = self._epsilonref
+
+    def converged(self, window: int = 60, pattern_size: int = 15) -> bool:
+        """
+        Decide whether or not the algorithm has converged.
+        The algorithm has converged if we can find the same pattern at least once by looking
+        at the last `window` elements of the scores. The pattern is a list composed of the
+        last `pattern_size` elements of the scores.
+
+        :param window: Number of the latest scores to consider when searching for the pattern
+        :param pattern_size: Size of the pattern
+
+        :return: True or False if the algorithm have converged
+        :rtype: bool
+        """
+        scores = self.scores[: -window - 1 : -1]
+        if len(scores) < 2 * pattern_size:
+            return False
+
+        pattern = scores[:pattern_size]
+        for i in range(pattern_size, window - pattern_size + 1):
+            if pattern == scores[i : i + pattern_size]:
+                return True
+        return False
+
     @property
     def current_mapping(self) -> RawMapping:
-        rows = np.searchsorted(self._rowmap, self._mates.nonzero()[0], side="right") - 1
-        cols = self._colidx[self._mates]
+        rows = (
+            np.searchsorted(
+                self.weights.indptr, self.matches_mask.nonzero()[0], side="right"
+            )
+            - 1
+        )
+        cols = self.weights.indices[self.matches_mask]
         mask = np.intersect1d(
             np.unique(rows, return_index=True)[1], np.unique(cols, return_index=True)[1]
         )
@@ -45,117 +173,7 @@ class BeliefMWM:
 
     @property
     def current_score(self) -> float:
-        return self._weigths[self._mates].sum()
-
-    def _init_indices(self, similarity: SparseMatrix):
-        self._weigths = similarity.data.copy()
-        self._shape = similarity.shape
-        self._dtype = similarity.dtype.type
-        self._colidx = similarity.indices
-        self._rowmap = similarity.indptr
-        self._colmap = np.zeros(similarity.shape[1] + 1, dtype=np.uint32)
-        self._colmap[1:] = np.bincount(
-            similarity.indices, minlength=similarity.shape[1]
-        ).cumsum(dtype=np.uint32)
-        self._tocol = np.argsort(similarity.indices, kind="mergesort").astype(np.uint32)
-        self._torow = np.zeros(similarity.nnz, dtype=np.uint32)
-        self._torow[self._tocol] = np.arange(similarity.nnz, dtype=np.uint32)
-
-    def _init_messages(self):
-        self._x = self._weigths.copy()
-        self._y = self._weigths.copy()
-        self._messages = np.zeros_like(self._weigths)
-        self._mates = np.zeros_like(self._weigths, dtype=bool)
-
-    def _update_messages(self):
-        if self._shape[0] < self._shape[1]:
-            self._update_messages2()
-        else:
-            self._update_messages1()
-
-    def _update_messages1(self):
-        self._x[:] = self._weigths
-        self._x += self._other_colmax(self._y)  # axis=0
-        self._messages[:] = self._x
-        self._y[:] = self._weigths
-        self._y += self._other_rowmax(self._x)  # axis=1
-        self._messages += self._x
-
-    def _update_messages2(self):
-        self._x[:] = self._weigths
-        self._x += self._other_rowmax(self._y)  # axis=1
-        self._messages[:] = self._x
-        self._y[:] = self._weigths
-        self._y += self._other_colmax(self._x)  # axis=0
-        self._messages += self._x
-
-    def _round_messages(self):
-        self._mates[:] = self._messages > 0
-        self._objective.append(self.current_score)
-
-    @property
-    def _rowslice(self) -> Generator[Vector, None, None]:
-        return map(slice, self._rowmap[:-1], self._rowmap[1:])
-
-    @property
-    def _colslice(self) -> Generator[Vector, None, None]:
-        return map(slice, self._colmap[:-1], self._colmap[1:])
-
-    def _other_rowmax(self, vector: Vector) -> Vector:
-        for row in self._rowslice:
-            self._othermax(vector[row])
-        return vector
-
-    def _other_colmax(self, vector: Vector) -> Vector:
-        vector.take(self._tocol, out=vector)
-        for col in self._colslice:
-            self._othermax(vector[col])
-        vector.take(self._torow, out=vector)
-        return vector
-
-    def _othermax(self, vector: Vector):
-        """
-        Compute the maximum value for all elements except (for the maxmimum value)
-        $$x_i = max_{j!=i}{x_j}$$
-        """
-        if len(vector) > 1:
-            arg2, arg1 = np.argpartition(vector, -2)[-2:]
-            max2, max1 = np.maximum(0.0, vector[[arg2, arg1]], dtype=self._dtype)
-            vector[:] = -max1 - self._epsilon
-            vector[arg1] = -max2
-        else:
-            vector[:] = 0.0
-
-    def _update_epsilon(self):
-        if len(self._objective) < 10:
-            return
-        current_score = self._objective[-1] / max(self._mates.sum(), 1)
-        if self._maxscore >= current_score:
-            self._epsilon *= 1.2
-        else:
-            self.best_mapping = self.current_mapping
-            self._best_messages = self._messages.copy()
-            self._maxscore = current_score
-            self._epsilon = self._epsilonref
-
-    def _converged(self, window: int = 60, pattern: int = 15) -> bool:
-        """
-        Decide whether or not the algorithm have converged
-
-        :param m: minimum size of the pattern to match
-        :param w: latest score of the w last function matching
-
-        :return: True or False if the algorithm have converged
-        :rtype: bool
-        """
-        objective = self._objective[: -window + 1 : -1]
-        if len(objective) > pattern:
-            score = objective[0]
-            if score in objective[pattern:]:
-                pivot = objective[pattern:].index(score) + pattern
-                if objective[:pattern] == objective[pivot : pivot + pattern]:
-                    return True
-        return False
+        return self.weights.data[self.matches_mask].sum()
 
 
 class BeliefQAP(BeliefMWM):
@@ -166,64 +184,95 @@ class BeliefQAP(BeliefMWM):
 
     def __init__(
         self,
-        similarity: SparseMatrix,
+        sim_matrix: SparseMatrix,
         squares: SparseMatrix,
         tradeoff: Ratio = 0.5,
         epsilon: Positive = 0.5,
     ):
-        super(BeliefQAP, self).__init__(similarity, epsilon=epsilon)
+        super(BeliefQAP, self).__init__(sim_matrix, epsilon)
         if tradeoff == 1:
             logging.warning("[+] meaningless tradeoff for NAQP")
             squares -= squares
         else:
-            self._weigths *= 2 * tradeoff / (1 - tradeoff)
+            self.weights.data *= 2 * tradeoff / (1 - tradeoff)
         self._init_squares(squares)
 
     @property
     def current_score(self) -> float:
-        objective = super(BeliefQAP, self).current_score
-        objective += self.numsquares * 2
-        return objective
+        score = super(BeliefQAP, self).current_score
+        score += self.numsquares * 2
+        return score
 
     @property
     def numsquares(self) -> int:
-        return self._z[self._mates][:, self._mates].nnz / 2
+        squares = self.msg_h2n[self.matches_mask][:, self.matches_mask]
+        return (squares.sum() + squares.diagonal().sum()) / 2
 
     def _init_squares(self, squares: SparseMatrix):
-        self._z = squares.astype(self._dtype)
-        self._zmax = self._z.data.copy()
-        self._zrownnz = np.diff(squares.indptr)
-        self._ztocol = np.argsort(squares.indices, kind="mergesort")
-        np.clip(self._z.data, 0, self._zmax, out=self._z.data)
+        # Messages from square factor to node. m(h[ii`jj`] -> X[ii`])
+        self.msg_h2n = squares.astype(self._dtype)
 
-    def _update_messages1(self):
-        self._messages[:] = self._weigths
-        self._messages += self._z.sum(0).getA1()
-        self._x[:] = self._messages
-        self._x += self._other_colmax(self._y)  # axis=0
-        self._y[:] = self._messages
-        self._messages[:] = self._x
-        self._y += self._other_rowmax(self._x)  # axis=1
-        self._messages += self._x
+        # The additional weight matrix addressing the squares weights. W[ii`jj`]
+        self.weights_squares = self.msg_h2n.data.copy()
 
-    def _update_messages2(self):
-        self._messages[:] = self._weigths
-        self._messages += self._z.sum(0).getA1()
-        self._x[:] = self._messages
-        self._x += self._other_rowmax(self._y)  # axis=1
-        self._y[:] = self._messages
-        self._messages[:] = self._x
-        self._y += self._other_colmax(self._x)  # axis=0
-        self._messages += self._x
+        # Number of squares (ii`, jj`) for each edge ii`
+        self.squares_per_edge = np.diff(squares.indptr)
 
-    def _round_messages(self):
-        super(BeliefQAP, self)._round_messages()
-        self._clip_z()
+    def update_messages_primary(self):
+        """Update messages starting from the first graph"""
 
-    def _clip_z(self):
-        # self._messages -= self._epsilon * (1 - self._mates)
-        np.take(self._z.data, self._ztocol, out=self._z.data)
-        np.negative(self._z.data, out=self._z.data)
-        self._z.data += np.repeat(self._messages, self._zrownnz)
-        self._z.data += self._zmax
-        np.clip(self._z.data, 0, self._zmax, out=self._z.data)
+        partial = self.weights.data.copy()
+        partial += self.msg_h2n.sum(1).getA1()
+
+        # Update messages from node to f
+        self.msg_n2f.data[:] = partial
+        self.update_factor_g_messages()
+        self.msg_n2f.data += self.msg_g2n.data
+
+        self.marginals.data[:] = self.msg_n2f.data
+
+        # Update messages fron node to g
+        self.msg_n2g.data[:] = partial
+        self.update_factor_f_messages()
+        self.msg_n2g.data += self.msg_f2n.data
+
+        self.marginals.data += self.msg_f2n.data
+
+    def update_messages_secondary(self):
+        """Update messages starting from the second graph"""
+
+        partial = self.weights.data.copy()
+        partial += self.msg_h2n.sum(1).getA1()
+
+        # Update messages from node to g
+        self.msg_n2g.data[:] = partial
+        self.update_factor_f_messages()
+        self.msg_n2g.data += self.msg_f2n.data
+
+        self.marginals.data[:] = self.msg_n2g.data
+
+        # Update messages from node to f
+        self.msg_n2f.data[:] = partial
+        self.update_factor_g_messages()
+        self.msg_n2f.data += self.msg_g2n.data
+
+        self.marginals.data += self.msg_g2n.data
+
+    def round_messages(self):
+        super(BeliefQAP, self).round_messages()
+        self.update_square_factor_messages()
+
+    def update_square_factor_messages(self):
+        # partial is the message from node to square factor m(X[ii`] -> h[ii`jj`])
+        partial = self.msg_h2n.copy()
+        np.negative(partial.data, out=partial.data)
+        partial.data += np.repeat(self.marginals.data, self.squares_per_edge)
+
+        # transpose
+        partial = partial.T.tocsr()
+        positive_partial = np.clip(partial.data, 0, max(0, partial.data.max()))
+
+        tmp = self.weights_squares + partial.data
+        np.clip(tmp, 0, tmp.max(), out=tmp)
+
+        self.msg_h2n.data[:] = tmp - positive_partial
