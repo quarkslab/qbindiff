@@ -134,7 +134,7 @@ class BeliefMWM:
             self.max_avg_score = avg_score
             self.epsilon = self._epsilonref
 
-    def converged(self, window: int = 60, pattern_size: int = 15) -> bool:
+    def has_converged(self, window: int = 60, pattern_size: int = 15) -> bool:
         """
         Decide whether or not the algorithm has converged.
         The algorithm has converged if we can find the same pattern at least once by looking
