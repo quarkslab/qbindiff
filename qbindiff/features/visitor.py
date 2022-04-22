@@ -60,7 +60,7 @@ class Visitor:
     """
 
     def visit(
-        self, it: Iterable, key_fun: Callable = lambda e, i: i
+        self, it: Iterable, key_fun: Callable = lambda _, i: i
     ) -> Dict[Any, FeatureCollector]:
         """
         Function performing the visit on a Iterable object by calling visit_item with a
