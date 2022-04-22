@@ -13,9 +13,7 @@ from qbindiff.features.artefact import LibName, DatName, Constant, ImpName, Addr
 from qbindiff.features.topology import ChildNb, ParentNb, RelativeNb
 
 FEATURES = {
-    MnemonicSimple,
-    MnemonicTyped,
-    GroupsCategory,
+    # FunctionFeatureExtractor
     BBlockNb,
     MeanInsNB,
     GraphMeanDegree,
@@ -24,13 +22,19 @@ FEATURES = {
     GraphDiameter,
     GraphTransitivity,
     GraphCommunities,
+    ChildNb,
+    ParentNb,
+    RelativeNb,
+    # BasicBlockFeatureExtractor
+    # InstructionFeatureExtractor
+    MnemonicSimple,
+    MnemonicTyped,
+    GroupsCategory,
+    Address,
+    # OperandFeatureExtractor
+    # ExpressionFeatureExtractor
     LibName,
     DatName,
     Constant,
     ImpName,
-    ChildNb,
-    ParentNb,
-    RelativeNb,
-    Address
-    # New features should be added here
 }

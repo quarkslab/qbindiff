@@ -1,36 +1,36 @@
-from qbindiff.features.visitor import InstructionFeature, Environment
+from qbindiff.features.visitor import InstructionFeatureExtractor, FeatureCollector
 from qbindiff.loader.instruction import Instruction
 
 
-class MnemonicSimple(InstructionFeature):
+class MnemonicSimple(InstructionFeatureExtractor):
     """Mnemonic of instructions feature"""
 
     name = "mnemonic"
     key = "M"
 
-    def visit_instruction(self, instruction: Instruction, env: Environment):
-        env.inc_dict_feature(self.key, instruction.mnemonic)
+    def visit_instruction(self, instruction: Instruction, collector: FeatureCollector):
+        collector.add_dict_feature(self.key, {instruction.mnemonic: 1})
 
 
-class MnemonicTyped(InstructionFeature):
+class MnemonicTyped(InstructionFeatureExtractor):
     """Mnemonic and type of operand feature"""
 
     name = "mnemonic_typed"
     key = "Mt"
 
-    def visit_instruction(self, instruction: Instruction, env: Environment):
+    def visit_instruction(self, instruction: Instruction, collector: FeatureCollector):
         keycode = "".join(str(x.type.value) for x in instruction.operands)
         key = instruction.mnemonic + keycode
-        env.inc_dict_feature(self.key, key)
+        collector.add_dict_feature(self.key, {key: 1})
 
 
-class GroupsCategory(InstructionFeature):
+class GroupsCategory(InstructionFeatureExtractor):
     """Group of the instruction (FPU, SSE, stack..)"""
 
     name = "groups_category"
     key = "Gp"
 
-    def visit_instruction(self, instruction: Instruction, env: Environment):
+    def visit_instruction(self, instruction: Instruction, collector: FeatureCollector):
         for key in instruction.groups:
             if key not in ["UNDEFINED", "NOTINCS", "NOTINIDA", "DEPRECATED"]:
-                env.inc_dict_feature(self.key, key)
+                collector.add_dict_feature(self.key, {key: 1})

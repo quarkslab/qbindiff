@@ -1,16 +1,4 @@
-from typing import (
-    Iterable,
-    Generator,
-    Iterator,
-    Union,
-    Tuple,
-    List,
-    Set,
-    Dict,
-    Optional,
-    Any,
-    Hashable,
-)
+from typing import Union, Tuple, List, Any, Iterable
 
 import numpy
 from pathlib import Path
@@ -84,9 +72,9 @@ Float nxd-Dimensional array. Each n rows is represented as a dimensionnal featur
 FeatureVectors = numpy.array
 
 """
-Boolean nxn-Dimensional array. Records the node relationships among a graph.
+Boolean nxn-Dimensional array. It's the adjacency matrix representation of the graph.
 """
-AffinityMatrix = numpy.array
+AdjacencyMatrix = numpy.array
 
 """
 Float nxm-Dimensional array. Records the pairwise similarity scores between nodes of both graphs to diff.
@@ -102,3 +90,8 @@ SparseMatrix = csr_matrix
 Path
 """
 PathLike = Union[str, Path]
+
+"""
+A generic Graph, iterable over the nodes
+"""
+Graph = Iterable

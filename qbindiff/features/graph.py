@@ -1,38 +1,38 @@
 import networkx
-from qbindiff.features.visitor import FunctionFeature, Environment
+from qbindiff.features.visitor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader.function import Function
 import community
 
 
-class BBlockNb(FunctionFeature):
+class BBlockNb(FunctionFeatureExtractor):
     """Number of basic blocks in the function"""
 
     name = "bblock_nb"
     key = "bnb"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         value = len(function.flowgraph.nodes)
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class JumpNb(FunctionFeature):
+class JumpNb(FunctionFeatureExtractor):
     """Number of jumps in the function"""
 
     name = "jump_nb"
     key = "jnb"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         value = len(function.flowgraph.edges)
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class MaxParentNb(FunctionFeature):
+class MaxParentNb(FunctionFeatureExtractor):
     """Maximum number of parent of a bblock in the function"""
 
     name = "max_parent_nb"
     key = "maxp"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         # FIXME: Change to use binexport module
         value = max(
             len(
@@ -40,102 +40,102 @@ class MaxParentNb(FunctionFeature):
             )
         )  # WRONG!
         # value = max(len(bb.parents) for bb in function)
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class MaxChildNb(FunctionFeature):
+class MaxChildNb(FunctionFeatureExtractor):
     """Maximum number of children of a bblock in the function"""
 
     name = "max_child_nb"
     key = "maxc"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         # FIXME: Change to use binexport module
         value = max(
             len(function.flowgraph.successors(bblock) for bblock in function.flowgraph)
         )  # WRONG!
         # value = max(len(bb.children) for bb in function)
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class MaxInsNB(FunctionFeature):
+class MaxInsNB(FunctionFeatureExtractor):
     """Max number of instructions per basic blocks in the function"""
 
     name = "max_ins_nb"
     key = "maxins"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         value = max(len(bblock) for bblock in function)
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class MeanInsNB(FunctionFeature):
+class MeanInsNB(FunctionFeatureExtractor):
     """Mean number of instructions per basic blocks in the function"""
 
     name = "mean_ins_nb"
     key = "meanins"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         value = sum(len(bblock) for bblock in function) / len(function)
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class InstNB(FunctionFeature):
+class InstNB(FunctionFeatureExtractor):
     """Number of instructions per basic blocks in the function"""
 
     name = "ins_nb"
     key = "inb"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         value = sum(len(bblock) for bblock in function)
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class GraphMeanDegree(FunctionFeature):
+class GraphMeanDegree(FunctionFeatureExtractor):
     """Mean degree of the function"""
 
     name = "graph_mean_degree"
     key = "Gmd"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         n_node = len(function.flowgraph)
         value = (
             sum(x for a, x in function.flowgraph.degree) / n_node if n_node != 0 else 0
         )
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class GraphDensity(FunctionFeature):
+class GraphDensity(FunctionFeatureExtractor):
     """Density of the function flow graph"""
 
     name = "graph_density"
     key = "Gd"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         value = networkx.density(function.flowgraph)
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class GraphNbComponents(FunctionFeature):
+class GraphNbComponents(FunctionFeatureExtractor):
     """Number of components in the function (non-connected flow graphs)"""
 
     name = "graph_num_components"
     key = "Gnc"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         value = len(
             list(networkx.connected_components(function.flowgraph.to_undirected()))
         )
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class GraphDiameter(FunctionFeature):
+class GraphDiameter(FunctionFeatureExtractor):
     """Diamater of the function flow graph"""
 
     name = "graph_diameter"
     key = "Gdi"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         components = list(
             networkx.connected_components(function.flowgraph.to_undirected())
         )
@@ -148,30 +148,30 @@ class GraphDiameter(FunctionFeature):
             )
         else:
             value = 0
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class GraphTransitivity(FunctionFeature):
+class GraphTransitivity(FunctionFeatureExtractor):
     """Transitivity of the function flow graph"""
 
     name = "graph_transitivity"
     key = "Gt"
 
-    def visit_function(self, function: Function, env: Environment):
+    def visit_function(self, function: Function, collector: FeatureCollector):
         value = networkx.transitivity(function.flowgraph)
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
 
 
-class GraphCommunities(FunctionFeature):
+class GraphCommunities(FunctionFeatureExtractor):
     """Number of graph communities (Louvain modularity)"""
 
     name = "graph_community"
     key = "Gcom"
 
-    def visit_function(self, function: Function, env: Environment) -> None:
+    def visit_function(self, function: Function, collector: FeatureCollector) -> None:
         partition = community.best_partition(function.flowgraph.to_undirected())
         if len(function) > 1:
             value = max(x for x in partition.values() if x != function.addr)
         else:
             value = 0
-        env.add_feature(self.key, value)
+        collector.add_feature(self.key, value)

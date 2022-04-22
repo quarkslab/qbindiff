@@ -122,7 +122,7 @@ or configure git to automatically ignore that revision with
 $ git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
-_Please note that GitLab doesn't blame interface doesn't support this feature yet (but there's an [open issue](https://gitlab.com/gitlab-org/gitlab/-/issues/31423))
+_Please note that GitLab blame interface doesn't support this feature yet (but there's an [open issue](https://gitlab.com/gitlab-org/gitlab/-/issues/31423))_
 
 TODO LIST
 ---------
