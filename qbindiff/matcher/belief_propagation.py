@@ -23,6 +23,8 @@ class BeliefMWM:
 
         self.scores = []
         self.max_avg_score = 0.0
+        self.best_mapping = None
+        self.best_marginals = None
         self.epsilon = self._dtype(epsilon)
         self._epsilonref = self.epsilon.copy()
 
