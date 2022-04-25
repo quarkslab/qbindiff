@@ -22,36 +22,28 @@ cache:
     - .cache/pip
     - venv/
 
+stages:
+  - build
+  - test
+
 before_script:
   - python --version  # For debugging
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
 
+build:
+  stage: build
+  script:
+    # Build lapjv enforcing AVX2
+    - pip install numpy
+    - "git clone https://github.com/src-d/lapjv"
+    - "sed -ie 's/march=native/mavx2/g' lapjv/setup.py"
+    - "cd lapjv && python setup.py install && cd .."
+
+    # Build qbindiff
+    - python setup.py install
+
 test:
   script:
     - python test.py -v
-    - pip install tox flake8  # you can also use tox
-    - tox -e py36,flake8
-
-run:
-  script:
-    - python setup.py bdist_wheel
-    # an alternative approach is to install and run:
-    - pip install dist/*
-    # run the command here
-  artifacts:
-    paths:
-      - dist/*.whl
-
-pages:
-  script:
-    - pip install sphinx sphinx-rtd-theme
-    - cd doc
-    - make html
-    - mv build/html/ ../public/
-  artifacts:
-    paths:
-      - public
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
