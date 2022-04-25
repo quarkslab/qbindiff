@@ -19,4 +19,7 @@ setup(
         "networkx",
         "python-louvain",
     ],
+    extras_require={
+        'QBinExport backend': ['qbinexport'],
+    },
 )
