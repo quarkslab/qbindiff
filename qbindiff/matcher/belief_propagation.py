@@ -48,7 +48,7 @@ class BeliefMWM:
             self.round_messages()
             self.update_epsilon()
             yield niter
-            if self.converged():
+            if self.has_converged():
                 logging.info("[+] Converged after %i iterations" % niter)
                 return
         logging.info("[+] Did not converged after %i iterations" % maxiter)
