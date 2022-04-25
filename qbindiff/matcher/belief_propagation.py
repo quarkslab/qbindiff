@@ -23,6 +23,8 @@ class BeliefMWM:
 
         self.scores = []
         self.max_avg_score = 0.0
+        self.best_mapping = None
+        self.best_marginals = None
         self.epsilon = self._dtype(epsilon)
         self._epsilonref = self.epsilon.copy()
 
@@ -48,7 +50,7 @@ class BeliefMWM:
             self.round_messages()
             self.update_epsilon()
             yield niter
-            if self.converged():
+            if self.has_converged():
                 logging.info("[+] Converged after %i iterations" % niter)
                 return
         logging.info("[+] Did not converged after %i iterations" % maxiter)
