@@ -49,7 +49,7 @@ class BinaryTest(unittest.TestCase):
 
         s = matcher.sparse_sim_matrix.copy()
         s.data[:] = belief.best_marginals.data
-        mapping = matcher._refine(belief.current_mapping, s)
+        mapping = matcher.refine(belief.current_mapping, s)
 
         with open(self.base_path + results) as fp:
             expected = json.load(fp)
@@ -121,7 +121,7 @@ class GraphTest(unittest.TestCase):
 
         s = matcher.sparse_sim_matrix.copy()
         s.data[:] = belief.best_marginals.data
-        mapping = matcher._refine(belief.current_mapping, s)
+        mapping = matcher.refine(belief.current_mapping, s)
 
         with open(self.base_path + result) as fp:
             expected = json.load(fp)
