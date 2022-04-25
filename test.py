@@ -150,7 +150,9 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=30
 def main(verbose):
     verbosity = 2 if verbose else 1
     runner = unittest.TextTestRunner(verbosity=verbosity)
-    runner.run(suite())
+    result = runner.run(suite())
+    if not result.wasSuccessful():
+        exit(1)
 
 
 if __name__ == "__main__":
