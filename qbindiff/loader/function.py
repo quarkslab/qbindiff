@@ -1,21 +1,19 @@
 import networkx
-from qbindiff.loader.types import LoaderType, FunctionType
-
 from typing import Set
+
+from qbindiff.loader.types import LoaderType, FunctionType
 from qbindiff.types import Addr
-
-
-BasicBlock = list
 
 
 class Function(dict):
     """
     Function representation of a binary function. This class is a dict
-    of basic block addreses to the basic block (list of instruction).
+    of basic block addreses to the basic block.
     """
 
     def __init__(self, loader, *args, **kwargs):
-        super(dict, self).__init__()
+        super(Function, self).__init__()
+
         self._backend = None
         if loader == LoaderType.binexport:
             self.load_binexport(*args, **kwargs)
