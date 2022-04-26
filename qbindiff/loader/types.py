@@ -10,6 +10,7 @@ class LoaderType(IntEnum):
     binexport = 1
     diaphora = 2
     ida = 3
+    qbinexport = 4
 
 
 class OperandType(IntEnum):
@@ -43,3 +44,4 @@ class FunctionType(IntEnum):
     imported = 2
     thunk = 3
     invalid = 4
+    extern = 5

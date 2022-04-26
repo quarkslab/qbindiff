@@ -19,6 +19,8 @@ class Function(dict):
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
+        elif loader == LoaderType.qbinexport:
+            self.load_qbinexport(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
@@ -34,6 +36,11 @@ class Function(dict):
         from qbindiff.loader.backend.ida import FunctionBackendIDA
 
         self._backend = FunctionBackendIDA(self, addr)
+
+    def load_qbinexport(self, *args, **kwargs):
+        from qbindiff.loader.backend.qbinexport import FunctionBackendQBinExport
+
+        self._backend = FunctionBackendQBinExport(self, *args, **kwargs)
 
     @property
     def edges(self):

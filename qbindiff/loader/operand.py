@@ -1,10 +1,10 @@
 from qbindiff.loader.types import LoaderType
 
 # typing imports
-from typing import Dict, Iterator
+from collections.abc import Iterator
 from qbindiff.loader.types import OperandType
 
-Expr = Dict[
+Expr = dict[
     str, str
 ]  # each dict contains two keys 'types' and 'value' with their associated value
 
@@ -15,16 +15,18 @@ class Operand(object):
     backend implementation
     """
 
-    def __init__(self, loader, *args):
+    def __init__(self, loader, *args, **kwargs):
         self._backend = None
         if loader == LoaderType.binexport:
-            self.load_binexport(*args)
+            self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
-            self.load_ida(*args)
+            self.load_ida(*args, **kwargs)
+        elif loader == LoaderType.qbinexport:
+            self.load_qbinexport(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
-    def load_binexport(self, *args) -> None:
+    def load_binexport(self, *args, **kwargs) -> None:
         """
         Load the operand using the data of the binexport file
         :param args: program, function, and operand index
@@ -44,6 +46,12 @@ class Operand(object):
         from qbindiff.loader.backend.ida import OperandBackendIDA
 
         self._backend = OperandBackendIDA(op_t, ea)
+
+    def load_qbinexport(self, *args, **kwargs) -> None:
+        """Load the operand using the qbinexport backend"""
+        from qbindiff.loader.backend.qbinexport import OperandBackendQBinExport
+
+        self._backend = OperandBackendQBinExport(self, *args, **kwargs)
 
     @property
     def type(self) -> OperandType:
