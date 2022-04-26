@@ -1,13 +1,16 @@
-from __future__ import absolute_import
 import logging
 import networkx
 
+from qbindiff.loader.backend import (
+    AbstractProgramBackend,
+    AbstractFunctionBackend,
+    AbstractInstructionBackend,
+    AbstractOperandBackend,
+)
 from qbindiff.loader.backend.binexport2_pb2 import BinExport2
-from qbindiff.loader.types import OperandType, FunctionType
-from qbindiff.loader.function import Function
-from qbindiff.loader.instruction import Instruction
-from qbindiff.loader.operand import Operand
-from qbindiff.loader.types import LoaderType
+from qbindiff.loader import Program, Function, Instruction, Operand
+from qbindiff.loader.types import LoaderType, FunctionType, OperandType
+from qbindiff.types import Addr
 
 
 # === General purpose binexport functions ===
@@ -40,7 +43,7 @@ def _get_basic_block_addr(pb, bb_idx):
 # ===========================================
 
 
-class OperandBackendBinexport:
+class OperandBackendBinexport(AbstractOperandBackend):
 
     __sz_lookup = {
         "b1": 1,
@@ -64,6 +67,8 @@ class OperandBackendBinexport:
     }
 
     def __init__(self, program, fun, inst, op_idx):
+        super(OperandBackendBinexport, self).__init__()
+
         self._program = program
         self._function = fun
         self._instruction = inst
@@ -194,8 +199,10 @@ class OperandBackendBinexport:
         return "<Op:%s>" % str(self)
 
 
-class InstructionBackendBinExport:
+class InstructionBackendBinExport(AbstractInstructionBackend):
     def __init__(self, program, fun, addr, i_idx):
+        super(InstructionBackendBinExport, self).__init__()
+
         self._addr = addr
         self._program = program
         self._function = fun
@@ -250,14 +257,17 @@ class InstructionBackendBinExport:
         return self.addr in self._program
 
 
-class FunctionBackendBinExport(object):
+class FunctionBackendBinExport(AbstractFunctionBackend):
     def __init__(
         self, fun, program, data_refs, addr_refs, pb_fun, is_import=False, addr=None
     ):
+        super(FunctionBackendBinExport, self).__init__()
+
+        # Private attributes
         self._function = fun
-        self.addr = addr
-        self.parents = set()
-        self.children = set()
+        self._addr = addr
+        self._parents = set()
+        self._children = set()
         self._graph = networkx.DiGraph()
         self._pb_type = None  # Set by the Program constructor
         self._name = None  # Set by the Program constructor (mangled name)
@@ -265,7 +275,7 @@ class FunctionBackendBinExport(object):
         if is_import:
             return
 
-        self.addr = _get_basic_block_addr(program.proto, pb_fun.entry_basic_block_index)
+        self._addr = _get_basic_block_addr(program.proto, pb_fun.entry_basic_block_index)
 
         cur_addr = None
         prev_idx = -2
@@ -346,8 +356,23 @@ class FunctionBackendBinExport(object):
             self._graph.add_edge(bb_src, bb_dst)
 
     @property
+    def addr(self) -> Addr:
+        """The address of the function"""
+        return self._addr
+
+    @property
     def graph(self) -> networkx.DiGraph:
         return self._graph
+
+    @property
+    def parents(self) -> set[Addr]:
+        """Set of function parents in the call graph"""
+        return self._parents
+
+    @property
+    def children(self) -> set[Addr]:
+        """Set of function children in the call graph"""
+        return self._children
 
     @property
     def function(self):
@@ -379,12 +404,14 @@ class FunctionBackendBinExport(object):
         return self.type == FunctionType.imported
 
 
-class ProgramBackendBinExport(object):
-    def __init__(self, program, file):
+class ProgramBackendBinExport(AbstractProgramBackend):
+    def __init__(self, program: Program, file: str):
+        super(ProgramBackendBinExport, self).__init__()
+
         self._program = program
         self._pb = BinExport2()
         with open(file, "rb") as f:
-            self._pb.ParseFromString(f.read())
+            self.proto.ParseFromString(f.read())
         self._mask = (
             0xFFFFFFFF if self.architecture.endswith("32") else 0xFFFFFFFFFFFFFFFF
         )
