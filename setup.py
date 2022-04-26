@@ -20,6 +20,6 @@ setup(
         "python-louvain",
     ],
     extras_require={
-        'QBinExport backend': ['qbinexport'],
+        "QBinExport backend": ["qbinexport"],
     },
 )
