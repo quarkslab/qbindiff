@@ -10,7 +10,7 @@ setup(
     packages=find_packages(),
     scripts=["bin/qbindiff"],
     install_requires=[
-        "protobuf",
+        "protobuf == 3.*",
         "click",
         "tqdm",
         "numpy",
