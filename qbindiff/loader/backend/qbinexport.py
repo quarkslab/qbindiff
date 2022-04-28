@@ -176,7 +176,7 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
             self._name = self.qb_func.name
         return self._name
 
-    @type.setter
+    @name.setter
     def name(self, value: str) -> None:
         self._name = value
 

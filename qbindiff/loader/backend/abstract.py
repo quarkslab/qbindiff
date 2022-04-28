@@ -122,19 +122,18 @@ class AbstractFunctionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def is_import(self) -> bool:
-        """True if the function is imported"""
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
     def name(self) -> str:
         """The name of the function"""
         raise NotImplementedError()
 
-    @type.setter
+    @name.setter
     @abstractmethod
     def name(self, value: str) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def is_import(self) -> bool:
+        """True if the function is imported"""
         raise NotImplementedError()
 
 
