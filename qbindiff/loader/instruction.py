@@ -19,7 +19,7 @@ class Instruction:
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
-    def load_binexport(self, *args) -> None:
+    def load_binexport(self, *args, **kwargs) -> None:
         """
         Load the Instruction using the protobuf data
         :param args: program, function, addr, protobuf index
@@ -27,7 +27,7 @@ class Instruction:
         """
         from qbindiff.loader.backend.binexport import InstructionBackendBinExport
 
-        self._backend = InstructionBackendBinExport(*args)
+        self._backend = InstructionBackendBinExport(*args, **kwargs)
 
     def load_ida(self, addr) -> None:
         """

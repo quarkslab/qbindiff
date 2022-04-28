@@ -9,7 +9,7 @@ Expr = dict[
 ]  # each dict contains two keys 'types' and 'value' with their associated value
 
 
-class Operand(object):
+class Operand:
     """
     Represent an operand object which hide the underlying
     backend implementation
@@ -34,7 +34,7 @@ class Operand(object):
         """
         from qbindiff.loader.backend.binexport import OperandBackendBinexport
 
-        self._backend = OperandBackendBinexport(*args)
+        self._backend = OperandBackendBinexport(*args, **kwargs)
 
     def load_ida(self, op_t, ea) -> None:
         """
