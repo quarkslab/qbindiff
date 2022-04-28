@@ -31,6 +31,7 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
+  - pip list  # For debugging
 
 build:
   stage: build
