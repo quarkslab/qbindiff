@@ -1,4 +1,5 @@
 from qbindiff.loader.types import LoaderType
+from qbindiff.types import Addr
 
 
 class BasicBlock(list):
@@ -31,3 +32,8 @@ class BasicBlock(list):
         from qbindiff.loader.backend.qbinexport import BasicBlockBackendQBinExport
 
         self._backend = BasicBlockBackendQBinExport(self, *args, **kwargs)
+
+    @property
+    def addr(self) -> Addr:
+        """Address of the basic block"""
+        return self._backend.addr

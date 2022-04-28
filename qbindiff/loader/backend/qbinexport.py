@@ -83,8 +83,16 @@ class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
     def __init__(self, basic_block: BasicBlock, qb_block: qbBlock):
         super(BasicBlockBackendQBinExport, self).__init__()
 
+        # Private attributes
+        self._addr = qb_block.start
+
         for instr in qb_block.instructions:
             basic_block.append(Instruction(LoaderType.qbinexport, instr))
+
+    @property
+    def addr(self) -> Addr:
+        """The address of the basic block"""
+        return self._addr
 
 
 class FunctionBackendQBinExport(AbstractFunctionBackend):

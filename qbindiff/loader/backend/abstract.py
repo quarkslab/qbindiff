@@ -76,7 +76,11 @@ class AbstractBasicBlockBackend(metaclass=ABCMeta):
     It represent a generic backend loader for a BasicBlock
     """
 
-    pass
+    @property
+    @abstractmethod
+    def addr(self) -> Addr:
+        """The address of the basic block"""
+        raise NotImplementedError()
 
 
 class AbstractFunctionBackend(metaclass=ABCMeta):
