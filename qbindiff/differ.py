@@ -159,6 +159,7 @@ class Differ:
         """
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is then converted into a binary-based format.
+
         :param sparsity_ratio: ratio of most probable correspondences to consider during the matching
         :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0) and edge similarity (tradeoff=0.0)
         :param epsilon: perturbation parameter to enforce convergence and speed up computation. The greatest the fastest, but least accurate
@@ -174,7 +175,17 @@ class Differ:
         tradeoff: Ratio = 0.75,
         epsilon: Positive = 0.5,
         maxiter: int = 1000,
-    ) -> Generator[int, None, None]:
+    ) -> Generator[int]:
+        """
+        Run the belief propagation algorithm. This method returns a generator the yields
+        the iteration number until the algorithm either converges or reaches `maxiter`
+
+        :param sparsity_ratio: ratio of most probable correspondences to consider during the matching
+        :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0) and edge similarity (tradeoff=0.0)
+        :param epsilon: perturbation parameter to enforce convergence and speed up computation. The greatest the fastest, but least accurate
+        :param maxiter: maximum number of message passing iterations
+        """
+
         self.process()
 
         matcher = Matcher(
