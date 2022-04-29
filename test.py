@@ -150,10 +150,6 @@ class GraphTest(unittest.TestCase):
         matcher._compute_sparse_sim_matrix(0.75)
         matcher._compute_squares_matrix()
 
-        size = matcher.sparse_sim_matrix.nnz
-        bipartite = matcher.sparse_sim_matrix.astype(np.uint32)
-        bipartite.data[:] = np.arange(0, size, dtype=np.uint32)
-
         belief = qbindiff.matcher.belief_propagation.BeliefQAP(
             matcher.sparse_sim_matrix, matcher.squares_matrix, 0, 0.5
         )
