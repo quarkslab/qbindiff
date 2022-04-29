@@ -1,4 +1,4 @@
-from qbindiff.features.visitor import FunctionFeatureExtractor, FeatureCollector
+from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader.function import Function
 
 

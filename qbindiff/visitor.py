@@ -1,81 +1,50 @@
-from typing import List, Set, Any, Iterable, Dict, Union, Callable
-from collections import defaultdict
+from abc import ABCMeta, abstractmethod
+from collections.abc import Iterable
+from typing import Any, Callable
 
-from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Expr
-
-
-class FeatureCollector:
-    """
-    Dict wrapper, representing a collection of features where the key is the feature
-    name and the value is the feature score which can be either a number or a dict.
-    """
-
-    def __init__(self):
-        self._features: Dict[str, Union[float, Dict[str, float]]] = {}
-
-    def add_feature(self, key: str, value: float) -> None:
-        self._features.setdefault(key, 0)
-        self._features[key] += value
-
-    def add_dict_feature(self, key: str, value: Dict[str, float]) -> None:
-        self._features.setdefault(key, defaultdict(float))
-        for k, v in value.items():
-            self._features[key][k] += v
-
-    def full_keys(self) -> Dict[str, Set[str]]:
-        """
-        Returns a dict in which keys are the keys of the features and values are the
-        subkeys.
-        Ex: {feature_key1: [], feature_key2: [], ..., feature_keyN: [subkey1, ...], ...}
-        """
-        keys = {}
-        for main_key, feature in self._features.items():
-            keys.setdefault(main_key, set())
-            if isinstance(feature, dict):
-                keys[main_key].update(feature.keys())
-        return keys
-
-    def to_vector(self, key_order: Dict[str, Iterable[str]]) -> List[float]:
-        """
-        Transform the collection to a feature vector
-
-        :param key_order: The order in which the keys are accessed
-        """
-        vector = []
-        for main_key, subkey_list in key_order.items():
-            if subkey_list:
-                feature = self._features.get(main_key, {})
-                for subkey in subkey_list:
-                    vector.append(feature.get(subkey, 0))
-            else:
-                vector.append(self._features.get(main_key, 0))
-
-        return vector
+from qbindiff.loader import Function, BasicBlock, Instruction, Operand, Expr
+from qbindiff.features.extractor import (
+    FeatureCollector,
+    FeatureExtractor,
+    FunctionFeatureExtractor,
+    BasicBlockFeatureExtractor,
+    InstructionFeatureExtractor,
+    OperandFeatureExtractor,
+    ExpressionFeatureExtractor,
+)
+from qbindiff.types import Graph
 
 
-class Visitor:
+class Visitor(metaclass=ABCMeta):
     """
     Abstract class representing interface that a visitor
     must implements to work with a Differ object.
     """
 
+    @property
+    @abstractmethod
+    def feature_extractors(self) -> list[FeatureExtractor]:
+        """Returns the list of registered features extractor"""
+        raise NotImplementedError()
+
     def visit(
-        self, it: Iterable, key_fun: Callable = lambda _, i: i
-    ) -> Dict[Any, FeatureCollector]:
+        self, graph: Graph, key_fun: Callable = lambda _, i: i
+    ) -> dict[Any, FeatureCollector]:
         """
-        Function performing the visit on a Iterable object by calling visit_item with a
+        Function performing the visit on a Graph object by calling visit_item with a
         FeatureCollector meant to be filled.
 
-        :param it: an Iterator.
+        :param graph: the Graph to be visited.
         :param key_fun: a function that takes 2 input arguments, namely the current item and
                         the current iteration number, and returns a unique key for that item.
                         By default the iteration number is used.
-        :return: A Dict in which keys are key_fun(item, i) and values are the FeatureCollector
+        :return: A dict in which keys are key_fun(item, i) and values are the FeatureCollector
         """
         obj_features = {}
-        for i, item in enumerate(it):
+        for i, item in enumerate(graph.items()):
+            _, node = item
             collector = FeatureCollector()
-            self.visit_item(item, collector)
+            self.visit_item(node, collector)
             obj_features[key_fun(item, i)] = collector
         return obj_features
 
@@ -89,61 +58,36 @@ class Visitor:
         """
         raise NotImplementedError()
 
-    def feature_keys(self) -> List[str]:
+    @abstractmethod
+    def register_feature_extractor(self, fte: FeatureExtractor) -> None:
+        """
+        Register an instanciated feature extractor on the visitor.
+
+        :param ft: Feature extractor instance
+        """
         raise NotImplementedError()
 
-    def feature_weight(self, key: str) -> float:
-        raise NotImplementedError()
 
-
-class FeatureExtractor:
+class NoVisitor(Visitor):
     """
-    Abstract class that represent a feature extractor which sole contraints are to
-    define name, key and a function call that is to be called by the visitor.
+    Trivial visitor that doesn't traverse the items
     """
-
-    name = ""
-    key = ""
-
-    def __init__(self, weight: float = 1.0):
-        self._weight = weight
 
     @property
-    def weight(self):
-        return self._weight
+    def feature_extractors(self) -> list[FeatureExtractor]:
+        return []
 
-    @weight.setter
-    def weight(self, value: float) -> None:
-        self._weight = value
+    def visit(
+        self, it: Iterable, key_fun: Callable = lambda _, i: i
+    ) -> dict[Any, FeatureCollector]:
+        return {
+            key_fun(item, i): FeatureCollector() for i, item in enumerate(it.items())
+        }
 
-
-class FunctionFeatureExtractor(FeatureExtractor):
-    def visit_function(self, function: Function, collector: FeatureCollector) -> None:
-        raise NotImplementedError()
-
-
-class BasicBlockFeatureExtractor(FeatureExtractor):
-    def visit_basic_block(
-        self, basicblock: BasicBlock, collector: FeatureCollector
-    ) -> None:
-        raise NotImplementedError()
-
-
-class InstructionFeatureExtractor(FeatureExtractor):
-    def visit_instruction(
-        self, instruction: Instruction, collector: FeatureCollector
-    ) -> None:
-        raise NotImplementedError()
-
-
-class OperandFeatureExtractor(FeatureExtractor):
-    def visit_operand(self, operand: Operand, collector: FeatureCollector) -> None:
-        raise NotImplementedError()
-
-
-class ExpressionFeatureExtractor(FeatureExtractor):
-    def visit_expression(self, expr: Expr, collector: FeatureCollector) -> None:
-        raise NotImplementedError()
+    def register_feature_extractor(self, fte: FeatureExtractor) -> None:
+        logging.warning(
+            f"NoVisitor is being used. The feature {fte.key} will be ignored"
+        )
 
 
 class ProgramVisitor(Visitor):
@@ -184,7 +128,6 @@ class ProgramVisitor(Visitor):
         Register an instanciated feature extractor on the visitor.
 
         :param ft: Feature extractor instance
-        :param weight: Weight to apply to the feature
         :return: None
         """
         assert isinstance(fte, FeatureExtractor)
@@ -289,14 +232,6 @@ class ProgramVisitor(Visitor):
         # Call all callbacks attached to an expression
         for callback in self.expression_callbacks:
             callback(expression, collector)
-
-    def feature_keys(self) -> List[str]:
-        return list(self.features.keys())
-
-    def get_features_weight(self) -> Dict[str, float]:
-        return {
-            key: extractor.weight for key, extractor in self._feature_extractors.items()
-        }
 
     @property
     def feature_extractors(self):
