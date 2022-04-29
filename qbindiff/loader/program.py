@@ -1,11 +1,13 @@
 import networkx
-from typing import Callable, Union
+from typing import Callable, Union, Any
+from collections.abc import Iterator
 
+from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Function
 from qbindiff.loader.types import LoaderType
 
 
-class Program(dict):
+class Program(dict, GenericGraph):
     """
     Program class that shadows the underlying program backend used.
     It inherits from dict which keys are function addresses and
@@ -60,6 +62,33 @@ class Program(dict):
 
     def __repr__(self):
         return "<Program:%s>" % self.name
+
+    def items(self) -> Iterator[tuple[Any, Any]]:
+        """Return an iterator over the items. Each item is {node_label: node}"""
+        for addr in self.keys():
+            f = self[addr]
+            if self._filter(f):  # yield function only if filter agree to keep it
+                yield (addr, f)
+
+    @property
+    def node_labels(self) -> Iterator[Any]:
+        """Return an iterator over the node labels"""
+        for addr in self.keys():
+            if self._filter(self[addr]):
+                yield addr
+
+    @property
+    def nodes(self) -> Iterator[Any]:
+        """Return an iterator over the nodes"""
+        yield from self.__iter__()
+
+    @property
+    def edges(self) -> Iterator[tuple[Any, Any]]:
+        """
+        Return an iterator over the edges.
+        An edge is a pair (node_label_a, node_label_b)
+        """
+        return self.callgraph.edges
 
     @property
     def name(self) -> str:
