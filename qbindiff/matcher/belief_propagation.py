@@ -272,9 +272,9 @@ class BeliefQAP(BeliefMWM):
 
         # transpose
         partial = partial.T.tocsr()
-        positive_partial = np.clip(partial.data, 0, max(0, partial.data.max()))
+        positive_partial = np.clip(partial.data, 0, partial.data.max(initial=0))
 
         tmp = self.weights_squares + partial.data
-        np.clip(tmp, 0, tmp.max(), out=tmp)
+        np.clip(tmp, 0, tmp.max(initial=0), out=tmp)
 
         self.msg_h2n.data[:] = tmp - positive_partial
