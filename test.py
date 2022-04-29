@@ -55,7 +55,7 @@ class BinaryTest(unittest.TestCase):
             expected = json.load(fp)
 
         output = list(map(list, zip(mapping[0], mapping[1])))
-        self.assertEqual(output, expected)
+        self.assertEqual(sorted(output), sorted(expected))
 
     def test_binaries(self):
         for f1, f2, results in self.units:
@@ -74,6 +74,12 @@ class GraphSimTest(unittest.TestCase):
                 "simple-graph.2",
                 "simple-graph.similarity",
                 "simple-graph.output",
+            ),
+            (
+                "partial-match.1",
+                "partial-match.2",
+                "partial-match.similarity",
+                "partial-match.output",
             ),
         )
 
@@ -110,7 +116,7 @@ class GraphSimTest(unittest.TestCase):
             expected = json.load(fp)
 
         output = list(map(list, zip(mapping[0], mapping[1])))
-        self.assertEqual(output, expected)
+        self.assertEqual(sorted(output), sorted(expected))
 
     def test_sim_graphs(self):
         for g1, g2, sim, res in self.units:
