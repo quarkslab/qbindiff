@@ -167,7 +167,7 @@ class Matcher:
             yield niter
 
         score_matrix = self.sparse_sim_matrix.copy()
-        score_matrix.data[:] = belief.best_marginals
+        score_matrix.data[:] = belief.best_marginals.data
         self._mapping = self.refine(belief.best_mapping, score_matrix)
 
     def refine(self, mapping: RawMapping, score_matrix: SimMatrix) -> RawMapping:
