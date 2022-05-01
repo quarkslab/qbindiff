@@ -5,11 +5,10 @@ from typing import Generator, Iterator, Iterable
 from pathlib import Path
 
 # Import for types
-from typing import Tuple, List, Optional
+from typing import Optional
 from qbindiff.types import Match
 from qbindiff.types import PathLike, Ratio, Idx, Addr, ExtendedMapping, Item
 from qbindiff.loader.program import Program
-
 
 import json
 from collections import namedtuple
