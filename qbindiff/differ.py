@@ -50,6 +50,53 @@ class Differ:
 
         self.mapping = None
 
+    def _convert_mapping(self, mapping: RawMapping) -> Mapping:
+        primary_idx, secondary_idx = mapping
+        get_node = lambda idx, graph, map_i2n: graph[map_i2n[idx]]
+        get_node_primary = lambda idx: get_node(idx, self.primary, self.primary_i2n)
+        get_node_secondary = lambda idx: get_node(
+            idx, self.secondary, self.secondary_i2n
+        )
+
+        # Get the matching nodes
+        primary_matched = map(get_node_primary, primary_idx)
+        secondary_matched = map(get_node_secondary, secondary_idx)
+
+        # Get the unmatched nodes
+        primary_unmatched = set(
+            map(
+                get_node_primary,
+                np.setdiff1d(range(len(self.primary_adj_matrix)), primary_idx),
+            )
+        )
+        secondary_unmatched = set(
+            map(
+                get_node_secondary,
+                np.setdiff1d(range(len(self.secondary_adj_matrix)), secondary_idx),
+            )
+        )
+
+        # Get the similiarity scores
+        similarities = self.sim_matrix[primary_idx, secondary_idx]
+
+        # Get the number of squares for each matching pair. We are counting both squares
+        # in which the pair is a starting pair and the ones in which is a ending pair.
+        #   (n1) <----> (n2) (starting pair)
+        #    |           |
+        #    v           v
+        #   (n3) <----> (n4) (ending pair)
+        common_subgraph = self.primary_adj_matrix[np.ix_(primary_idx, primary_idx)]
+        common_subgraph &= self.secondary_adj_matrix[
+            np.ix_(secondary_idx, secondary_idx)
+        ]
+        squares = common_subgraph.sum(0) + common_subgraph.sum(1)
+
+        return Mapping(
+            zip(primary_matched, secondary_matched, similarities, squares),
+            primary_unmatched,
+            secondary_unmatched,
+        )
+
     def extract_adjacency_matrix(
         self, graph: Graph
     ) -> (AdjacencyMatrix, dict[int, Any], dict[Any, int]):
@@ -158,7 +205,7 @@ class Differ:
     ) -> Mapping:
         """
         Run the belief propagation algorithm. This method hangs until the computation is done.
-        The resulting matching is then converted into a binary-based format.
+        The resulting matching is returned as a Mapping object.
 
         :param sparsity_ratio: ratio of most probable correspondences to consider during the matching
         :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0) and edge similarity (tradeoff=0.0)
@@ -297,51 +344,6 @@ class QBinDiff(Differ):
         # Initialize lookup dict Item -> idx
         self._make_indexes(
             range(len(self.primary_affinity)), range(len(self.secondary_affinity))
-        )
-
-    def _compute_statistics(self, mapping: RawMapping) -> tuple[list[float], list[int]]:
-        idx, idy = mapping
-        similarities = self.sim_matrix[idx, idy]
-        common_subgraph = self.primary_affinity[np.ix_(idx, idx)]
-        common_subgraph &= self.secondary_affinity[np.ix_(idy, idy)]
-        squares = common_subgraph.sum(0) + common_subgraph.sum(1)
-        return similarities, squares
-
-    def _convert_mapping(self, mapping: RawMapping) -> Mapping:
-        idx, idy = mapping
-        similarities, squares = self._compute_statistics(mapping)
-
-        # Get reverse indexes: idx->obj
-        primary_idx_to_item, secondary_idx_to_item = self.__rev_indexes()
-
-        # Retrieve matched items from indexes
-        primary_matched, secondary_matched = [primary_idx_to_item[x] for x in idx], [
-            secondary_idx_to_item[x] for x in idy
-        ]
-
-        # Retrieve unmatched by doing some substractions
-        if isinstance(self._primary_items_to_idx, dict):  # just do set substraction
-            primary_unmatched = (
-                self._primary_items_to_idx.keys() - primary_matched
-            )  # All items mines ones that have been matched
-            secondary_unmatched = (
-                self._secondary_items_to_idx.keys() - secondary_matched
-            )
-        else:  # plays with list indexes to retrieve unmatched
-            primary_unmatched = [
-                primary_idx_to_item[i]
-                for i in range(len(self._primary_items_to_idx))
-                if i not in idx
-            ]
-            secondary_unmatched = [
-                secondary_idx_to_item[i]
-                for i in range(len(self._secondary_items_to_idx))
-                if i not in idx
-            ]
-
-        return Mapping(
-            list(zip(primary_matched, secondary_matched, similarities, squares)),
-            (primary_unmatched, secondary_unmatched),
         )
 
     def diff_program(

@@ -51,7 +51,7 @@ Match = namedtuple("Match", "primary secondary similarity squares")
 """
 An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
 """
-ExtendedMapping = List[Tuple[Item, Item, float, int]]
+ExtendedMapping = Iterable[Tuple[Item, Item, float, int]]
 
 """
 Numpy data type
