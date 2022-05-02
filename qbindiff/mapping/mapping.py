@@ -1,20 +1,9 @@
-# coding: utf-8
 import json
-import sqlite3
-from typing import Generator, Iterator, Iterable
 from pathlib import Path
-
-# Import for types
-from typing import Optional
-from qbindiff.types import Match
-from qbindiff.types import PathLike, Ratio, Idx, Addr, ExtendedMapping, Item
-from qbindiff.loader.program import Program
-
-import json
 from collections import namedtuple
+from typing import Optional, Generator, Iterator, Iterable
 
-from qbindiff.types import Addr
-from typing import Optional, Set, Any
+from qbindiff.types import Match, ExtendedMapping, Item
 
 
 class Mapping:
@@ -150,8 +139,8 @@ class Mapping:
         """Returns true if the address in secondary did match with a function in primary"""
         return self.match_secondary(item) is not None
 
-    @staticmethod
-    def from_file(filename: PathLike) -> "Mapping":
-        with open(filename) as file:
-            mapping = json.load(file)
-        return Mapping(mapping["matched"], mapping["unmatched"])
+    def export_to_bindiff(self, output: str):
+        """Export the mappings to bindiff file format"""
+
+        bindiff = BinDiffFormat(output)
+        bindiff.save(self)
