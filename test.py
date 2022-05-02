@@ -26,35 +26,20 @@ class BinaryTest(unittest.TestCase):
     def basic_test(self, primary, secondary, results):
         p = qbindiff.Program(Path(self.base_path + primary))
         s = qbindiff.Program(Path(self.base_path + secondary))
-        differ = qbindiff.QBinDiff(p, s)
+        differ = qbindiff.QBinDiff(
+            p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5
+        )
 
         for f, w in self.features:
             differ.register_feature_extractor(f, w)
 
         differ.process()
-
-        matcher = qbindiff.Matcher(
-            differ.sim_matrix, differ.primary_adj_matrix, differ.secondary_adj_matrix
-        )
-        matcher._compute_sparse_sim_matrix(0.75)
-        matcher._compute_squares_matrix()
-
-        belief = qbindiff.matcher.belief_propagation.BeliefQAP(
-            matcher.sparse_sim_matrix, matcher.squares_matrix, 0.75, 0.5
-        )
-
-        g = belief.compute(1000)
-        for k in g:
-            pass
-
-        s = matcher.sparse_sim_matrix.copy()
-        s.data[:] = belief.best_marginals.data
-        mapping = matcher.refine(belief.current_mapping, s)
+        mapping = differ.compute_matching()
+        output = [[match.primary.addr, match.secondary.addr] for match in mapping]
 
         with open(self.base_path + results) as fp:
             expected = json.load(fp)
 
-        output = list(map(list, zip(mapping[0], mapping[1])))
         self.assertEqual(sorted(output), sorted(expected))
 
     def test_binaries(self):
@@ -86,36 +71,20 @@ class GraphSimTest(unittest.TestCase):
     def basic_test(self, g1, g2, sim, result):
         graph1 = networkx.read_gml(self.base_path + g1)
         graph2 = networkx.read_gml(self.base_path + g2)
-        differ = qbindiff.DiGraphDiffer(graph1, graph2)
+        differ = qbindiff.DiGraphDiffer(
+            graph1, graph2, sparsity_ratio=0, tradeoff=0.75, epsilon=0.5
+        )
 
-        differ.process()
-
-        # Provide custom sparse matrix
+        # Provide custom similarity matrix
         sparse_sim_matrix = scipy.io.mmread(self.base_path + sim)
         differ.sim_matrix = sparse_sim_matrix.toarray()
 
-        matcher = qbindiff.Matcher(
-            differ.sim_matrix, differ.primary_adj_matrix, differ.secondary_adj_matrix
-        )
-        matcher._compute_sparse_sim_matrix(0.75)
-        matcher._compute_squares_matrix()
-
-        belief = qbindiff.matcher.belief_propagation.BeliefQAP(
-            matcher.sparse_sim_matrix, matcher.squares_matrix, 0.75, 0.5
-        )
-
-        g = belief.compute(1000)
-        for k in g:
-            pass
-
-        s = matcher.sparse_sim_matrix.copy()
-        s.data[:] = belief.best_marginals.data
-        mapping = matcher.refine(belief.current_mapping, s)
+        mapping = differ.compute_matching()
+        output = [[match.primary, match.secondary] for match in mapping]
 
         with open(self.base_path + result) as fp:
             expected = json.load(fp)
 
-        output = list(map(list, zip(mapping[0], mapping[1])))
         self.assertEqual(sorted(output), sorted(expected))
 
     def test_sim_graphs(self):
@@ -140,33 +109,17 @@ class GraphTest(unittest.TestCase):
     def basic_test(self, g1, g2, result):
         graph1 = networkx.read_gml(self.base_path + g1)
         graph2 = networkx.read_gml(self.base_path + g2)
-        differ = qbindiff.DiGraphDiffer(graph1, graph2)
-
-        differ.process()
-
-        matcher = qbindiff.Matcher(
-            differ.sim_matrix, differ.primary_adj_matrix, differ.secondary_adj_matrix
-        )
-        matcher._compute_sparse_sim_matrix(0.75)
-        matcher._compute_squares_matrix()
-
-        belief = qbindiff.matcher.belief_propagation.BeliefQAP(
-            matcher.sparse_sim_matrix, matcher.squares_matrix, 0, 0.5
+        differ = qbindiff.DiGraphDiffer(
+            graph1, graph2, sparsity_ratio=0, tradeoff=0, epsilon=0.5
         )
 
-        g = belief.compute(1000)
-        for k in g:
-            pass
-
-        s = matcher.sparse_sim_matrix.copy()
-        s.data[:] = belief.best_marginals.data
-        mapping = matcher.refine(belief.current_mapping, s)
+        mapping = differ.compute_matching()
+        output = [[match.primary, match.secondary] for match in mapping]
 
         with open(self.base_path + result) as fp:
             expected = json.load(fp)
 
-        output = list(map(list, zip(mapping[0], mapping[1])))
-        self.assertEqual(output, expected)
+        self.assertEqual(sorted(output), sorted(expected))
 
     def test_no_sim_graphs(self):
         for g1, g2, res in self.units:
