@@ -349,56 +349,5 @@ class QBinDiff(Differ):
             range(len(self.primary_affinity)), range(len(self.secondary_affinity))
         )
 
-    def diff_program(
-        self,
-        distance: str = "canberra",
-        sparsity_ratio: Ratio = 0.75,
-        tradeoff: Ratio = 0.75,
-        epsilon: Positive = 0.5,
-        maxiter: int = 1000,
-        anchors: Anchors = None,
-    ) -> Mapping:
-        # Convert networkx callgraphs to numpy array
-        primary_affinity = self._get_affinity_matrix(
-            self.primary.callgraph, self.primary
-        )
-        secondary_affinity = self._get_affinity_matrix(
-            self.secondary.callgraph, self.secondary
-        )
-
-        self.compute_similarity(
-            self.primary,
-            self.secondary,
-            primary_affinity,
-            secondary_affinity,
-            self._visitor,
-            distance,
-        )
-        if anchors:
-            self.set_anchors(anchors)
-        return self.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter)
-
-    def diff_function(
-        self,
-        primary: Function,
-        secondary: Function,
-        anchors: Anchors = None,
-    ) -> Mapping:
-        # Convert networkx callgraphs to numpy array
-        primary_affinity = self._get_affinity_matrix(primary.flowgraph, primary)
-        secondary_affinity = self._get_affinity_matrix(secondary.flowgraph, secondary)
-
-        self.compute_similarity(
-            primary,
-            secondary,
-            primary_affinity,
-            secondary_affinity,
-            self._visitor,
-            distance,
-        )
-        if anchors:
-            self.set_anchors(anchors)
-        return self.compute_matching(sparsity_ratio, tradeoff, epsilon, maxiter)
-
     def save_sqlite(self, filename: PathLike):
         self.mapping.save_sqlite(filename)
