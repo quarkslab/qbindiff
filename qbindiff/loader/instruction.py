@@ -1,24 +1,25 @@
 from qbindiff.loader.types import LoaderType
 
-from typing import List
 from qbindiff.loader.operand import Operand
 
 
-class Instruction(object):
+class Instruction:
     """
     Defines an Instruction object that wrap the backend using under the scene.
     """
 
-    def __init__(self, loader, *args):
+    def __init__(self, loader, *args, **kwargs):
         self._backend = None
         if loader == LoaderType.binexport:
-            self.load_binexport(*args)
+            self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
-            self.load_ida(*args)
+            self.load_ida(*args, **kwargs)
+        elif loader == LoaderType.qbinexport:
+            self.load_qbinexport(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
-    def load_binexport(self, *args) -> None:
+    def load_binexport(self, *args, **kwargs) -> None:
         """
         Load the Instruction using the protobuf data
         :param args: program, function, addr, protobuf index
@@ -26,7 +27,7 @@ class Instruction(object):
         """
         from qbindiff.loader.backend.binexport import InstructionBackendBinExport
 
-        self._backend = InstructionBackendBinExport(*args)
+        self._backend = InstructionBackendBinExport(*args, **kwargs)
 
     def load_ida(self, addr) -> None:
         """
@@ -37,6 +38,12 @@ class Instruction(object):
         from qbindiff.loader.backend.ida import InstructionBackendIDA
 
         self._backend = InstructionBackendIDA(addr)
+
+    def load_qbinexport(self, *args, **kwargs) -> None:
+        """Load the Instruction using the QBinExport backend"""
+        from qbindiff.loader.backend.qbinexport import InstructionBackendQBinExport
+
+        self._backend = InstructionBackendQBinExport(*args, **kwargs)
 
     @property
     def addr(self) -> int:
@@ -55,7 +62,7 @@ class Instruction(object):
         return self._backend.mnemonic
 
     @property
-    def operands(self) -> List[Operand]:
+    def operands(self) -> list[Operand]:
         """
         Returns the list of operands as Operand object.
         Note: The objects are recreated each time this function is called.
@@ -64,7 +71,7 @@ class Instruction(object):
         return self._backend.operands
 
     @property
-    def groups(self) -> List[str]:
+    def groups(self) -> list[str]:
         """
         Returns a list of groups of this instruction. Groups are capstone based
         but enriched.

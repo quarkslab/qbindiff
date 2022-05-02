@@ -23,7 +23,6 @@ cache:
     - venv/
 
 stages:
-  - build
   - test
 
 before_script:
@@ -31,19 +30,18 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
+  - pip list  # For debugging
+  
+  # Build lapjv enforcing AVX2
+  - pip install numpy
+  - "git clone https://github.com/src-d/lapjv"
+  - "sed -ie 's/march=native/mavx2/g' lapjv/setup.py"
+  - "cd lapjv && python setup.py install && cd .."
 
-build:
-  stage: build
-  script:
-    # Build lapjv enforcing AVX2
-    - pip install numpy
-    - "git clone https://github.com/src-d/lapjv"
-    - "sed -ie 's/march=native/mavx2/g' lapjv/setup.py"
-    - "cd lapjv && python setup.py install && cd .."
-
-    # Build qbindiff
-    - python setup.py install
+  # Build qbindiff
+  - python setup.py install
 
 test:
+  stage: test
   script:
     - python test.py -v

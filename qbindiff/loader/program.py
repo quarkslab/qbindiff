@@ -3,28 +3,39 @@ from typing import Callable, Union
 
 from qbindiff.loader import Function
 from qbindiff.loader.types import LoaderType
-from qbindiff.loader.backend.binexport import ProgramBackendBinExport
 
 
 class Program(dict):
     """
-    Program class that shoadows the underlying program backend used.
+    Program class that shadows the underlying program backend used.
     It inherits from dict which keys are function addresses and
     values are Function object.
     """
 
     def __init__(
-        self, file_path: str = None, loader: LoaderType = LoaderType.binexport
+        self,
+        file_path: str = None,
+        loader: LoaderType = LoaderType.binexport,
+        exec_path: str = None,
     ):
-        dict.__init__(self)
+        super(Program, self).__init__()
         self._backend = None
 
         if file_path is None:  # Inside IDA just call Program()
             from qbindiff.loader.backend.ida import ProgramBackendIDA
 
             self._backend = ProgramBackendIDA(self)
+
         elif loader == LoaderType.binexport:
+            from qbindiff.loader.backend.binexport import ProgramBackendBinExport
+
             self._backend = ProgramBackendBinExport(self, file_path)
+
+        elif loader == LoaderType.qbinexport:
+            from qbindiff.loader.backend.qbinexport import ProgramBackendQBinExport
+
+            self._backend = ProgramBackendQBinExport(self, file_path, exec_path)
+
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
         self._filter = lambda x: True

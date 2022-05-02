@@ -1,26 +1,26 @@
 import networkx
-from qbindiff.loader.types import LoaderType, FunctionType
-
 from typing import Set
+
+from qbindiff.loader.types import LoaderType, FunctionType
 from qbindiff.types import Addr
-
-
-BasicBlock = list
 
 
 class Function(dict):
     """
     Function representation of a binary function. This class is a dict
-    of basic block addreses to the basic block (list of instruction).
+    of basic block addreses to the basic block.
     """
 
     def __init__(self, loader, *args, **kwargs):
-        super(dict, self).__init__()
+        super(Function, self).__init__()
+
         self._backend = None
         if loader == LoaderType.binexport:
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
+        elif loader == LoaderType.qbinexport:
+            self.load_qbinexport(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
@@ -36,6 +36,11 @@ class Function(dict):
         from qbindiff.loader.backend.ida import FunctionBackendIDA
 
         self._backend = FunctionBackendIDA(self, addr)
+
+    def load_qbinexport(self, *args, **kwargs):
+        from qbindiff.loader.backend.qbinexport import FunctionBackendQBinExport
+
+        self._backend = FunctionBackendQBinExport(self, *args, **kwargs)
 
     @property
     def edges(self):
