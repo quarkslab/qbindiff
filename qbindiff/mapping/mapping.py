@@ -30,7 +30,7 @@ class Mapping:
     ):
         self._matches = [Match(*x) for x in mapping]
         self._primary_unmatched = unmatched_primary
-        self._secondary_unmatched = unmatched_primary
+        self._secondary_unmatched = unmatched_secondary
 
     def __iter__(self):
         return iter(self._matches)
