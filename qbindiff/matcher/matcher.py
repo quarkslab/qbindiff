@@ -64,7 +64,7 @@ class Matcher:
         ratio = round(sparsity_ratio * self.sim_matrix.size)
 
         if ratio == 0:
-            self.sparse_sim_matrix = self.sim_matrix.astype(bool)
+            self.sparse_sim_matrix = csr_matrix(self.sim_matrix)
             return
         elif ratio == self.sim_matrix.size:
             threshold = self.sim_matrix.max(1, keepdims=True)
