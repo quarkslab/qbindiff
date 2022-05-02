@@ -27,11 +27,32 @@ from qbindiff.types import (
 class Differ:
     """
     Abstract class that perform the NAP diffing between two generic graphs.
+    
+    :param distance: the distance function used when comparing the feature vector
+                     extracted from the graphs
+    :param sparsity_ratio: the sparsity ratio enforced to the similarity matrix
+    :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0)
+                     and edge similarity (tradeoff=0.0)
+    :param epsilon: perturbation parameter to enforce convergence and speed up computation.
+                    The greatest the fastest, but least accurate
+    :param maxiter: maximum number of message passing iterations
     """
 
     DTYPE = np.float32
 
-    def __init__(self, primary: Graph, secondary: Graph, visitor: Visitor = None):
+    def __init__(self, primary: Graph, secondary: Graph, 
+        distance: str = "canberra",
+        sparsity_ratio: Ratio = 0.75,
+        tradeoff: Ratio = 0.75,
+        epsilon: Positive = 0.5,
+        maxiter: int = 1000,visitor: Visitor = None):
+        
+        self.distance = distance
+        self.sparsity_ratio = sparsity_ratio
+        self.tradeoff = tradeoff
+        self.epsilon = epsilon
+        self.maxiter = maxiter
+        
         self.primary = primary
         self.secondary = secondary
         self._visitor = NoVisitor() if visitor is None else visitor
@@ -122,7 +143,7 @@ class Differ:
         extractor = extractorClass(weight)
         self._visitor.register_feature_extractor(extractor)
 
-    def compute_similarity(self, distance: str = "canberra") -> None:
+    def compute_similarity(self) -> None:
         """
         Populate the self.sim_matrix similarity matrix by computing the pairwise
         similarity between the nodes of the two graphs to diff.
@@ -172,7 +193,7 @@ class Differ:
 
         # Generate the similarity matrix
         self.sim_matrix = scipy.spatial.distance.cdist(
-            primary_feature_matrix, secondary_feature_matrix, distance, w=weights
+            primary_feature_matrix, secondary_feature_matrix, self.distance, w=weights
         ).astype(Differ.DTYPE)
 
         # Normalize
@@ -198,39 +219,21 @@ class Differ:
 
     def compute_matching(
         self,
-        sparsity_ratio: Ratio = 0.75,
-        tradeoff: Ratio = 0.75,
-        epsilon: Positive = 0.5,
-        maxiter: int = 1000,
     ) -> Mapping:
         """
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is returned as a Mapping object.
-
-        :param sparsity_ratio: ratio of most probable correspondences to consider during the matching
-        :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0) and edge similarity (tradeoff=0.0)
-        :param epsilon: perturbation parameter to enforce convergence and speed up computation. The greatest the fastest, but least accurate
-        :param maxiter: maximum number of message passing iterations
         """
-        for _ in self.matching_iterator(sparsity_ratio, tradeoff, epsilon, maxiter):
+        for _ in self.matching_iterator():
             pass
         return self.mapping
 
     def matching_iterator(
         self,
-        sparsity_ratio: Ratio = 0.75,
-        tradeoff: Ratio = 0.75,
-        epsilon: Positive = 0.5,
-        maxiter: int = 1000,
     ) -> Generator[int]:
         """
         Run the belief propagation algorithm. This method returns a generator the yields
-        the iteration number until the algorithm either converges or reaches `maxiter`
-
-        :param sparsity_ratio: ratio of most probable correspondences to consider during the matching
-        :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0) and edge similarity (tradeoff=0.0)
-        :param epsilon: perturbation parameter to enforce convergence and speed up computation. The greatest the fastest, but least accurate
-        :param maxiter: maximum number of message passing iterations
+        the iteration number until the algorithm either converges or reaches `self.maxiter`
         """
 
         self.process()
@@ -238,9 +241,9 @@ class Differ:
         matcher = Matcher(
             self.sim_matrix, self.primary_adj_matrix, self.secondary_adj_matrix
         )
-        matcher.process(sparsity_ratio)
+        matcher.process(self.sparsity_ratio)
 
-        yield from matcher.compute(tradeoff, epsilon, maxiter)
+        yield from matcher.compute(self.tradeoff, self.epsilon, self.maxiter)
 
         self.mapping = self._convert_mapping(matcher.mapping)
 
@@ -379,11 +382,6 @@ class QBinDiff(Differ):
         self,
         primary: Function,
         secondary: Function,
-        distance: str = "canberra",
-        sparsity_ratio: Ratio = 0.75,
-        tradeoff: Ratio = 0.75,
-        epsilon: Positive = 0.5,
-        maxiter: int = 1000,
         anchors: Anchors = None,
     ) -> Mapping:
         # Convert networkx callgraphs to numpy array
