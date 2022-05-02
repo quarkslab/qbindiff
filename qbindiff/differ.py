@@ -321,33 +321,3 @@ class QBinDiff(Differ):
 
     def run_filters(self) -> None:
         self.match_import_functions()
-
-    def save(self, filename: str):
-        with open(filename, "w") as file:
-            json.dump(
-                {
-                    "matched": [(x[0].addr, x[1].addr) for x in self.mapping],
-                    "unmatched": [
-                        [x.addr for x in self.mapping.primary_unmatched],
-                        [x.addr for x in self.mapping.secondary_unmatched],
-                    ],
-                },
-                file,
-                indent=2,
-            )
-
-    def load(self):
-        pass
-
-    def initialize_from_file(self, filename: PathLike):
-        data = scipy.io.loadmat(str(filename))
-        self.primary_affinity = data["A"].astype(bool)
-        self.secondary_affinity = data["B"].astype(bool)
-        self.sim_matrix = data["C"].astype(QBinDiff.DTYPE)
-        # Initialize lookup dict Item -> idx
-        self._make_indexes(
-            range(len(self.primary_affinity)), range(len(self.secondary_affinity))
-        )
-
-    def save_sqlite(self, filename: PathLike):
-        self.mapping.save_sqlite(filename)
