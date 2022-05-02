@@ -78,7 +78,7 @@ class Differ:
 
     def _convert_mapping(self, mapping: RawMapping) -> Mapping:
         primary_idx, secondary_idx = mapping
-        get_node = lambda idx, graph, map_i2n: graph[map_i2n[idx]]
+        get_node = lambda idx, graph, map_i2n: graph.get_node(map_i2n[idx])
         get_node_primary = lambda idx: get_node(idx, self.primary, self.primary_i2n)
         get_node_secondary = lambda idx: get_node(
             idx, self.secondary, self.secondary_i2n
@@ -268,6 +268,10 @@ class DiGraphDiffer(Differ):
             """Return an iterator over the items. Each item is {node_label: node} but since"""
             for node in self._graph.nodes:
                 yield (node, node)
+
+        def get_node(self, node_label: Any):
+            """Returns the node identified by the `node_label`"""
+            return node_label
 
         @property
         def node_labels(self) -> Iterator[Any]:
