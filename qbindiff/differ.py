@@ -291,9 +291,9 @@ class DiGraphDiffer(Differ):
             """
             return self._graph.edges
 
-    def __init__(self, primary: DiGraph, secondary: DiGraph):
+    def __init__(self, primary: DiGraph, secondary: DiGraph, **kwargs):
         super(DiGraphDiffer, self).__init__(
-            self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary)
+            self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs
         )
 
 
@@ -304,8 +304,10 @@ class QBinDiff(Differ):
 
     DTYPE = np.float32
 
-    def __init__(self, primary: Program, secondary: Program):
-        super(QBinDiff, self).__init__(primary, secondary, ProgramVisitor())
+    def __init__(self, primary: Program, secondary: Program, **kwargs):
+        super(QBinDiff, self).__init__(
+            primary, secondary, visitor=ProgramVisitor(), **kwargs
+        )
 
         # Aliases
         self.primary_f2i = self.primary_n2i
