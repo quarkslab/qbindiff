@@ -1,4 +1,4 @@
-from qbindiff.features.visitor import (
+from qbindiff.features.extractor import (
     FeatureCollector,
     InstructionFeatureExtractor,
     ExpressionFeatureExtractor,

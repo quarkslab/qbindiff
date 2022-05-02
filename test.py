@@ -31,7 +31,7 @@ class BinaryTest(unittest.TestCase):
         for f, w in self.features:
             differ.register_feature_extractor(f, w)
 
-        differ.compute_similarity()
+        differ.process()
 
         matcher = qbindiff.Matcher(
             differ.sim_matrix, differ.primary_adj_matrix, differ.secondary_adj_matrix
@@ -63,11 +63,11 @@ class BinaryTest(unittest.TestCase):
                 self.basic_test(f1, f2, results)
 
 
-class GraphTest(unittest.TestCase):
-    """Regression tests for generic graphs"""
+class GraphSimTest(unittest.TestCase):
+    """Regression tests for generic graphs with a custom supplied similarity matrix"""
 
     def setUp(self):
-        self.base_path = "test/graphs/"
+        self.base_path = "test/graphs_sim/"
         self.units = (
             (
                 "simple-graph.1",
@@ -80,30 +80,13 @@ class GraphTest(unittest.TestCase):
     def basic_test(self, g1, g2, sim, result):
         graph1 = networkx.read_gml(self.base_path + g1)
         graph2 = networkx.read_gml(self.base_path + g2)
-        differ = qbindiff.Differ(graph1, graph2, None)
+        differ = qbindiff.DiGraphDiffer(graph1, graph2)
 
+        differ.process()
+
+        # Provide custom sparse matrix
         sparse_sim_matrix = scipy.io.mmread(self.base_path + sim)
-
         differ.sim_matrix = sparse_sim_matrix.toarray()
-
-        graph1_map = {}
-        graph2_map = {}
-        for i, node in enumerate(graph1.nodes):
-            graph1_map[node] = i
-        for i, node in enumerate(graph2.nodes):
-            graph2_map[node] = i
-
-        graph1_N = len(graph1.nodes)
-        graph1_adj = np.zeros((graph1_N, graph1_N), dtype=bool)
-        for x, y in graph1.edges:
-            graph1_adj[graph1_map[x]][graph1_map[y]] = True
-        differ.primary_adj_matrix = graph1_adj
-
-        graph2_N = len(graph2.nodes)
-        graph2_adj = np.zeros((graph2_N, graph2_N), dtype=bool)
-        for x, y in graph2.edges:
-            graph2_adj[graph2_map[x]][graph2_map[y]] = True
-        differ.secondary_adj_matrix = graph2_adj
 
         matcher = qbindiff.Matcher(
             differ.sim_matrix, differ.primary_adj_matrix, differ.secondary_adj_matrix
@@ -129,16 +112,71 @@ class GraphTest(unittest.TestCase):
         output = list(map(list, zip(mapping[0], mapping[1])))
         self.assertEqual(output, expected)
 
-    def test_graphs(self):
+    def test_sim_graphs(self):
         for g1, g2, sim, res in self.units:
             with self.subTest(g1=g1, g2=g2, sim=sim, res=res):
                 self.basic_test(g1, g2, sim, res)
 
 
+class GraphTest(unittest.TestCase):
+    """Regression tests for generic graphs"""
+
+    def setUp(self):
+        self.base_path = "test/graphs_no_sim/"
+        self.units = (
+            (
+                "simple-graph.1",
+                "simple-graph.2",
+                "simple-graph.output",
+            ),
+        )
+
+    def basic_test(self, g1, g2, result):
+        graph1 = networkx.read_gml(self.base_path + g1)
+        graph2 = networkx.read_gml(self.base_path + g2)
+        differ = qbindiff.DiGraphDiffer(graph1, graph2)
+
+        differ.process()
+
+        matcher = qbindiff.Matcher(
+            differ.sim_matrix, differ.primary_adj_matrix, differ.secondary_adj_matrix
+        )
+        matcher._compute_sparse_sim_matrix(0.75)
+        matcher._compute_squares_matrix()
+
+        size = matcher.sparse_sim_matrix.nnz
+        bipartite = matcher.sparse_sim_matrix.astype(np.uint32)
+        bipartite.data[:] = np.arange(0, size, dtype=np.uint32)
+
+        belief = qbindiff.matcher.belief_propagation.BeliefQAP(
+            matcher.sparse_sim_matrix, matcher.squares_matrix, 0, 0.5
+        )
+
+        g = belief.compute(1000)
+        for k in g:
+            pass
+
+        s = matcher.sparse_sim_matrix.copy()
+        s.data[:] = belief.best_marginals.data
+        mapping = matcher.refine(belief.current_mapping, s)
+
+        with open(self.base_path + result) as fp:
+            expected = json.load(fp)
+
+        output = list(map(list, zip(mapping[0], mapping[1])))
+        self.assertEqual(output, expected)
+
+    def test_no_sim_graphs(self):
+        for g1, g2, res in self.units:
+            with self.subTest(g1=g1, g2=g2, res=res):
+                self.basic_test(g1, g2, res)
+
+
 def suite():
     s = unittest.TestSuite()
     s.addTest(BinaryTest("test_binaries"))
-    s.addTest(GraphTest("test_graphs"))
+    s.addTest(GraphSimTest("test_sim_graphs"))
+    s.addTest(GraphTest("test_no_sim_graphs"))
     return s
 
 

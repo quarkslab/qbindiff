@@ -5,6 +5,8 @@ from pathlib import Path
 from scipy.sparse import csr_matrix
 from collections import namedtuple
 
+from qbindiff.abstract import GenericGraph
+
 """
 Float greater than zero
 """
@@ -94,4 +96,4 @@ PathLike = Union[str, Path]
 """
 A generic Graph, iterable over the nodes
 """
-Graph = Iterable
+Graph = GenericGraph
