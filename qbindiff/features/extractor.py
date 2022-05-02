@@ -3,6 +3,7 @@ from collections.abc import Iterable
 from typing import Union
 
 from qbindiff.loader import Function, BasicBlock, Instruction, Operand, Expr
+from qbindiff.types import Positive
 
 
 class FeatureCollector:
@@ -63,15 +64,15 @@ class FeatureExtractor:
     name = ""
     key = ""
 
-    def __init__(self, weight: float = 1.0):
+    def __init__(self, weight: Positive = 1.0):
         self._weight = weight
 
     @property
-    def weight(self):
+    def weight(self) -> Positive:
         return self._weight
 
     @weight.setter
-    def weight(self, value: float) -> None:
+    def weight(self, value: Positive) -> None:
         self._weight = value
 
 
