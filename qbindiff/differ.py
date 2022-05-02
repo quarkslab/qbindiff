@@ -27,7 +27,7 @@ from qbindiff.types import (
 class Differ:
     """
     Abstract class that perform the NAP diffing between two generic graphs.
-    
+
     :param distance: the distance function used when comparing the feature vector
                      extracted from the graphs
     :param sparsity_ratio: the sparsity ratio enforced to the similarity matrix
@@ -40,19 +40,24 @@ class Differ:
 
     DTYPE = np.float32
 
-    def __init__(self, primary: Graph, secondary: Graph, 
+    def __init__(
+        self,
+        primary: Graph,
+        secondary: Graph,
         distance: str = "canberra",
         sparsity_ratio: Ratio = 0.75,
         tradeoff: Ratio = 0.75,
         epsilon: Positive = 0.5,
-        maxiter: int = 1000,visitor: Visitor = None):
-        
+        maxiter: int = 1000,
+        visitor: Visitor = None,
+    ):
+
         self.distance = distance
         self.sparsity_ratio = sparsity_ratio
         self.tradeoff = tradeoff
         self.epsilon = epsilon
         self.maxiter = maxiter
-        
+
         self.primary = primary
         self.secondary = secondary
         self._visitor = NoVisitor() if visitor is None else visitor
