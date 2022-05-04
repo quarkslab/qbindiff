@@ -1,5 +1,6 @@
 from qbindiff.loader.types import LoaderType
 
+capstoneValue = Any  # Don't import the whole capstone module just for the typing
 
 class Operand:
     """
@@ -51,6 +52,11 @@ class Operand:
         :return: int
         """
         return self._backend.type
+
+    @property
+    def value(self) -> capstoneValue:
+        """Returns the capstone operand value"""
+        return self._backend.value
 
     def __str__(self):
         return str(self._backend)

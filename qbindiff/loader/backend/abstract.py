@@ -6,6 +6,7 @@ from qbindiff.loader import Operand
 from qbindiff.loader.types import FunctionType
 from qbindiff.types import Addr
 
+capstoneValue = Any  # Don't import the whole capstone module just for the typing
 
 class AbstractOperandBackend(metaclass=ABCMeta):
     """
@@ -21,6 +22,12 @@ class AbstractOperandBackend(metaclass=ABCMeta):
     @abstractmethod
     def type(self) -> int:
         """Returns the capstone operand type"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def value(self) -> capstoneValue:
+        """Returns the capstone operand value"""
         raise NotImplementedError()
 
 

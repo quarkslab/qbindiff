@@ -20,6 +20,7 @@ qbBlock = qbinexport.block.Block
 qbInstruction = qbinexport.instruction.Instruction
 qbOperand = qbinexport.instruction.Operand
 capstoneOperand = Any  # Don't import the whole capstone module just for the typing
+capstoneValue = Any  # Don't import the whole capstone module just for the typing
 
 
 class OperandBackendQBinExport(AbstractOperandBackend):
@@ -29,7 +30,6 @@ class OperandBackendQBinExport(AbstractOperandBackend):
         super(OperandBackendQBinExport, self).__init__()
 
         self.cs_operand = cs_operand
-        print(cs_operand.type)
 
     def __str__(self) -> str:
         return ""  # Not supported
@@ -40,8 +40,8 @@ class OperandBackendQBinExport(AbstractOperandBackend):
         return self.cs_operand.type
 
     @property
-    def value(self) -> int:
-        """Returns the capstone operand type"""
+    def value(self) -> capstoneValue:
+        """Returns the capstone operand value"""
         return self.cs_operand.value
 
 
@@ -53,6 +53,7 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
 
         self.cs_instr = qb_instruction.cs_inst
         self._operands = None
+        self.operands
 
     @property
     def addr(self) -> Addr:
