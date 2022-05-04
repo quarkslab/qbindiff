@@ -52,6 +52,7 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         super(InstructionBackendQBinExport, self).__init__()
 
         self.cs_instr = qb_instruction.cs_inst
+        self._operands = None
 
     @property
     def addr(self) -> Addr:
@@ -66,10 +67,12 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
     @property
     def operands(self) -> list[Operand]:
         """Returns the list of operands as Operand object"""
-        operand_list = []
-        for o in self.cs_instr.operands:
-            operand_list.append(Operand(LoaderType.qbinexport, o))
-        return operand_list
+        if not self._operands:
+            self._operands = []
+            for o in self.cs_instr.operands:
+                self._operands.append(Operand(LoaderType.qbinexport, o))
+        
+        return self._operands
 
     @property
     def groups(self) -> list[str]:
