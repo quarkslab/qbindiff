@@ -146,7 +146,7 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
     @property
     def graph(self) -> networkx.DiGraph:
         """The Control Flow Graph of the function"""
-        raise NotImplementedError()
+        return self.qb_func.graph
 
     @property
     @cache
