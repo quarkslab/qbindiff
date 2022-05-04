@@ -124,6 +124,10 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
 
         # [TODO] Init all the properties and free the memory of qb_prog/qb_func
 
+        # Stop the exploration if it's an imported function
+        if self.is_import():
+            return
+
         bblocks = {
             addr: self.qb_func.get_block(addr) for addr in self.qb_func.graph.nodes
         }
@@ -185,8 +189,8 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
 
     def is_import(self) -> bool:
         """True if the function is imported"""
-        # Should we consider also FunctionType.library?
-        if self.type in (FunctionType.imported, FunctionType.thunk):
+        # Should we consider also FunctionType.library and FunctionType.thunk?
+        if self.type in (FunctionType.imported, FunctionType.extern):
             return True
         return False
 
