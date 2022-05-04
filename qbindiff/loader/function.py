@@ -94,6 +94,15 @@ class Function(dict):
         """Set the type value"""
         self._backend.type = value
 
+    def is_library(self) -> bool:
+        """
+        Returns whether or not this function is a library function.
+        A library function is either a thunk function or it has been identified as part
+        of an external library. It is not an imported function.
+        :return: bool
+        """
+        return self._backend.is_library()
+
     def is_import(self) -> bool:
         """
         Returns whether or not this function is an import function.
