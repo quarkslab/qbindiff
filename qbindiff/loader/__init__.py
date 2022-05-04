@@ -3,3 +3,9 @@ from qbindiff.loader.instruction import Instruction
 from qbindiff.loader.function import Function
 from qbindiff.loader.basic_block import BasicBlock
 from qbindiff.loader.program import Program
+from qbindiff.loader.types import LoaderType
+
+LOADERS = {
+    "binexport": LoaderType.binexport,
+    "qbinexport": LoaderType.qbinexport,
+}

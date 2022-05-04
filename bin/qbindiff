@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # builtin-imports
-import logging
+import logging, os
 from pathlib import Path
-import sys
 
 # Third-party imports
 import click
@@ -11,6 +10,7 @@ from tqdm import tqdm
 
 # Local imports
 from qbindiff.features import FEATURES
+from qbindiff.loader import LOADERS, LoaderType
 from qbindiff import Program, QBinDiff, Mapping
 
 
@@ -65,6 +65,11 @@ DEFAULT_TRADEOFF = 0.75
 DEFAULT_EPSILON = 0.5
 DEFAULT_MAXITER = 1000
 
+LOADERS_KEYS = list(LOADERS.keys())
+
+help_loaders = (
+    f"Loader type to be used. Must be one of these {LOADERS_KEYS}\n[default: binexport]"
+)
 help_features = "The following features are available [default: all]:\n{}\n".format(
     "\n".join("- {}, {}: {}".format(x.key, x.name, x.__doc__) for x in FEATURES)
 )
@@ -81,6 +86,14 @@ help_distance += "\nFeatures may be weighted by a positive value such as <featur
     type=Path,
     default="",
     help="Output file [default: <primary>_vs_<secondary>.qbindiff]",
+)
+@click.option(
+    "-l",
+    "--loader",
+    type=click.Choice(LOADERS_KEYS),
+    default="binexport",
+    metavar="<loader>",
+    help=help_loaders,
 )
 @click.option(
     "-f",
@@ -131,17 +144,34 @@ help_distance += "\nFeatures may be weighted by a positive value such as <featur
     help="Maximum number of iteration for belief propagation [default: %d]"
     % DEFAULT_MAXITER,
 )
+@click.option(
+    "-e1",
+    "--executable1",
+    "exec_primary",
+    type=Path,
+    help="Path to the primary raw executable. Must be provided if using qbinexport loader",
+)
+@click.option(
+    "-e2",
+    "--executable2",
+    "exec_secondary",
+    type=Path,
+    help="Path to the secondary raw executable. Must be provided if using qbinexport loader",
+)
 @click.option("-v", "--verbose", count=True, help="Activate debugging messages")
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
     output,
+    loader,
     features,
     distance,
     sparsity_ratio,
     tradeoff,
     epsilon,
     maxiter,
+    exec_primary,
+    exec_secondary,
     verbose,
     primary,
     secondary,
@@ -177,10 +207,29 @@ def main(
     if not output.name:
         output = Path("{}_vs_{}.qbindiff".format(primary.stem, secondary.stem))
 
-    logging.info(f"[+] Loading primary: {primary.name}")
-    primary = Program(primary)
-    logging.info(f"[+] Loading secondary: {secondary.name}")
-    secondary = Program(secondary)
+    loader = LOADERS[loader]
+
+    # Check that the executables have been provided
+    if loader == LoaderType.qbinexport:
+        if not (
+            exec_primary
+            and exec_secondary
+            and os.path.exists(exec_primary)
+            and os.path.exists(exec_secondary)
+        ):
+            logging.error(
+                "When using the qbinexport loader you have to provide the raw binaries"
+            )
+            exit(1)
+        logging.info(f"[+] Loading primary: {primary.name}")
+        primary = Program(primary, loader, exec_primary)
+        logging.info(f"[+] Loading secondary: {secondary.name}")
+        secondary = Program(secondary, loader, exec_secondary)
+    else:
+        logging.info(f"[+] Loading primary: {primary.name}")
+        primary = Program(primary, loader)
+        logging.info(f"[+] Loading secondary: {secondary.name}")
+        secondary = Program(secondary, loader)
 
     qbindiff = QBinDiff(
         primary,
@@ -193,7 +242,7 @@ def main(
 
     if not features:
         logging.error("no feature provided")
-        sys.exit(1)
+        exit(1)
 
     for feature in set(features):
         weight = 1.0
