@@ -26,13 +26,14 @@ capstoneValue = Any  # Don't import the whole capstone module just for the typin
 class OperandBackendQBinExport(AbstractOperandBackend):
     """Backend loader of a Operand using QBinExport"""
 
-    def __init__(self, cs_operand: capstoneOperand):
+    def __init__(self, operand_str: str, cs_operand: capstoneOperand):
         super(OperandBackendQBinExport, self).__init__()
 
         self.cs_operand = cs_operand
+        self._str = operand_str
 
     def __str__(self) -> str:
-        return ""  # Not supported
+        return self._str
 
     @property
     def type(self) -> int:
@@ -53,7 +54,6 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
 
         self.cs_instr = qb_instruction.cs_inst
         self._operands = None
-        self.operands
 
     @property
     def addr(self) -> Addr:
@@ -71,8 +71,10 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         if not self._operands:
             self._operands = []
             for o in self.cs_instr.operands:
-                self._operands.append(Operand(LoaderType.qbinexport, o))
-        
+                self._operands.append(
+                    Operand(LoaderType.qbinexport, self.cs_instr.op_str, o)
+                )
+
         return self._operands
 
     @property
