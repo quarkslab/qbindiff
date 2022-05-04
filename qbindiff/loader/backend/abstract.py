@@ -1,6 +1,7 @@
 import networkx
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
+from typing import Any
 
 from qbindiff.loader import Operand
 from qbindiff.loader.types import FunctionType

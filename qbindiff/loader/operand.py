@@ -1,3 +1,5 @@
+from typing import Any
+
 from qbindiff.loader.types import LoaderType
 
 capstoneValue = Any  # Don't import the whole capstone module just for the typing
