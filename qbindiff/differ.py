@@ -332,3 +332,9 @@ class QBinDiff(Differ):
 
     def run_filters(self) -> None:
         self.match_import_functions()
+
+    def export_to_bindiff(self, filename: str):
+        from qbindiff.mapping.bindiff import BinDiffFormat
+
+        bindiff = BinDiffFormat(filename, self.primary, self.secondary, self.mapping)
+        bindiff.save()

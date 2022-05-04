@@ -138,9 +138,3 @@ class Mapping:
     def is_match_secondary(self, item: Item) -> bool:
         """Returns true if the address in secondary did match with a function in primary"""
         return self.match_secondary(item) is not None
-
-    def export_to_bindiff(self, output: str):
-        """Export the mappings to bindiff file format"""
-
-        bindiff = BinDiffFormat(output)
-        bindiff.save(self)
