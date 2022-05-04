@@ -1,5 +1,4 @@
 import qbinexport, networkx
-from collections.abc import Iterator
 from typing import Any
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
