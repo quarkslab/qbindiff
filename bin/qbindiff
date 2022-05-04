@@ -51,10 +51,7 @@ def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
 
 
 DISTANCES = ("canberra", "correlation", "cosine", "euclidean")
-FEATURES_KEYS = {x.name: x for x in FEATURES}
-FEATURES_KEYS.update(
-    {x.key: x for x in FEATURES}
-)  # also add short keys as a valid feature
+FEATURES_KEYS = {x.key: x for x in FEATURES}
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=300)
 
@@ -71,7 +68,7 @@ help_loaders = (
     f"Loader type to be used. Must be one of these {LOADERS_KEYS}\n[default: binexport]"
 )
 help_features = "The following features are available [default: all]:\n{}\n".format(
-    "\n".join("- {}, {}: {}".format(x.key, x.name, x.__doc__) for x in FEATURES)
+    "\n".join("- {}: {}".format(x.key, x.__doc__) for x in FEATURES)
 )
 help_distance = "The following distances are available [default: {}]:\n{}\n".format(
     DISTANCES[0], "\n".join("-d {}".format(dist) for dist in DISTANCES)
