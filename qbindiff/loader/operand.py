@@ -1,18 +1,9 @@
 from qbindiff.loader.types import LoaderType
 
-# typing imports
-from collections.abc import Iterator
-from qbindiff.loader.types import OperandType
-
-Expr = dict[
-    str, str
-]  # each dict contains two keys 'types' and 'value' with their associated value
-
 
 class Operand:
     """
-    Represent an operand object which hide the underlying
-    backend implementation
+    Represent an operand object which hide the underlying backend implementation
     """
 
     def __init__(self, loader, *args, **kwargs):
@@ -54,21 +45,12 @@ class Operand:
         self._backend = OperandBackendQBinExport(self, *args, **kwargs)
 
     @property
-    def type(self) -> OperandType:
+    def type(self) -> int:
         """
-        Returns the operand type as defined in the types.py
-        :return: OperandType
+        Returns the capstone operand type
+        :return: int
         """
         return self._backend.type
-
-    @property
-    def expressions(self) -> Iterator[Expr]:
-        """
-        Returns an iterator of expressions. Each expression
-        is a dictionnary containting two keys "type" and "value"
-        :return:
-        """
-        return self._backend.expressions
 
     def __str__(self):
         return str(self._backend)

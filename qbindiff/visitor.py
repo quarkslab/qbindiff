@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from typing import Any, Callable
 
-from qbindiff.loader import Function, BasicBlock, Instruction, Operand, Expr
+from qbindiff.loader import Function, BasicBlock, Instruction, Operand
 from qbindiff.features.extractor import (
     FeatureCollector,
     FeatureExtractor,
@@ -10,7 +10,6 @@ from qbindiff.features.extractor import (
     BasicBlockFeatureExtractor,
     InstructionFeatureExtractor,
     OperandFeatureExtractor,
-    ExpressionFeatureExtractor,
 )
 from qbindiff.types import Graph
 
@@ -102,7 +101,6 @@ class ProgramVisitor(Visitor):
         self.basic_block_callbacks = []
         self.instruction_callbacks = []
         self.operand_callbacks = []
-        self.expression_callbacks = []
 
     def visit_item(self, item: Any, collector: FeatureCollector) -> None:
         """
@@ -119,9 +117,6 @@ class ProgramVisitor(Visitor):
             self.visit_instruction(item, collector)
         elif isinstance(item, Operand):
             self.visit_operand(item, collector)
-        # elif isinstance(item, Expr):
-        elif isinstance(item, dict):
-            self.visit_expression(item, collector)
 
     def register_feature_extractor(self, fte: FeatureExtractor) -> None:
         """
@@ -139,8 +134,6 @@ class ProgramVisitor(Visitor):
             self.register_instruction_feature_callback(fte.visit_instruction)
         if isinstance(fte, OperandFeatureExtractor):
             self.register_operand_feature_callback(fte.visit_operand)
-        if isinstance(fte, ExpressionFeatureExtractor):
-            self.register_expression_feature_callback(fte.visit_expression)
         self._feature_extractors[fte.key] = fte
 
     def register_function_feature_callback(self, callback: Callable) -> None:
@@ -154,9 +147,6 @@ class ProgramVisitor(Visitor):
 
     def register_operand_feature_callback(self, callback: Callable) -> None:
         self.operand_callbacks.append(callback)
-
-    def register_expression_feature_callback(self, callback: Callable) -> None:
-        self.expression_callbacks.append(callback)
 
     def visit_function(self, func: Function, collector: FeatureCollector) -> None:
         """
@@ -218,20 +208,6 @@ class ProgramVisitor(Visitor):
         # Call all callbacks attached to an operand
         for callback in self.operand_callbacks:
             callback(operand, collector)
-
-        for exp in operand.expressions:
-            self.visit_expression(exp, collector)
-
-    def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
-        """
-        Visit the given operand with the feature extractor registered beforehand.
-
-        :param expression: Expression object to visit
-        :param collector: FeatureCollector
-        """
-        # Call all callbacks attached to an expression
-        for callback in self.expression_callbacks:
-            callback(expression, collector)
 
     @property
     def feature_extractors(self):

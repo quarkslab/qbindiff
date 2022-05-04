@@ -1,9 +1,9 @@
 from qbindiff.features.extractor import (
     FeatureCollector,
     InstructionFeatureExtractor,
-    ExpressionFeatureExtractor,
+    OperandFeatureExtractor,
 )
-from qbindiff.loader import Instruction, Expr
+from qbindiff.loader import Instruction
 
 
 class Address(InstructionFeatureExtractor):
@@ -34,53 +34,53 @@ class Address(InstructionFeatureExtractor):
         self._function_idx += 1'''
 
 
-class LibName(ExpressionFeatureExtractor):
-    """Call to library functions (local function)"""
+# ~ class LibName(OperandFeatureExtractor):
+    # ~ """Call to library functions (local function)"""
 
-    name = "libname"
-    key = "lib"
+    # ~ name = "libname"
+    # ~ key = "lib"
 
-    def visit_expression(self, expression: Expr, collector: FeatureCollector):
-        if expression["type"] == "libname":
-            collector.add_dict_feature(self.key, {expression["value"]: 1})
-
-
-class DatName(ExpressionFeatureExtractor):
-    """References to data in the instruction"""
-
-    name = "datname"
-    key = "dat"
-
-    def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
-        if expression["type"] == "datname":
-            collector.add_dict_feature(self.key, {expression["value"]: 1})
+    # ~ def visit_expression(self, expression: Expr, collector: FeatureCollector):
+        # ~ if expression["type"] == "libname":
+            # ~ collector.add_dict_feature(self.key, {expression["value"]: 1})
 
 
-class ImpName(ExpressionFeatureExtractor):
-    """References to imports in the instruction"""
+# ~ class DatName(OperandFeatureExtractor):
+    # ~ """References to data in the instruction"""
 
-    name = "impname"
-    key = "imp"
+    # ~ name = "datname"
+    # ~ key = "dat"
 
-    def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
-        if expression["type"] == "impname":
-            collector.add_dict_feature(self.key, {expression["value"]: 1})
+    # ~ def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
+        # ~ if expression["type"] == "datname":
+            # ~ collector.add_dict_feature(self.key, {expression["value"]: 1})
 
 
-class Constant(ExpressionFeatureExtractor):
-    """Constant (32/64bits) in the instruction (not addresses)"""
+# ~ class ImpName(OperandFeatureExtractor):
+    # ~ """References to imports in the instruction"""
 
-    name = "cstname"
-    key = "cst"
+    # ~ name = "impname"
+    # ~ key = "imp"
 
-    def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
-        if expression["type"] == "number":
-            try:
-                val = expression["value"]
-                if isinstance(val, str):
-                    val = int(val[:-1], 16) if val[-1] == "h" else int(val)
-                if 0xFFFF < val <= 0xFFFFFF00:
-                    if val not in [0x80000000]:
-                        collector.add_dict_feature(self.key, {"cst_0x%x" % val: 1})
-            except ValueError:
-                print("Invalid constant: %s" % (expression["value"]))
+    # ~ def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
+        # ~ if expression["type"] == "impname":
+            # ~ collector.add_dict_feature(self.key, {expression["value"]: 1})
+
+
+# ~ class Constant(OperandFeatureExtractor):
+    # ~ """Constant (32/64bits) in the instruction (not addresses)"""
+
+    # ~ name = "cstname"
+    # ~ key = "cst"
+
+    # ~ def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
+        # ~ if expression["type"] == "number":
+            # ~ try:
+                # ~ val = expression["value"]
+                # ~ if isinstance(val, str):
+                    # ~ val = int(val[:-1], 16) if val[-1] == "h" else int(val)
+                # ~ if 0xFFFF < val <= 0xFFFFFF00:
+                    # ~ if val not in [0x80000000]:
+                        # ~ collector.add_dict_feature(self.key, {"cst_0x%x" % val: 1})
+            # ~ except ValueError:
+                # ~ print("Invalid constant: %s" % (expression["value"]))

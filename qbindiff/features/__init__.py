@@ -9,7 +9,7 @@ from qbindiff.features.graph import (
     GraphTransitivity,
     GraphCommunities,
 )
-from qbindiff.features.artefact import LibName, DatName, Constant, ImpName, Address
+from qbindiff.features.artefact import Address
 from qbindiff.features.topology import ChildNb, ParentNb, RelativeNb
 
 FEATURES = {
@@ -32,9 +32,8 @@ FEATURES = {
     GroupsCategory,
     Address,
     # OperandFeatureExtractor
-    # ExpressionFeatureExtractor
-    LibName,
-    DatName,
-    Constant,
-    ImpName,
+    # ~ LibName,
+    # ~ DatName,
+    # ~ Constant,
+    # ~ ImpName,
 }

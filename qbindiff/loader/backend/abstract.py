@@ -2,8 +2,8 @@ import networkx
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
 
-from qbindiff.loader import Operand, Expr
-from qbindiff.loader.types import FunctionType, OperandType
+from qbindiff.loader import Operand
+from qbindiff.loader.types import FunctionType
 from qbindiff.types import Addr
 
 
@@ -19,14 +19,8 @@ class AbstractOperandBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def type(self) -> OperandType:
-        """Returns the operand type as defined in the types.py"""
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def expressions(self) -> Iterator[Expr]:
-        """Returns an iterator of expressions"""
+    def type(self) -> int:
+        """Returns the capstone operand type"""
         raise NotImplementedError()
 
 

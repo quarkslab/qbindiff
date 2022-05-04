@@ -1,9 +1,16 @@
-import qbinexport
+import qbinexport, networkx
 from collections.abc import Iterator
+from typing import Any
 
-from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Expr
-from qbindiff.loader.backend import AbstractProgramBackend, AbstractFunctionBackend
-from qbindiff.loader.types import FunctionType
+from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
+from qbindiff.loader.backend import (
+    AbstractProgramBackend,
+    AbstractFunctionBackend,
+    AbstractBasicBlockBackend,
+    AbstractInstructionBackend,
+    AbstractOperandBackend,
+)
+from qbindiff.loader.types import FunctionType, LoaderType
 from qbindiff.types import Addr
 
 
@@ -13,28 +20,30 @@ qbFunction = qbinexport.function.Function
 qbBlock = qbinexport.block.Block
 qbInstruction = qbinexport.instruction.Instruction
 qbOperand = qbinexport.instruction.Operand
+capstoneOperand = Any
 
 
 class OperandBackendQbinExport(AbstractOperandBackend):
     """Backend loader of a Operand using QBinExport"""
 
-    def __init__(self, qb_operand: qbOperand):
+    def __init__(self, cs_operand: capstoneOperand):
         super(OperandBackendQbinExport, self).__init__()
 
-        self.qb_operand = qb_operand
+        self.cs_operand = cs_operand
+        print(cs_operand.type)
 
     def __str__(self) -> str:
         return ""  # Not supported
 
     @property
-    def type(self) -> OperandType:
-        """Returns the operand type as defined in the types.py"""
-        return -1  # Not supported
+    def type(self) -> int:
+        """Returns the capstone operand type"""
+        return self.cs_operand.type
 
     @property
-    def expressions(self) -> Iterator[Expr]:
-        """Returns an iterator of expressions"""
-        return iter([])  # Not supported
+    def value(self) -> int:
+        """Returns the capstone operand type"""
+        return self.cs_operand.value
 
 
 class InstructionBackendQbinExport(AbstractInstructionBackend):
@@ -43,23 +52,23 @@ class InstructionBackendQbinExport(AbstractInstructionBackend):
     def __init__(self, qb_instruction: qbInstruction):
         super(InstructionBackendQbinExport, self).__init__()
 
-        self.qb_instr = qb_instruction
+        self.cs_instr = qb_instruction.cs_inst
 
     @property
     def addr(self) -> Addr:
         """The address of the instruction"""
-        return self.qb_instr.address
+        return self.cs_instr.address
 
     @property
     def mnemonic(self) -> str:
         """Returns the instruction mnemonic as a string"""
-        return self.qb_instr.cs_inst.mnemonic
+        return self.cs_instr.mnemonic
 
     @property
     def operands(self) -> list[Operand]:
         """Returns the list of operands as Operand object"""
         operand_list = []
-        for o in self.qb_instr.operands:
+        for o in self.cs_instr.operands:
             operand_list.append(Operand(LoaderType.qbinexport, o))
         return operand_list
 

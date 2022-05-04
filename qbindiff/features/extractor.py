@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from typing import Union
 
-from qbindiff.loader import Function, BasicBlock, Instruction, Operand, Expr
+from qbindiff.loader import Function, BasicBlock, Instruction, Operand
 from qbindiff.types import Positive
 
 
@@ -97,9 +97,4 @@ class InstructionFeatureExtractor(FeatureExtractor):
 
 class OperandFeatureExtractor(FeatureExtractor):
     def visit_operand(self, operand: Operand, collector: FeatureCollector) -> None:
-        raise NotImplementedError()
-
-
-class ExpressionFeatureExtractor(FeatureExtractor):
-    def visit_expression(self, expr: Expr, collector: FeatureCollector) -> None:
         raise NotImplementedError()
