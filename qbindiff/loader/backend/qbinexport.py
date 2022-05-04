@@ -1,4 +1,5 @@
 import qbinexport, networkx
+from functools import cache
 from typing import Any
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
@@ -148,16 +149,32 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
         raise NotImplementedError()
 
     @property
+    @cache
     def parents(self) -> set[Addr]:
         """Set of function parents in the call graph"""
-        return {
-            self.qb_prog.get_function_by_chunk(c).start for c in self.qb_func.callers
-        }
+
+        parents = set()
+        for chunk in self.qb_func.callers:
+            try:
+                for func in self.qb_prog.get_function_by_chunk(chunk):
+                    parents.add(func.start)
+            except IndexError:
+                pass  # Sometimes there can be a chunk that is not part of any function
+        return parents
 
     @property
+    @cache
     def children(self) -> set[Addr]:
         """Set of function children in the call graph"""
-        return {self.qb_prog.get_function_by_chunk(c).start for c in self.qb_func.calls}
+
+        children = set()
+        for chunk in self.qb_func.calls:
+            try:
+                for func in self.qb_prog.get_function_by_chunk(chunk):
+                    children.add(func.start)
+            except IndexError:
+                pass  # Sometimes there can be a chunk that is not part of any function
+        return children
 
     @property
     def type(self) -> FunctionType:
@@ -220,16 +237,25 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
 
         self.qb_prog = qbinexport.Program(export_path, exec_path)
 
+        self._callgraph = networkx.DiGraph()
+
         for addr, func in self.qb_prog.items():
             f = Function(LoaderType.qbinexport, func)
             if addr in program:
                 logging.error("Address collision for 0x%x" % addr)
             program[addr] = f
 
+            self._callgraph.add_node(addr)
+            for c_addr in f.children:
+                self._callgraph.add_edge(addr, c_addr)
+            for p_addr in f.parents:
+                self._callgraph.add_edge(p_addr, addr)
+
     @property
     def name(self):
         return self.qb_prog.executable.exec_file.name
 
     @property
-    def callgraph(self):
-        pass
+    def callgraph(self) -> networkx.DiGraph:
+        """The callgraph of the program"""
+        return self._callgraph

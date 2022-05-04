@@ -4,6 +4,7 @@ from qbindiff.loader.types import LoaderType
 
 capstoneValue = Any  # Don't import the whole capstone module just for the typing
 
+
 class Operand:
     """
     Represent an operand object which hide the underlying backend implementation

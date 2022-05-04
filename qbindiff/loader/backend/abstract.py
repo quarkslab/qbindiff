@@ -9,6 +9,7 @@ from qbindiff.types import Addr
 
 capstoneValue = Any  # Don't import the whole capstone module just for the typing
 
+
 class AbstractOperandBackend(metaclass=ABCMeta):
     """
     This is an abstract class and should not be used as is.
