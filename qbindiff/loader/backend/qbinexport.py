@@ -53,6 +53,7 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
     def __init__(self, qb_instruction: qbInstruction):
         super(InstructionBackendQBinExport, self).__init__()
 
+        self.qb_instr = qb_instruction
         self.cs_instr = qb_instruction.cs_inst
         self._operands = None
 
@@ -65,6 +66,19 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
     def mnemonic(self) -> str:
         """Returns the instruction mnemonic as a string"""
         return self.cs_instr.mnemonic
+
+    @property
+    @cache
+    def data_references(self) -> set[Addr]:
+        """Returns the collections of addresses that are accessed by the instruction"""
+
+        ref = set()
+        for r in self.qb_instr.data_references:
+            try:
+                ref.add(r.address)
+            except AttributeError:  # Not all the references have the field address
+                pass
+        return ref
 
     @property
     def operands(self) -> list[Operand]:

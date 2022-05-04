@@ -1,6 +1,6 @@
 from qbindiff.loader.types import LoaderType
-
 from qbindiff.loader.operand import Operand
+from qbindiff.types import Addr
 
 
 class Instruction:
@@ -60,6 +60,11 @@ class Instruction:
         :return: mnemonic as a string
         """
         return self._backend.mnemonic
+
+    @property
+    def data_references(self) -> set[Addr]:
+        """Returns the collections of addresses that are accessed by the instruction"""
+        return self._backend.data_references
 
     @property
     def operands(self) -> list[Operand]:
