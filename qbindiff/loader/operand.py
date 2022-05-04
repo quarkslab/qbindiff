@@ -42,7 +42,7 @@ class Operand:
         """Load the operand using the qbinexport backend"""
         from qbindiff.loader.backend.qbinexport import OperandBackendQBinExport
 
-        self._backend = OperandBackendQBinExport(self, *args, **kwargs)
+        self._backend = OperandBackendQBinExport(*args, **kwargs)
 
     @property
     def type(self) -> int:
