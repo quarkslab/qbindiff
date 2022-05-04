@@ -19,7 +19,7 @@ qbFunction = qbinexport.function.Function
 qbBlock = qbinexport.block.Block
 qbInstruction = qbinexport.instruction.Instruction
 qbOperand = qbinexport.instruction.Operand
-capstoneOperand = Any
+capstoneOperand = Any  # Don't import the whole capstone module just for the typing
 
 
 class OperandBackendQBinExport(AbstractOperandBackend):
