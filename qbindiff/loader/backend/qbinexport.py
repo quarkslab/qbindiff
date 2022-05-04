@@ -23,11 +23,11 @@ qbOperand = qbinexport.instruction.Operand
 capstoneOperand = Any
 
 
-class OperandBackendQbinExport(AbstractOperandBackend):
+class OperandBackendQBinExport(AbstractOperandBackend):
     """Backend loader of a Operand using QBinExport"""
 
     def __init__(self, cs_operand: capstoneOperand):
-        super(OperandBackendQbinExport, self).__init__()
+        super(OperandBackendQBinExport, self).__init__()
 
         self.cs_operand = cs_operand
         print(cs_operand.type)
@@ -46,11 +46,11 @@ class OperandBackendQbinExport(AbstractOperandBackend):
         return self.cs_operand.value
 
 
-class InstructionBackendQbinExport(AbstractInstructionBackend):
+class InstructionBackendQBinExport(AbstractInstructionBackend):
     """Backend loader of a Instruction using QBinExport"""
 
     def __init__(self, qb_instruction: qbInstruction):
-        super(InstructionBackendQbinExport, self).__init__()
+        super(InstructionBackendQBinExport, self).__init__()
 
         self.cs_instr = qb_instruction.cs_inst
 
