@@ -220,7 +220,7 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
 
     def is_import(self) -> bool:
         """True if the function is imported"""
-        # Should we consider also FunctionType.library and FunctionType.thunk?
+        # Should we consider also FunctionType.thunk?
         if self.type in (FunctionType.imported, FunctionType.extern):
             return True
         return False
