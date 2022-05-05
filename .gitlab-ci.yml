@@ -39,9 +39,9 @@ before_script:
   - "cd lapjv && python setup.py install && cd .."
 
   # Build qbindiff
-  - python setup.py install
+  - pip install .
 
 test:
   stage: test
   script:
-    - python test.py -v
+    - python tests/test.py -v
