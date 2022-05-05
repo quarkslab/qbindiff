@@ -70,7 +70,7 @@ class Visitor(metaclass=ABCMeta):
 
 class NoVisitor(Visitor):
     """
-    Trivial visitor that doesn't traverse the items
+    Trivial visitor that doesn't traverse the graph
     """
 
     @property
@@ -78,10 +78,10 @@ class NoVisitor(Visitor):
         return []
 
     def visit(
-        self, graph: Graph, it: Iterable, key_fun: Callable = lambda _, i: i
+        self, graph: Graph, key_fun: Callable = lambda _, i: i
     ) -> dict[Any, FeatureCollector]:
         return {
-            key_fun(item, i): FeatureCollector() for i, item in enumerate(it.items())
+            key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())
         }
 
     def register_feature_extractor(self, fte: FeatureExtractor) -> None:
