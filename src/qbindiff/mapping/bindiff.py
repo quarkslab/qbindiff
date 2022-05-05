@@ -26,7 +26,7 @@ class BinDiffFormat:
 
     @property
     def version(self):
-        return "QBinDiff 0.1"
+        return "QBinDiff 0.2"
 
     def init_database(self):
         """Initialize the database by creating all the tables"""
