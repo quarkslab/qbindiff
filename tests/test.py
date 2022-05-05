@@ -4,12 +4,13 @@ import qbindiff
 from pathlib import Path
 from qbindiff.features import FEATURES
 
+BASE_TEST_PATH = Path("tests/data")
 
 class BinaryTest(unittest.TestCase):
     """Regression Test for binaries"""
 
     def setUp(self):
-        self.base_path = Path("test/binaries")
+        self.base_path = BASE_TEST_PATH.joinpath("binaries")
         self.units = (
             ("test-bin.BinExport", "test-bin2.BinExport", "test-bin.results"),
         )
@@ -52,7 +53,7 @@ class GraphSimTest(unittest.TestCase):
     """Regression tests for generic graphs with a custom supplied similarity matrix"""
 
     def setUp(self):
-        self.base_path = Path("test/graphs_sim")
+        self.base_path = BASE_TEST_PATH.joinpath("graphs_sim")
         self.units = (
             (
                 "simple-graph.1",
@@ -97,7 +98,7 @@ class GraphTest(unittest.TestCase):
     """Regression tests for generic graphs"""
 
     def setUp(self):
-        self.base_path = Path("test/graphs_no_sim")
+        self.base_path = BASE_TEST_PATH.joinpath("graphs_no_sim")
         self.units = (
             (
                 "simple-graph.1",
