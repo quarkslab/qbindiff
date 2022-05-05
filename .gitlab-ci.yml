@@ -20,7 +20,6 @@ variables:
 cache:
   paths:
     - .cache/pip
-    - venv/
 
 stages:
   - test
