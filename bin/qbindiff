@@ -65,7 +65,7 @@ DEFAULT_MAXITER = 1000
 
 LOADERS_KEYS = list(LOADERS.keys())
 
-help_formats = (f"The file format of the output file. Supported formats are [bindiff]. [default: bindiff]")
+help_formats = f"The file format of the output file. Supported formats are [bindiff]. [default: bindiff]"
 help_loaders = (
     f"Loader type to be used. Must be one of these {LOADERS_KEYS}. [default: binexport]"
 )
@@ -73,8 +73,7 @@ help_features = """\b
 The following features are available:
 {}
 [default: {}]""".format(
-    "\n".join("  - {}: {}".format(x.key, x.__doc__) for x in FEATURES),
-    DEFAULT_FEATURES
+    "\n".join("  - {}: {}".format(x.key, x.__doc__) for x in FEATURES), DEFAULT_FEATURES
 )
 help_distance = f"""\b
 The following distances are available {DISTANCES}
@@ -163,8 +162,8 @@ Features may be weighted by a positive value such as <feature>:<weight> [default
 @click.option(
     "-ff",
     "--file-format",
-    default='bindiff',
-    type=click.Choice(['bindiff']),
+    default="bindiff",
+    type=click.Choice(["bindiff"]),
     help=help_formats,
 )
 @click.option("-v", "--verbose", count=True, help="Activate debugging messages")
@@ -274,7 +273,7 @@ def main(
 
     if output.name:
         logging.info("[+] Saving")
-        if file_format == 'bindiff':
+        if file_format == "bindiff":
             qbindiff.export_to_bindiff(output)
         logging.info("[+] Mapping successfully saved to: %s" % output)
 
