@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Function
 from qbindiff.loader.types import LoaderType
+from qbindiff.types import Addr
 
 
 class Program(dict, GenericGraph):
@@ -143,3 +144,15 @@ class Program(dict, GenericGraph):
         cg = self._backend.callgraph
         funcs = list(self)  # functions already filtered
         return cg.subgraph([x.addr for x in funcs])
+
+    def remove_function(self, addr: Addr) -> None:
+        """Remove a function from the callgraph"""
+        func = self[addr]
+        self.pop(addr)
+        for p_addr in func.parents:
+            self[p_addr].children.remove(addr)
+            self._backend.callgraph.remove_edge(p_addr, addr)
+        for c_addr in func.children:
+            self[c_addr].parents.remove(addr)
+            self._backend.callgraph.remove_edge(addr, c_addr)
+        self._backend.callgraph.remove_node(addr)

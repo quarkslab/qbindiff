@@ -150,3 +150,16 @@ class Function(dict):
     def __iter__(self):
         """ """
         return iter(self.values())
+
+    def replace_call(self, func1: "Function", func2: "Function") -> None:
+        """Replace the call from func1 with func2"""
+        self.children.remove(func1.addr)
+        func1.parents.remove(self.addr)
+        self.children.add(func2.addr)
+        func2.parents.add(self.addr)
+
+        try:
+            self.flowgraph.remove_edge(self.addr, func1.addr)
+        except networkx.exception.NetworkXError:
+            pass  # Edge has already been removed
+        self.flowgraph.add_edge(self.addr, func2.addr)

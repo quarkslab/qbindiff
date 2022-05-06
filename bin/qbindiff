@@ -100,6 +100,12 @@ Features may be weighted by a positive value such as <feature>:<weight> [default
     help=help_features,
 )
 @click.option(
+    "-n",
+    "--normalize",
+    is_flag=True,
+    help="Normalize the Call Graph (can potentially lead to a partial matching). [default disabled]",
+)
+@click.option(
     "-d",
     "--distance",
     type=click.Choice(DISTANCES),
@@ -172,6 +178,7 @@ Features may be weighted by a positive value such as <feature>:<weight> [default
 def main(
     loader,
     features,
+    normalize,
     distance,
     sparsity_ratio,
     tradeoff,
@@ -247,6 +254,7 @@ def main(
         tradeoff=tradeoff,
         epsilon=epsilon,
         maxiter=maxiter,
+        normalize=normalize,
     )
 
     if not features:
