@@ -101,7 +101,9 @@ class Function(dict):
         of an external library. It is not an imported function.
         :return: bool
         """
-        return self._backend.is_library()
+        if self.type == FunctionType.library:
+            return True
+        return False
 
     def is_import(self) -> bool:
         """
@@ -109,7 +111,18 @@ class Function(dict):
         (Thus not having content)
         :return: bool
         """
-        return self._backend.is_import()
+        if self.type in (FunctionType.imported, FunctionType.extern):
+            return True
+        return False
+
+    def is_thunk(self) -> bool:
+        """
+        Returns whether or not this function is a thunk function.
+        :return: bool
+        """
+        if self.type == FunctionType.thunk:
+            return True
+        return False
 
     def is_alone(self):
         """

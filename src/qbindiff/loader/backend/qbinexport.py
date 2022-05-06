@@ -225,12 +225,6 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
             return True
         return False
 
-    def is_library(self) -> bool:
-        """True if the function is a library function"""
-        if self.type == FunctionType.library:
-            return True
-        return False
-
     @property
     def name(self) -> str:
         """The name of the function"""

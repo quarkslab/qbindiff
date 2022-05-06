@@ -144,16 +144,6 @@ class AbstractFunctionBackend(metaclass=ABCMeta):
     def name(self, value: str) -> None:
         raise NotImplementedError()
 
-    @abstractmethod
-    def is_import(self) -> bool:
-        """True if the function is imported"""
-        raise NotImplementedError()
-
-    @abstractmethod
-    def is_library(self) -> bool:
-        """True if the function is a library function"""
-        raise NotImplementedError()
-
 
 class AbstractProgramBackend(metaclass=ABCMeta):
     """
