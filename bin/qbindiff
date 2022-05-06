@@ -10,7 +10,7 @@ import numpy as np
 from tqdm import tqdm
 
 # Local imports
-from qbindiff.features import FEATURES
+from qbindiff.features import FEATURES, DEFAULT_FEATURES
 from qbindiff.loader import LOADERS, LoaderType
 from qbindiff import Program, QBinDiff, Mapping
 
@@ -56,7 +56,7 @@ FEATURES_KEYS = {x.key: x for x in FEATURES}
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=300)
 
-DEFAULT_FEATURES = tuple(x.key for x in FEATURES)
+DEFAULT_FEATURES = tuple(x.key for x in DEFAULT_FEATURES)
 DEFAULT_DISTANCE = "canberra"
 DEFAULT_SPARSITY_RATIO = 0.75
 DEFAULT_TRADEOFF = 0.75
@@ -65,26 +65,24 @@ DEFAULT_MAXITER = 1000
 
 LOADERS_KEYS = list(LOADERS.keys())
 
+help_formats = (f"The file format of the output file. Supported formats are [bindiff]. [default: bindiff]")
 help_loaders = (
-    f"Loader type to be used. Must be one of these {LOADERS_KEYS}\n[default: binexport]"
+    f"Loader type to be used. Must be one of these {LOADERS_KEYS}. [default: binexport]"
 )
-help_features = "The following features are available [default: all]:\n{}\n".format(
-    "\n".join("- {}: {}".format(x.key, x.__doc__) for x in FEATURES)
+help_features = """\b
+The following features are available:
+{}
+[default: {}]""".format(
+    "\n".join("  - {}: {}".format(x.key, x.__doc__) for x in FEATURES),
+    DEFAULT_FEATURES
 )
-help_distance = "The following distances are available [default: {}]:\n{}\n".format(
-    DISTANCES[0], "\n".join("-d {}".format(dist) for dist in DISTANCES)
-)
-help_distance += "\nFeatures may be weighted by a positive value such as <feature>:<weight> [default: 1.0]\n"
+help_distance = f"""\b
+The following distances are available {DISTANCES}
+Features may be weighted by a positive value such as <feature>:<weight> [default: 1.0]
+[default: {DISTANCES[0]}]"""
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option(
-    "-o",
-    "--output",
-    type=Path,
-    default="",
-    help="Output file [default: <primary>_vs_<secondary>.qbindiff]",
-)
 @click.option(
     "-l",
     "--loader",
@@ -112,7 +110,7 @@ help_distance += "\nFeatures may be weighted by a positive value such as <featur
 )
 @click.option(
     "-s",
-    "--sparsity_ratio",
+    "--sparsity-ratio",
     type=float,
     default=DEFAULT_SPARSITY_RATIO,
     help="Ratio of least probable matches to ignore. Between 0.0 to 1.0 [default: %.02f]"
@@ -156,11 +154,23 @@ help_distance += "\nFeatures may be weighted by a positive value such as <featur
     type=Path,
     help="Path to the secondary raw executable. Must be provided if using qbinexport loader",
 )
+@click.option(
+    "-o",
+    "--output",
+    type=Path,
+    help="Write output to PATH",
+)
+@click.option(
+    "-ff",
+    "--file-format",
+    default='bindiff',
+    type=click.Choice(['bindiff']),
+    help=help_formats,
+)
 @click.option("-v", "--verbose", count=True, help="Activate debugging messages")
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
-    output,
     loader,
     features,
     distance,
@@ -170,6 +180,8 @@ def main(
     maxiter,
     exec_primary,
     exec_secondary,
+    output,
+    file_format,
     verbose,
     primary,
     secondary,
@@ -203,7 +215,7 @@ def main(
         epsilon = DEFAULT_EPSILON
 
     if not output.name:
-        output = Path("{}_vs_{}.qbindiff".format(primary.stem, secondary.stem))
+        logging.warning("[-] You have not specified an output file")
 
     loader = LOADERS[loader]
 
@@ -260,10 +272,11 @@ def main(
 
     display_statistics(qbindiff, qbindiff.mapping)
 
-    # ~ logging.info("[+] Saving")
-    # ~ qbindiff.save(output)
-    # ~ logging.info("[+] Mapping successfully saved to: %s" % output)
-    # ~ sys.exit(0)
+    if output.name:
+        logging.info("[+] Saving")
+        if file_format == 'bindiff':
+            qbindiff.export_to_bindiff(output)
+        logging.info("[+] Mapping successfully saved to: %s" % output)
 
 
 if __name__ == "__main__":
