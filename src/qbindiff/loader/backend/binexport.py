@@ -64,8 +64,7 @@ def _get_capstone_disassembler(binexport_arch: str):
 
 
 def to_hex2(s):
-    if _python3:
-        r = "".join("{0:02x}".format(c) for c in s)  # <-- Python 3 is OK
+    r = "".join("{0:02x}".format(c) for c in s)
     while r[0] == "0":
         r = r[1:]
     return r
@@ -463,17 +462,17 @@ class OperandBackendBinexport(AbstractOperandBackend):
 
     def __str__(self) -> str:
         op = self.cs_operand
-        if self.type == capstone.X86_OP_REG:
+        if self.type == capstone.CS_OP_REG:
             return self.cs_instr.reg_name(op.reg)
-        elif self.type == capstone.X86_OP_IMM:
-            to_x(op.imm)
-        elif self.type == capstone.X86_OP_MEM:
+        elif self.type == capstone.CS_OP_IMM:
+            return to_x(op.imm)
+        elif self.type == capstone.CS_OP_MEM:
             op_str = ""
             if op.mem.segment != 0:
                 op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
-            if i.mem.base != 0:
+            if op.mem.base != 0:
                 op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
-            if i.mem.index != 0:
+            if op.mem.index != 0:
                 op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
             op_str += "]"
             return op_str
