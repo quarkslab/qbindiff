@@ -220,7 +220,7 @@ def main(
         )
         epsilon = DEFAULT_EPSILON
 
-    if not output.name:
+    if not output:
         logging.warning("[-] You have not specified an output file")
 
     loader = LOADERS[loader]
@@ -253,6 +253,7 @@ def main(
         sparsity_ratio=sparsity_ratio,
         tradeoff=tradeoff,
         epsilon=epsilon,
+        distance=distance,
         maxiter=maxiter,
         normalize=normalize,
     )
@@ -279,7 +280,7 @@ def main(
 
     display_statistics(qbindiff, qbindiff.mapping)
 
-    if output.name:
+    if output:
         logging.info("[+] Saving")
         if file_format == "bindiff":
             qbindiff.export_to_bindiff(output)
