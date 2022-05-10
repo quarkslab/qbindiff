@@ -167,6 +167,8 @@ class Differ:
         key_fun = lambda *args: args[0][0]  # ((label, node) iteration)
         primary_features = self._visitor.visit(self.primary, key_fun=key_fun)
         secondary_features = self._visitor.visit(self.secondary, key_fun=key_fun)
+        primary_dim = len(primary_features)
+        secondary_dim = len(secondary_features)
 
         # Get the weights of each feature
         f_weights = {}
@@ -192,29 +194,54 @@ class Differ:
             else:
                 weights.append(f_weights[main_key])
 
-        # Build the feature matrix
-        primary_feature_matrix = np.zeros(
-            (len(primary_features), len(weights)), dtype=Differ.DTYPE
-        )
-        secondary_feature_matrix = np.zeros(
-            (len(secondary_features), len(weights)), dtype=Differ.DTYPE
-        )
-        for node_label, feature in primary_features.items():
-            node_index = self.primary_n2i[node_label]
-            primary_feature_matrix[node_index] = feature.to_vector(features_keys)
-        for node_label, feature in secondary_features.items():
-            node_index = self.secondary_n2i[node_label]
-            secondary_feature_matrix[node_index] = feature.to_vector(features_keys)
+        def create_feature_matrix(features, node_to_index):
+            feature_matrix = np.zeros((0, len(weights)), dtype=Differ.DTYPE)
+            mapping = {}
+            nonempty_set = set()
+            for i, (node_label, feature) in enumerate(features.items()):
+                node_index = node_to_index[node_label]
+                mapping[node_index] = i
+                vec = feature.to_vector(features_keys, False)
+                if vec:
+                    feature_matrix = np.vstack((feature_matrix, vec))
+                    nonempty_set.add(node_index)
+            return (feature_matrix, mapping, nonempty_set)
 
-        # Generate the similarity matrix
-        self.sim_matrix = scipy.spatial.distance.cdist(
+        # Build the feature matrix
+        (
+            primary_feature_matrix,  # the feature matrix
+            temp_map_primary,  # temporary mappings between the nodes index in the adjacency matrix and in the similarity matrix
+            nonempty_rows,  # non empty rows that will be kept after the distance is calculated
+        ) = create_feature_matrix(primary_features, self.primary_n2i)
+        (
+            secondary_feature_matrix,
+            temp_map_secondary,
+            nonempty_cols,
+        ) = create_feature_matrix(secondary_features, self.secondary_n2i)
+
+        # Generate the partial similarity matrix (only non empty rows and cols)
+        tmp_sim_matrix = scipy.spatial.distance.cdist(
             primary_feature_matrix, secondary_feature_matrix, self.distance, w=weights
         ).astype(Differ.DTYPE)
 
         # Normalize
-        if self.sim_matrix.max() != 0:
-            self.sim_matrix /= self.sim_matrix.max()
-        self.sim_matrix[:] = 1 - self.sim_matrix
+        if tmp_sim_matrix.max() != 0:
+            tmp_sim_matrix /= tmp_sim_matrix.max()
+        tmp_sim_matrix[:] = 1 - tmp_sim_matrix
+
+        # Fill the entire similarity matrix
+        self.sim_matrix = np.zeros(
+            (primary_dim, secondary_dim), dtype=tmp_sim_matrix.dtype
+        )
+        for idx in nonempty_rows:  # Rows insertion
+            self.sim_matrix[idx, : tmp_sim_matrix.shape[1]] = tmp_sim_matrix[
+                temp_map_primary[idx]
+            ]
+        # Cols permutation
+        mapping = np.full(secondary_dim, secondary_dim - 1, dtype=int)
+        for idx in nonempty_cols:
+            mapping[idx] = temp_map_secondary[idx]
+        self.sim_matrix = self.sim_matrix[:, mapping]
 
     def normalize(self, graph: Graph) -> Graph:
         """
