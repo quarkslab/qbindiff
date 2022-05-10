@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Union
+from typing import Union, Any
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
 from qbindiff.types import Positive
@@ -37,25 +37,39 @@ class FeatureCollector:
                 keys[main_key].update(feature.keys())
         return keys
 
-    def to_vector(self, key_order: dict[str, Iterable[str]]) -> list[float]:
+    def to_vector(
+        self, key_order: dict[str, Iterable[str]], empty_default: Any = None
+    ) -> list[float]:
         """
-        Transform the collection to a feature vector
+        Transform the collection to a feature vector. If the parameter `empty_default`
+        is specified then if the feature vector is the zero vector then
+        `empty_default` is returned
 
         :param key_order: The order in which the keys are accessed
+        :param empty_default: Default value to be returned in case the feature vector
+                              is a zero vector, if None then the zero vector is returned
         """
+
         vector = []
+        is_zero = True
         for main_key, subkey_list in key_order.items():
             if subkey_list:
                 feature = self._features.get(main_key, {})
                 for subkey in subkey_list:
-                    vector.append(feature.get(subkey, 0))
+                    val = feature.get(subkey, 0)
+                    if val != 0:
+                        is_zero = False
+                    vector.append(val)
             else:
                 value = self._features.get(main_key, 0)
                 if not value:  # It might be a empty dict or a list, ...
                     vector.append(0)
                 else:
                     vector.append(value)
+                    is_zero = False
 
+        if is_zero and empty_default is not None:
+            return empty_default
         return vector
 
 
