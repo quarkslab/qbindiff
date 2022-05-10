@@ -10,7 +10,7 @@ from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
-from qbindiff.features.extractor import FeatureCollector
+from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
 from qbindiff.visitor import Visitor, NoVisitor, ProgramVisitor
 from typing import Any
 from qbindiff.types import (
@@ -145,12 +145,17 @@ class Differ:
 
         return (matrix, map_i2l, map_l2i)
 
-    def register_feature_extractor(self, extractorClass: type, weight: Positive = 1.0):
+    def register_feature_extractor(
+        self,
+        extractorClass: type[FeatureExtractor],
+        weight: Positive = 1.0,
+        **extra_args
+    ):
         """
         Register a feature extractor class.
         The class will be called when the visitor will traverse the graph.
         """
-        extractor = extractorClass(weight)
+        extractor = extractorClass(weight, **extra_args)
         self._visitor.register_feature_extractor(extractor)
 
     def compute_similarity(self) -> None:
