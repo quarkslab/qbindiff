@@ -17,6 +17,7 @@ class LSH(metaclass=ABCMeta):
     def __init__(self, node: BasicBlock):
         raise NotImplementedError()
 
+    @abstractmethod
     def __add__(self, lsh: "LSH") -> "LSH":
         raise NotImplementedError()
 
