@@ -145,14 +145,28 @@ class Program(dict, GenericGraph):
         funcs = list(self)  # functions already filtered
         return cg.subgraph([x.addr for x in funcs])
 
-    def remove_function(self, addr: Addr) -> None:
-        """Remove a function from the callgraph"""
-        func = self[addr]
-        self.pop(addr)
-        for p_addr in func.parents:
-            self[p_addr].children.remove(addr)
-            self._backend.callgraph.remove_edge(p_addr, addr)
-        for c_addr in func.children:
-            self[c_addr].parents.remove(addr)
-            self._backend.callgraph.remove_edge(addr, c_addr)
-        self._backend.callgraph.remove_node(addr)
+    def follow_through(self, to_remove: Addr, target: Addr) -> None:
+        """
+        Replace node `to_remove` with a follow-through edge from every parent of the
+        node with the node `target`.
+        Ex: { parents } -> (to_remove) -> (target)
+        --> { parents } -> (target)
+        """
+
+        func = self[to_remove]
+        self.pop(to_remove)
+        for p_addr in list(func.parents):
+            # Remove edges
+            self[p_addr].children.remove(to_remove)
+            func.parents.remove(p_addr)
+            self._backend.callgraph.remove_edge(p_addr, to_remove)
+            # Add follow-through edge
+            self[p_addr].children.add(target)
+            self[target].parents.add(p_addr)
+            self._backend.callgraph.add_edge(p_addr, target)
+        for c_addr in list(func.children):
+            # Remove edges
+            func.children.remove(c_addr)
+            self[c_addr].parents.remove(to_remove)
+            self._backend.callgraph.remove_edge(to_remove, c_addr)
+        self._backend.callgraph.remove_node(to_remove)

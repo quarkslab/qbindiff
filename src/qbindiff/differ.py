@@ -354,9 +354,7 @@ class QBinDiff(Differ):
             # Replace all the callers with the called function
             # { callers } --> thunk --> called
             import_func_addr = next(iter(func.children))
-            for p_addr in func.parents.copy():
-                program[p_addr].replace_call(func, program[import_func_addr])
-            program.remove_function(addr)
+            program.follow_through(addr, import_func_addr)
 
         return program
 
