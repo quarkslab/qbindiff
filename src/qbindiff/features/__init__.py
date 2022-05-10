@@ -11,6 +11,7 @@ from qbindiff.features.graph import (
 )
 from qbindiff.features.artefact import Address, DatName, Constant
 from qbindiff.features.topology import ChildNb, ParentNb, RelativeNb, LibName, ImpName
+from qbindiff.features.wlgk import WeisfeilerLehman
 
 FEATURES = {
     # FunctionFeatureExtractor
@@ -27,6 +28,7 @@ FEATURES = {
     RelativeNb,
     LibName,
     DatName,
+    WeisfeilerLehman,
     # BasicBlockFeatureExtractor
     # InstructionFeatureExtractor
     MnemonicSimple,
