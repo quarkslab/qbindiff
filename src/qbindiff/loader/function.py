@@ -128,11 +128,7 @@ class Function(dict):
         caller nor callee.
         :return: bool
         """
-        if self.children:
-            return False
-        if self.parents:
-            return False
-        return True
+        return not (self.children or self.parents)
 
     def __repr__(self):
         return "<Function: 0x%x>" % self.addr
