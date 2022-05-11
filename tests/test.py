@@ -19,18 +19,6 @@ class Unit:
     secondary_exe: str = None
 
 
-
-@dataclass
-class Unit:
-    primary: str
-    secondary: str
-    result: str
-    loader: LoaderType = None
-    similarity: str = None
-    primary_exe: str = None
-    secondary_exe: str = None
-
-
 class BinaryTest(unittest.TestCase):
     """Regression Test for binaries"""
 
