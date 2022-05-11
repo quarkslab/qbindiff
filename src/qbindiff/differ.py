@@ -50,6 +50,7 @@ class Differ:
         epsilon: Positive = 0.5,
         maxiter: int = 1000,
         visitor: Visitor = None,
+        normalize: bool = False,
     ):
 
         self.distance = distance
@@ -61,6 +62,10 @@ class Differ:
         self.primary = primary
         self.secondary = secondary
         self._visitor = NoVisitor() if visitor is None else visitor
+
+        if normalize:
+            self.primary = self.normalize(primary)
+            self.secondary = self.normalize(secondary)
 
         (
             self.primary_adj_matrix,
@@ -206,6 +211,13 @@ class Differ:
             self.sim_matrix /= self.sim_matrix.max()
         self.sim_matrix[:] = 1 - self.sim_matrix
 
+    def normalize(self, graph: Graph) -> Graph:
+        """
+        Custom function that normalizes the input graph.
+        This method is meant to be overriden by a sub-class.
+        """
+        pass
+
     def run_filters(self) -> None:
         """
         Custom filters that can edit the self.sim_matrix similarity matrix.
@@ -329,6 +341,24 @@ class QBinDiff(Differ):
                 if func.name in primary_import:
                     p_idx = self.primary_f2i[primary_import[func.name]]
                     self.sim_matrix[p_idx, s_idx] = 1
+
+    def normalize(self, program: Program) -> Program:
+        """Normalize the input Program"""
+
+        for addr, func in list(program.items()):
+            if not func.is_thunk():
+                continue
+            # ~ print(addr, len(func.children), func.children)
+            assert len(func.children) == 1, "Thunk function has multiple children"
+
+            # Replace all the callers with the called function
+            # { callers } --> thunk --> called
+            import_func_addr = next(iter(func.children))
+            for p_addr in func.parents.copy():
+                program[p_addr].replace_call(func, program[import_func_addr])
+            program.remove_function(addr)
+
+        return program
 
     def run_filters(self) -> None:
         self.match_import_functions()

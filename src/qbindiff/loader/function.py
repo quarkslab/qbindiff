@@ -101,7 +101,7 @@ class Function(dict):
         of an external library. It is not an imported function.
         :return: bool
         """
-        return self._backend.is_library()
+        return self.type == FunctionType.library
 
     def is_import(self) -> bool:
         """
@@ -109,7 +109,14 @@ class Function(dict):
         (Thus not having content)
         :return: bool
         """
-        return self._backend.is_import()
+        return self.type in (FunctionType.imported, FunctionType.extern)
+
+    def is_thunk(self) -> bool:
+        """
+        Returns whether or not this function is a thunk function.
+        :return: bool
+        """
+        return self.type == FunctionType.thunk
 
     def is_alone(self):
         """
@@ -117,11 +124,7 @@ class Function(dict):
         caller nor callee.
         :return: bool
         """
-        if self.children:
-            return False
-        if self.parents:
-            return False
-        return True
+        return not (self.children or self.parents)
 
     def __repr__(self):
         return "<Function: 0x%x>" % self.addr
@@ -137,3 +140,16 @@ class Function(dict):
     def __iter__(self):
         """ """
         return iter(self.values())
+
+    def replace_call(self, func1: "Function", func2: "Function") -> None:
+        """Replace the call from func1 with func2"""
+        self.children.remove(func1.addr)
+        func1.parents.remove(self.addr)
+        self.children.add(func2.addr)
+        func2.parents.add(self.addr)
+
+        try:
+            self.flowgraph.remove_edge(self.addr, func1.addr)
+        except networkx.exception.NetworkXError:
+            pass  # Edge has already been removed
+        self.flowgraph.add_edge(self.addr, func2.addr)

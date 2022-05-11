@@ -1,19 +1,54 @@
-import unittest, click, networkx, json, scipy
-import numpy as np
+import unittest, click, networkx, json, scipy, logging
 import qbindiff
 from pathlib import Path
+from dataclasses import dataclass
 from qbindiff.features import FEATURES
+from qbindiff.loader import LoaderType
 
 BASE_TEST_PATH = Path("tests/data")
+
+
+@dataclass
+class Unit:
+    primary: str
+    secondary: str
+    result: str
+    loader: LoaderType = None
+    similarity: str = None
+    primary_exe: str = None
+    secondary_exe: str = None
+
 
 class BinaryTest(unittest.TestCase):
     """Regression Test for binaries"""
 
     def setUp(self):
         self.base_path = BASE_TEST_PATH / "binaries"
-        self.units = (
-            ("test-bin.BinExport", "test-bin2.BinExport", "test-bin.results"),
-        )
+        self.units = [
+            Unit(
+                "test-bin.BinExport",
+                "test-bin2.BinExport",
+                "test-bin.results",
+                loader=LoaderType.binexport,
+            ),
+        ]
+
+        # Add QBinExport test cases
+        try:
+            import qbinexport
+
+            self.units.append(
+                Unit(
+                    "test-bin.QBinExport",
+                    "test-bin2.QBinExport",
+                    "test-bin-qbinexport.results",
+                    loader=LoaderType.qbinexport,
+                    primary_exe="test-bin",
+                    secondary_exe="test-bin2",
+                )
+            )
+        except ModuleNotFoundError:
+            pass
 
         self.features = []
         FEATURES_KEYS = {x.key: x for x in FEATURES}
@@ -24,9 +59,20 @@ class BinaryTest(unittest.TestCase):
             weight = 1.0
             self.features.append((FEATURES_KEYS[feature], float(weight)))
 
-    def basic_test(self, primary, secondary, results):
-        p = qbindiff.Program(self.base_path / primary)
-        s = qbindiff.Program(self.base_path / secondary)
+    def path(self, p):
+        return self.base_path / p
+
+    def basic_test(self, unit: Unit):
+        if unit.loader == LoaderType.qbinexport:
+            p = qbindiff.Program(
+                self.path(unit.primary), unit.loader, self.path(unit.primary_exe)
+            )
+            s = qbindiff.Program(
+                self.path(unit.secondary), unit.loader, self.path(unit.secondary_exe)
+            )
+        else:
+            p = qbindiff.Program(self.path(unit.primary), unit.loader)
+            s = qbindiff.Program(self.path(unit.secondary), unit.loader)
         differ = qbindiff.QBinDiff(
             p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5
         )
@@ -38,15 +84,15 @@ class BinaryTest(unittest.TestCase):
         mapping = differ.compute_matching()
         output = {(match.primary.addr, match.secondary.addr) for match in mapping}
 
-        with open(self.base_path / results) as fp:
+        with open(self.path(unit.result)) as fp:
             expected = json.load(fp)
 
         self.assertFalse(output ^ set(tuple(e) for e in expected))
 
     def test_binaries(self):
-        for f1, f2, results in self.units:
-            with self.subTest(f1=f1, f2=f2, results=results):
-                self.basic_test(f1, f2, results)
+        for unit in self.units:
+            with self.subTest(unit=unit):
+                self.basic_test(unit)
 
 
 class GraphSimTest(unittest.TestCase):
@@ -55,43 +101,46 @@ class GraphSimTest(unittest.TestCase):
     def setUp(self):
         self.base_path = BASE_TEST_PATH / "graphs_sim"
         self.units = (
-            (
+            Unit(
                 "simple-graph.1",
                 "simple-graph.2",
-                "simple-graph.similarity",
                 "simple-graph.output",
+                similarity="simple-graph.similarity",
             ),
-            (
+            Unit(
                 "partial-match.1",
                 "partial-match.2",
-                "partial-match.similarity",
                 "partial-match.output",
+                similarity="partial-match.similarity",
             ),
         )
 
-    def basic_test(self, g1, g2, sim, result):
-        graph1 = networkx.read_gml(self.base_path / g1)
-        graph2 = networkx.read_gml(self.base_path / g2)
+    def path(self, p):
+        return self.base_path / p
+
+    def basic_test(self, unit: Unit):
+        graph1 = networkx.read_gml(self.path(unit.primary))
+        graph2 = networkx.read_gml(self.path(unit.secondary))
         differ = qbindiff.DiGraphDiffer(
             graph1, graph2, sparsity_ratio=0, tradeoff=0.75, epsilon=0.5
         )
 
         # Provide custom similarity matrix
-        sparse_sim_matrix = scipy.io.mmread(self.base_path / sim)
+        sparse_sim_matrix = scipy.io.mmread(self.path(unit.similarity))
         differ.sim_matrix = sparse_sim_matrix.toarray()
 
         mapping = differ.compute_matching()
         output = {(match.primary, match.secondary) for match in mapping}
 
-        with open(self.base_path / result) as fp:
+        with open(self.path(unit.result)) as fp:
             expected = json.load(fp)
 
         self.assertFalse(output ^ set(tuple(e) for e in expected))
 
     def test_sim_graphs(self):
-        for g1, g2, sim, res in self.units:
-            with self.subTest(g1=g1, g2=g2, sim=sim, res=res):
-                self.basic_test(g1, g2, sim, res)
+        for unit in self.units:
+            with self.subTest(unit=unit):
+                self.basic_test(unit)
 
 
 class GraphTest(unittest.TestCase):
@@ -100,16 +149,19 @@ class GraphTest(unittest.TestCase):
     def setUp(self):
         self.base_path = BASE_TEST_PATH / "graphs_no_sim"
         self.units = (
-            (
+            Unit(
                 "simple-graph.1",
                 "simple-graph.2",
                 "simple-graph.output",
             ),
         )
 
-    def basic_test(self, g1, g2, result):
-        graph1 = networkx.read_gml(self.base_path / g1)
-        graph2 = networkx.read_gml(self.base_path / g2)
+    def path(self, p):
+        return self.base_path / p
+
+    def basic_test(self, unit: Unit):
+        graph1 = networkx.read_gml(self.path(unit.primary))
+        graph2 = networkx.read_gml(self.path(unit.secondary))
         differ = qbindiff.DiGraphDiffer(
             graph1, graph2, sparsity_ratio=0, tradeoff=0, epsilon=0.5
         )
@@ -117,15 +169,15 @@ class GraphTest(unittest.TestCase):
         mapping = differ.compute_matching()
         output = {(match.primary, match.secondary) for match in mapping}
 
-        with open(self.base_path / result) as fp:
+        with open(self.path(unit.result)) as fp:
             expected = json.load(fp)
 
         self.assertFalse(output ^ set(tuple(e) for e in expected))
 
     def test_no_sim_graphs(self):
-        for g1, g2, res in self.units:
-            with self.subTest(g1=g1, g2=g2, res=res):
-                self.basic_test(g1, g2, res)
+        for unit in self.units:
+            with self.subTest(unit=unit):
+                self.basic_test(unit)
 
 
 def suite():

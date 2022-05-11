@@ -175,7 +175,6 @@ class Matcher:
         Refine the mappings between the nodes of the two graphs
         by matching the unassigned nodes
         """
-
         primary, secondary = mapping
         assert len(primary) == len(secondary)
 
