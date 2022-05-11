@@ -16,10 +16,10 @@ from qbindiff import Program, QBinDiff, Mapping
 
 def configure_logging(verbose: int):
     # first desactivate matplotlib logging
-    logger = logging.getLogger('matplotlib')
+    logger = logging.getLogger("matplotlib")
     logger.setLevel(logging.WARNING)
-    logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
-    np.warnings.filterwarnings('ignore')
+    logging.basicConfig(format="[%(levelname)s] %(message)s", level=logging.INFO)
+    np.warnings.filterwarnings("ignore")
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
@@ -30,23 +30,33 @@ def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
     similarity = mapping.similarity
     nb_squares = mapping.squares
 
-    output = 'Score: {:.4f} | '\
-             'Similarity: {:.4f} | '\
-             'Squares: {:.0f} | '\
-             'Nb matches: {}\n'.format(similarity + nb_squares, similarity, nb_squares, nb_matches)
-    output += 'Node cover:  {:.3f}% / {:.3f}% | '\
-              'Edge cover:  {:.3f}% / {:.3f}%\n'.format(100 * nb_matches / len(differ.primary_affinity),
-                                                        100 * nb_matches / len(differ.secondary_affinity),
-                                                        100 * nb_squares / differ.primary_affinity.sum(),
-                                                        100 * nb_squares / differ.secondary_affinity.sum())
+    output = (
+        "Score: {:.4f} | "
+        "Similarity: {:.4f} | "
+        "Squares: {:.0f} | "
+        "Nb matches: {}\n".format(
+            similarity + nb_squares, similarity, nb_squares, nb_matches
+        )
+    )
+    output += (
+        "Node cover:  {:.3f}% / {:.3f}% | "
+        "Edge cover:  {:.3f}% / {:.3f}%\n".format(
+            100 * nb_matches / len(differ.primary_adj_matrix),
+            100 * nb_matches / len(differ.secondary_adj_matrix),
+            100 * nb_squares / differ.primary_adj_matrix.sum(),
+            100 * nb_squares / differ.secondary_adj_matrix.sum(),
+        )
+    )
     print(output)
 
 
-DISTANCES = ('canberra', 'correlation', 'cosine', 'euclidean')
+DISTANCES = ("canberra", "correlation", "cosine", "euclidean")
 FEATURES_KEYS = {x.name: x for x in FEATURES}
-FEATURES_KEYS.update({x.key: x for x in FEATURES})  # also add short keys as a valid feature
+FEATURES_KEYS.update(
+    {x.key: x for x in FEATURES}
+)  # also add short keys as a valid feature
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], max_content_width=300)
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=300)
 
 DEFAULT_FEATURES = tuple(x.key for x in FEATURES)
 DEFAULT_DISTANCE = "canberra"
@@ -55,30 +65,87 @@ DEFAULT_TRADEOFF = 0.75
 DEFAULT_EPSILON = 0.5
 DEFAULT_MAXITER = 1000
 
-help_features = 'The following features are available [default: all]:\n{}\n'.format('\n'.join("- {}, {}: {}".format(x.key, x.name, x.__doc__) for x in FEATURES))
-help_distance = 'The following distances are available [default: {}]:\n{}\n'.format(DISTANCES[0], '\n'.join('-d {}'.format(dist) for dist in DISTANCES))
-help_distance += '\nFeatures may be weighted by a positive value such as <feature>:<weight> [default: 1.0]\n'
+help_features = "The following features are available [default: all]:\n{}\n".format(
+    "\n".join("- {}, {}: {}".format(x.key, x.name, x.__doc__) for x in FEATURES)
+)
+help_distance = "The following distances are available [default: {}]:\n{}\n".format(
+    DISTANCES[0], "\n".join("-d {}".format(dist) for dist in DISTANCES)
+)
+help_distance += "\nFeatures may be weighted by a positive value such as <feature>:<weight> [default: 1.0]\n"
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option('-o', '--output', type=Path, default='',
-              help="Output file [default: <primary>_vs_<secondary>.qbindiff]")
-@click.option('-f', '--features', type=str, default=DEFAULT_FEATURES, multiple=True,
-              metavar="<feature>", help=help_features)
-@click.option('-d', '--distance', type=click.Choice(DISTANCES), default=DEFAULT_DISTANCE,
-              metavar="<function>", help=help_distance)
-@click.option('-s', '--sparsity_ratio', type=float, default=DEFAULT_SPARSITY_RATIO,
-              help="Ratio of least probable matches to ignore. Between 0.0 to 1.0 [default: %.02f]" % DEFAULT_SPARSITY_RATIO)
-@click.option('-t', '--tradeoff', type=float, default=DEFAULT_TRADEOFF,
-              help="Tradeoff between function content (near 1.0) and call-graph information (near 0.0) [default: %.02f]" % DEFAULT_TRADEOFF)
-@click.option('-e', '--epsilon', type=float, default=DEFAULT_EPSILON,
-              help="Relaxation parameter to enforce convergence [default: %.02f]" % DEFAULT_EPSILON)
-@click.option('-i', '--maxiter', type=int, default=DEFAULT_MAXITER,
-              help="Maximum number of iteration for belief propagation [default: %d]" % DEFAULT_MAXITER)
-@click.option('-v', '--verbose', count=True, help="Activate debugging messages")
+@click.option(
+    "-o",
+    "--output",
+    type=Path,
+    default="",
+    help="Output file [default: <primary>_vs_<secondary>.qbindiff]",
+)
+@click.option(
+    "-f",
+    "--features",
+    type=str,
+    default=DEFAULT_FEATURES,
+    multiple=True,
+    metavar="<feature>",
+    help=help_features,
+)
+@click.option(
+    "-d",
+    "--distance",
+    type=click.Choice(DISTANCES),
+    default=DEFAULT_DISTANCE,
+    metavar="<function>",
+    help=help_distance,
+)
+@click.option(
+    "-s",
+    "--sparsity_ratio",
+    type=float,
+    default=DEFAULT_SPARSITY_RATIO,
+    help="Ratio of least probable matches to ignore. Between 0.0 to 1.0 [default: %.02f]"
+    % DEFAULT_SPARSITY_RATIO,
+)
+@click.option(
+    "-t",
+    "--tradeoff",
+    type=float,
+    default=DEFAULT_TRADEOFF,
+    help="Tradeoff between function content (near 1.0) and call-graph information (near 0.0) [default: %.02f]"
+    % DEFAULT_TRADEOFF,
+)
+@click.option(
+    "-e",
+    "--epsilon",
+    type=float,
+    default=DEFAULT_EPSILON,
+    help="Relaxation parameter to enforce convergence [default: %.02f]"
+    % DEFAULT_EPSILON,
+)
+@click.option(
+    "-i",
+    "--maxiter",
+    type=int,
+    default=DEFAULT_MAXITER,
+    help="Maximum number of iteration for belief propagation [default: %d]"
+    % DEFAULT_MAXITER,
+)
+@click.option("-v", "--verbose", count=True, help="Activate debugging messages")
 @click.argument("primary", type=Path, metavar="<primary file>")
-@click.argument('secondary', type=Path, metavar="<secondary file>")
-def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter, verbose, primary, secondary):
+@click.argument("secondary", type=Path, metavar="<secondary file>")
+def main(
+    output,
+    features,
+    distance,
+    sparsity_ratio,
+    tradeoff,
+    epsilon,
+    maxiter,
+    verbose,
+    primary,
+    secondary,
+):
     """
     qBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
@@ -87,26 +154,42 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
     configure_logging(verbose)
 
     if 0.0 > sparsity_ratio > 1:
-        logging.warning("[-] Sparsity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SPARSITY_RATIO)
+        logging.warning(
+            "[-] Sparsity ratio should be within 0..1 (set it to %.2f)"
+            % DEFAULT_SPARSITY_RATIO
+        )
         sparsity_ratio = DEFAULT_SPARSITY_RATIO
 
     if 0.0 > tradeoff > 1:
-        logging.warning("[-] Trade-off parameter should be within 0..1 (set it to %.2f)" % DEFAULT_TRADEOFF)
+        logging.warning(
+            "[-] Trade-off parameter should be within 0..1 (set it to %.2f)"
+            % DEFAULT_TRADEOFF
+        )
         tradeoff = DEFAULT_TRADEOFF
 
     if 0.0 > epsilon:
-        logging.warning("[-] Epsilon parameter should be positive (set it to %.3f)" % DEFAULT_EPSILON)
+        logging.warning(
+            "[-] Epsilon parameter should be positive (set it to %.3f)"
+            % DEFAULT_EPSILON
+        )
         epsilon = DEFAULT_EPSILON
 
     if not output.name:
-        output = Path('{}_vs_{}.qbindiff'.format(primary.stem, secondary.stem))
+        output = Path("{}_vs_{}.qbindiff".format(primary.stem, secondary.stem))
 
     logging.info(f"[+] Loading primary: {primary.name}")
     primary = Program(primary)
     logging.info(f"[+] Loading secondary: {secondary.name}")
     secondary = Program(secondary)
-    
-    qbindiff = QBinDiff(primary, secondary)
+
+    qbindiff = QBinDiff(
+        primary,
+        secondary,
+        sparsity_ratio=sparsity_ratio,
+        tradeoff=tradeoff,
+        epsilon=epsilon,
+        maxiter=maxiter,
+    )
 
     if not features:
         logging.error("no feature provided")
@@ -114,27 +197,27 @@ def main(output, features, distance, sparsity_ratio, tradeoff, epsilon, maxiter,
 
     for feature in set(features):
         weight = 1.0
-        if ':' in feature:
-            feature, weight = feature.split(':')
+        if ":" in feature:
+            feature, weight = feature.split(":")
         if feature not in FEATURES_KEYS:
             logging.warning(f"Feature '{feature}' not recognized - ignored.")
             continue
         qbindiff.register_feature_extractor(FEATURES_KEYS[feature], float(weight))
 
     logging.info("[+] Initializing NAP")
-    qbindiff.compute_similarity(distance)
+    qbindiff.process()
 
     logging.info("[+] Computing NAP")
-    for _ in tqdm(qbindiff.matching_iterator(sparsity_ratio, tradeoff, epsilon, maxiter), total=maxiter):
+    for _ in tqdm(qbindiff.matching_iterator(), total=maxiter):
         pass
 
     display_statistics(qbindiff, qbindiff.mapping)
 
-    logging.info("[+] Saving")
-    qbindiff.save(output)
-    logging.info("[+] Mapping successfully saved to: %s" % output)
-    sys.exit(0)
+    # ~ logging.info("[+] Saving")
+    # ~ qbindiff.save(output)
+    # ~ logging.info("[+] Mapping successfully saved to: %s" % output)
+    # ~ sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

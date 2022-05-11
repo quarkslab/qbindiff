@@ -13,6 +13,7 @@ from qbindiff.types import (
     Ratio,
     RawMapping,
     AdjacencyMatrix,
+    Matrix,
     SimMatrix,
     SparseMatrix,
 )
@@ -28,18 +29,19 @@ def iter_csr_matrix(matrix: SparseMatrix):
         yield (x, y, v)
 
 
-def solve_linear_assignment(sim_matrix: SimMatrix) -> RawMapping:
-    n, m = sim_matrix.shape
+def solve_linear_assignment(cost_matrix: Matrix) -> RawMapping:
+    """Solve the linear assignment problem given the cost_matrix"""
+    n, m = cost_matrix.shape
     transposed = n > m
     if transposed:
         n, m = m, n
-        sim_matrix = sim_matrix.T
-    cost_matrix = np.zeros((m, m), dtype=sim_matrix.dtype)
-    cost_matrix[:n, :m] = -sim_matrix
-    idy = lapjv(cost_matrix)[0][:n]
+        cost_matrix = cost_matrix.T
+    full_cost_matrix = np.zeros((m, m), dtype=cost_matrix.dtype)
+    full_cost_matrix[:n, :m] = cost_matrix
+    col_indices = lapjv(full_cost_matrix)[0][:n]
     if transposed:
-        return idy, np.arange(n)
-    return np.arange(n), idy
+        return col_indices, np.arange(n)
+    return np.arange(n), col_indices
 
 
 class Matcher:
@@ -49,6 +51,7 @@ class Matcher:
         primary_adj_matrix: AdjacencyMatrix,
         secondary_adj_matrix: AdjacencyMatrix,
     ):
+        self._mapping = None  # nodes mapping
         self.sim_matrix = similarity_matrix
         self.primary_adj_matrix = primary_adj_matrix
         self.secondary_adj_matrix = secondary_adj_matrix
@@ -61,7 +64,7 @@ class Matcher:
         ratio = round(sparsity_ratio * self.sim_matrix.size)
 
         if ratio == 0:
-            self.sparse_sim_matrix = self.sim_matrix.astype(bool)
+            self.sparse_sim_matrix = csr_matrix(self.sim_matrix)
             return
         elif ratio == self.sim_matrix.size:
             threshold = self.sim_matrix.max(1, keepdims=True)
@@ -139,6 +142,11 @@ class Matcher:
             lil_squares_matrix[e2, e1] = 1
         self.squares_matrix = lil_squares_matrix.tocsr()
 
+    @property
+    def mapping(self) -> RawMapping:
+        """Returns the nodes mapping between the two graphs"""
+        return self._mapping
+
     def process(self, sparsity_ratio: Ratio = 0.75, compute_squares: bool = True):
         self._compute_sparse_sim_matrix(sparsity_ratio)
         if compute_squares:
@@ -159,18 +167,29 @@ class Matcher:
             yield niter
 
         score_matrix = self.sparse_sim_matrix.copy()
-        score_matrix.data[:] = belief.best_marginals
-        self.mapping = self.refine(belief.best_mapping, score_matrix)
+        score_matrix.data[:] = belief.best_marginals.data
+        self._mapping = self.refine(belief.best_mapping, score_matrix)
 
     def refine(self, mapping: RawMapping, score_matrix: SimMatrix) -> RawMapping:
-        idx, idy = mapping
-        if len(idx) == min(score_matrix.shape):
+        """
+        Refine the mappings between the nodes of the two graphs
+        by matching the unassigned nodes
+        """
+
+        primary, secondary = mapping
+        assert len(primary) == len(secondary)
+
+        # All the nodes have been assigned
+        if len(primary) == min(score_matrix.shape):
             return mapping
-        idxmask = np.setdiff1d(range(score_matrix.shape[0]), idx)
-        idymask = np.setdiff1d(range(score_matrix.shape[1]), idy)
-        score_matrix = score_matrix[idxmask][:, idymask].toarray()
-        score_matrix[score_matrix.nonzero()] += 100 - score_matrix.min()
 
-        idxx, idyy = solve_linear_assignment(score_matrix)
+        primary_missing = np.setdiff1d(range(score_matrix.shape[0]), primary)
+        secondary_missing = np.setdiff1d(range(score_matrix.shape[1]), secondary)
+        score_matrix = score_matrix[primary_missing][:, secondary_missing].toarray()
+        score_matrix = -score_matrix
 
-        return np.hstack((idx, idxmask[idxx])), np.hstack((idy, idymask[idyy]))
+        primary_ass, secondary_ass = solve_linear_assignment(score_matrix)
+
+        return np.hstack((primary, primary_missing[primary_ass])), np.hstack(
+            (secondary, secondary_missing[secondary_ass])
+        )

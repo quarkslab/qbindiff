@@ -11,6 +11,11 @@ class GenericGraph(metaclass=ABCMeta):
         """Return an iterator over the items. Each item is {node_label: node}"""
         raise NotImplementedError()
 
+    @abstractmethod
+    def get_node(self, node_label: Any):
+        """Returns the node identified by the `node_label`"""
+        raise NotImplementedError()
+
     @property
     @abstractmethod
     def node_labels(self) -> Iterator[Any]:

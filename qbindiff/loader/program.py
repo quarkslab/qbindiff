@@ -70,6 +70,10 @@ class Program(dict, GenericGraph):
             if self._filter(f):  # yield function only if filter agree to keep it
                 yield (addr, f)
 
+    def get_node(self, node_label: Any):
+        """Returns the node identified by the `node_label`"""
+        return self[node_label]
+
     @property
     def node_labels(self) -> Iterator[Any]:
         """Return an iterator over the node labels"""

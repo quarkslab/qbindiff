@@ -5,11 +5,10 @@ from typing import Generator, Iterator, Iterable
 from pathlib import Path
 
 # Import for types
-from typing import Tuple, List, Optional
+from typing import Optional
 from qbindiff.types import Match
 from qbindiff.types import PathLike, Ratio, Idx, Addr, ExtendedMapping, Item
 from qbindiff.loader.program import Program
-
 
 import json
 from collections import namedtuple
@@ -20,15 +19,18 @@ from typing import Optional, Set, Any
 
 class Mapping:
     """
-    Matching hold all the match data between the two analysed programs
+    This class represents an interface to access the result of the matching analysis.
     """
 
     def __init__(
-        self, mapping: ExtendedMapping, unmatched: Tuple[Set[Item], Set[Item]]
+        self,
+        mapping: ExtendedMapping,
+        unmatched_primary: set[Item],
+        unmatched_secondary: set[Item],
     ):
         self._matches = [Match(*x) for x in mapping]
-        self._primary_unmatched = unmatched[0]
-        self._secondary_unmatched = unmatched[1]
+        self._primary_unmatched = unmatched_primary
+        self._secondary_unmatched = unmatched_secondary
 
     def __iter__(self):
         return iter(self._matches)
@@ -45,7 +47,7 @@ class Mapping:
 
     @property
     def squares(self) -> float:
-        """Global similarity of the diff"""
+        """Number of matchinf squares"""
         return sum(x.squares for x in self._matches) / 2
 
     def add_match(
@@ -70,7 +72,7 @@ class Mapping:
         self._matches.remove(match)
 
     @property
-    def primary_matched(self) -> Set[Item]:
+    def primary_matched(self) -> set[Item]:
         """
         Provide the set of addresses matched in primary
         :return: set of addresses in primary
@@ -78,7 +80,7 @@ class Mapping:
         return {x.primary for x in self._matches}
 
     @property
-    def primary_unmatched(self) -> Set[Item]:
+    def primary_unmatched(self) -> set[Item]:
         """
         Provide the set of addresses matched in primary
         :return: set of addresses in primary
@@ -86,7 +88,7 @@ class Mapping:
         return self._primary_unmatched
 
     @property
-    def secondary_matched(self) -> Set[Item]:
+    def secondary_matched(self) -> set[Item]:
         """
         Provide the set of addresses matched in the secondary binary
         :return: set of addresses in secondary
@@ -94,7 +96,7 @@ class Mapping:
         return {x.secondary for x in self._matches}
 
     @property
-    def secondary_unmatched(self) -> Set[Item]:
+    def secondary_unmatched(self) -> set[Item]:
         """
         Provide the set of addresses matched in the secondary binary
         :return: set of addresses in secondary
@@ -108,22 +110,22 @@ class Mapping:
 
     @property
     def nb_unmatched_primary(self) -> int:
-        """Number of unmatched function in the primary program"""
+        """Number of unmatched nodes in primary"""
         return len(self._primary_unmatched)
 
     @property
     def nb_unmatched_secondary(self) -> int:
-        """Number of unmatched function in the secondary program"""
+        """Number of unmatched nodes in secondary"""
         return len(self._secondary_unmatched)
 
     @property
     def nb_item_primary(self) -> int:
-        """Total number of function in primary"""
+        """Total number of nodes in primary"""
         return self.nb_match + self.nb_unmatched_primary
 
     @property
     def nb_item_secondary(self) -> int:
-        """Total number of function in secondary"""
+        """Total number of nodes in secondary"""
         return self.nb_match + self.nb_unmatched_secondary
 
     def match_primary(self, item: Item) -> Optional[Match]:
@@ -134,7 +136,7 @@ class Mapping:
         return None
 
     def match_secondary(self, item: Item) -> Optional[Match]:
-        """Returns the match index associated with the given primary index"""
+        """Returns the match index associated with the given secondary index"""
         for m in self._matches:
             if m.secondary == item:
                 return m
