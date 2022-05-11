@@ -148,20 +148,14 @@ class WeisfeilerLehman(FunctionFeatureExtractor):
                     newLabels[node] += labels[n]
 
             labels = newLabels
-            already = set()
-            counter = 0
-            for l in labels:
-                h = l.hash
-                if h in already:
-                    counter += 1
-                else:
-                    already.add(h)
-                vec.append(h)
+            new_hashes = [l.hash for l in labels]
+            counter = sorted(Counter(new_hashes).values())
 
             # Early stop
             if counter == prev_counter:
                 break
             prev_counter = counter
+            vec.extend(new_hashes)
 
         # Generate the frequency vector of the labels
         collector.add_dict_feature(self.key, dict(Counter(vec)))
