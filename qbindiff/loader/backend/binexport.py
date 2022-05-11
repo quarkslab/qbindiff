@@ -323,7 +323,7 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
 
     def is_library(self) -> bool:
         """True if the function is a library function"""
-        return self.type == FunctionType.library or self.type == FunctionType.thunk
+        return self.type in (FunctionType.library, FunctionType.thunk)
 
     def has_basic_block(self, addr: Addr) -> bool:
         """Returns True if the basic block with address `addr` exists, False otherwise."""
