@@ -35,12 +35,12 @@ class BinaryTest(unittest.TestCase):
 
         differ.process()
         mapping = differ.compute_matching()
-        output = [[match.primary.addr, match.secondary.addr] for match in mapping]
+        output = {(match.primary.addr, match.secondary.addr) for match in mapping}
 
         with open(self.base_path.joinpath(results)) as fp:
             expected = json.load(fp)
 
-        self.assertEqual(sorted(output), sorted(expected))
+        self.assertFalse(output ^ set(tuple(e) for e in expected))
 
     def test_binaries(self):
         for f1, f2, results in self.units:
@@ -80,12 +80,12 @@ class GraphSimTest(unittest.TestCase):
         differ.sim_matrix = sparse_sim_matrix.toarray()
 
         mapping = differ.compute_matching()
-        output = [[match.primary, match.secondary] for match in mapping]
+        output = {(match.primary, match.secondary) for match in mapping}
 
         with open(self.base_path.joinpath(result)) as fp:
             expected = json.load(fp)
 
-        self.assertEqual(sorted(output), sorted(expected))
+        self.assertFalse(output ^ set(tuple(e) for e in expected))
 
     def test_sim_graphs(self):
         for g1, g2, sim, res in self.units:
@@ -114,12 +114,12 @@ class GraphTest(unittest.TestCase):
         )
 
         mapping = differ.compute_matching()
-        output = [[match.primary, match.secondary] for match in mapping]
+        output = {(match.primary, match.secondary) for match in mapping}
 
         with open(self.base_path.joinpath(result)) as fp:
             expected = json.load(fp)
 
-        self.assertEqual(sorted(output), sorted(expected))
+        self.assertFalse(output ^ set(tuple(e) for e in expected))
 
     def test_no_sim_graphs(self):
         for g1, g2, res in self.units:
