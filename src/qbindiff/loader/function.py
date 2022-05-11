@@ -101,9 +101,7 @@ class Function(dict):
         of an external library. It is not an imported function.
         :return: bool
         """
-        if self.type == FunctionType.library:
-            return True
-        return False
+        return self.type == FunctionType.library
 
     def is_import(self) -> bool:
         """
