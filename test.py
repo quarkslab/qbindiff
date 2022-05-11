@@ -9,7 +9,7 @@ class BinaryTest(unittest.TestCase):
     """Regression Test for binaries"""
 
     def setUp(self):
-        self.base_path = "test/binaries/"
+        self.base_path = Path("test/binaries")
         self.units = (
             ("test-bin.BinExport", "test-bin2.BinExport", "test-bin.results"),
         )
@@ -24,8 +24,8 @@ class BinaryTest(unittest.TestCase):
             self.features.append((FEATURES_KEYS[feature], float(weight)))
 
     def basic_test(self, primary, secondary, results):
-        p = qbindiff.Program(Path(self.base_path + primary))
-        s = qbindiff.Program(Path(self.base_path + secondary))
+        p = qbindiff.Program(self.base_path.joinpath(primary))
+        s = qbindiff.Program(self.base_path.joinpath(secondary))
         differ = qbindiff.QBinDiff(
             p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5
         )
@@ -37,7 +37,7 @@ class BinaryTest(unittest.TestCase):
         mapping = differ.compute_matching()
         output = [[match.primary.addr, match.secondary.addr] for match in mapping]
 
-        with open(self.base_path + results) as fp:
+        with open(self.base_path.joinpath(results)) as fp:
             expected = json.load(fp)
 
         self.assertEqual(sorted(output), sorted(expected))
@@ -52,7 +52,7 @@ class GraphSimTest(unittest.TestCase):
     """Regression tests for generic graphs with a custom supplied similarity matrix"""
 
     def setUp(self):
-        self.base_path = "test/graphs_sim/"
+        self.base_path = Path("test/graphs_sim")
         self.units = (
             (
                 "simple-graph.1",
@@ -69,20 +69,20 @@ class GraphSimTest(unittest.TestCase):
         )
 
     def basic_test(self, g1, g2, sim, result):
-        graph1 = networkx.read_gml(self.base_path + g1)
-        graph2 = networkx.read_gml(self.base_path + g2)
+        graph1 = networkx.read_gml(self.base_path.joinpath(g1))
+        graph2 = networkx.read_gml(self.base_path.joinpath(g2))
         differ = qbindiff.DiGraphDiffer(
             graph1, graph2, sparsity_ratio=0, tradeoff=0.75, epsilon=0.5
         )
 
         # Provide custom similarity matrix
-        sparse_sim_matrix = scipy.io.mmread(self.base_path + sim)
+        sparse_sim_matrix = scipy.io.mmread(self.base_path.joinpath(sim))
         differ.sim_matrix = sparse_sim_matrix.toarray()
 
         mapping = differ.compute_matching()
         output = [[match.primary, match.secondary] for match in mapping]
 
-        with open(self.base_path + result) as fp:
+        with open(self.base_path.joinpath(result)) as fp:
             expected = json.load(fp)
 
         self.assertEqual(sorted(output), sorted(expected))
@@ -97,7 +97,7 @@ class GraphTest(unittest.TestCase):
     """Regression tests for generic graphs"""
 
     def setUp(self):
-        self.base_path = "test/graphs_no_sim/"
+        self.base_path = Path("test/graphs_no_sim")
         self.units = (
             (
                 "simple-graph.1",
@@ -107,8 +107,8 @@ class GraphTest(unittest.TestCase):
         )
 
     def basic_test(self, g1, g2, result):
-        graph1 = networkx.read_gml(self.base_path + g1)
-        graph2 = networkx.read_gml(self.base_path + g2)
+        graph1 = networkx.read_gml(self.base_path.joinpath(g1))
+        graph2 = networkx.read_gml(self.base_path.joinpath(g2))
         differ = qbindiff.DiGraphDiffer(
             graph1, graph2, sparsity_ratio=0, tradeoff=0, epsilon=0.5
         )
@@ -116,7 +116,7 @@ class GraphTest(unittest.TestCase):
         mapping = differ.compute_matching()
         output = [[match.primary, match.secondary] for match in mapping]
 
-        with open(self.base_path + result) as fp:
+        with open(self.base_path.joinpath(result)) as fp:
             expected = json.load(fp)
 
         self.assertEqual(sorted(output), sorted(expected))
