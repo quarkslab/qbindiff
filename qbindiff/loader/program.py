@@ -22,6 +22,8 @@ class Program(dict, GenericGraph):
     ):
         super(Program, self).__init__()
         self._backend = None
+        self._file_path = file_path
+        self._exec_path = exec_path
 
         if file_path is None:  # Inside IDA just call Program()
             from qbindiff.loader.backend.ida import ProgramBackendIDA
@@ -101,6 +103,16 @@ class Program(dict, GenericGraph):
         :return: program name
         """
         return self._backend.name
+
+    @property
+    def file_path(self):
+        """Returns the file path"""
+        return self._file_path
+
+    @property
+    def exec_path(self):
+        """Returns the executable path"""
+        return self._exec_path
 
     def set_function_filter(self, func: Callable[[Function], bool]) -> None:
         """

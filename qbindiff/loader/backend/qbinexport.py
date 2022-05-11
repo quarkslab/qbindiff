@@ -1,9 +1,16 @@
-import qbinexport
-from collections.abc import Iterator
+import qbinexport, networkx
+from functools import cache
+from typing import Any
 
-from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Expr
-from qbindiff.loader.backend import AbstractProgramBackend, AbstractFunctionBackend
-from qbindiff.loader.types import FunctionType
+from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
+from qbindiff.loader.backend import (
+    AbstractProgramBackend,
+    AbstractFunctionBackend,
+    AbstractBasicBlockBackend,
+    AbstractInstructionBackend,
+    AbstractOperandBackend,
+)
+from qbindiff.loader.types import FunctionType, LoaderType
 from qbindiff.types import Addr
 
 
@@ -13,55 +20,77 @@ qbFunction = qbinexport.function.Function
 qbBlock = qbinexport.block.Block
 qbInstruction = qbinexport.instruction.Instruction
 qbOperand = qbinexport.instruction.Operand
+capstoneOperand = Any  # Don't import the whole capstone module just for the typing
+capstoneValue = Any  # Don't import the whole capstone module just for the typing
 
 
-class OperandBackendQbinExport(AbstractOperandBackend):
+class OperandBackendQBinExport(AbstractOperandBackend):
     """Backend loader of a Operand using QBinExport"""
 
-    def __init__(self, qb_operand: qbOperand):
-        super(OperandBackendQbinExport, self).__init__()
+    def __init__(self, operand_str: str, cs_operand: capstoneOperand):
+        super(OperandBackendQBinExport, self).__init__()
 
-        self.qb_operand = qb_operand
+        self.cs_operand = cs_operand
+        self._str = operand_str
 
     def __str__(self) -> str:
-        return ""  # Not supported
+        return self._str
 
     @property
-    def type(self) -> OperandType:
-        """Returns the operand type as defined in the types.py"""
-        return -1  # Not supported
+    def type(self) -> int:
+        """Returns the capstone operand type"""
+        return self.cs_operand.type
 
     @property
-    def expressions(self) -> Iterator[Expr]:
-        """Returns an iterator of expressions"""
-        return iter([])  # Not supported
+    def value(self) -> capstoneValue:
+        """Returns the capstone operand value"""
+        return self.cs_operand.value
 
 
-class InstructionBackendQbinExport(AbstractInstructionBackend):
+class InstructionBackendQBinExport(AbstractInstructionBackend):
     """Backend loader of a Instruction using QBinExport"""
 
     def __init__(self, qb_instruction: qbInstruction):
-        super(InstructionBackendQbinExport, self).__init__()
+        super(InstructionBackendQBinExport, self).__init__()
 
         self.qb_instr = qb_instruction
+        self.cs_instr = qb_instruction.cs_inst
+        self._operands = None
 
     @property
     def addr(self) -> Addr:
         """The address of the instruction"""
-        return self.qb_instr.address
+        return self.cs_instr.address
 
     @property
     def mnemonic(self) -> str:
         """Returns the instruction mnemonic as a string"""
-        return self.qb_instr.cs_inst.mnemonic
+        return self.cs_instr.mnemonic
+
+    @property
+    @cache
+    def data_references(self) -> set[Addr]:
+        """Returns the collections of addresses that are accessed by the instruction"""
+
+        ref = set()
+        for r in self.qb_instr.data_references:
+            try:
+                ref.add(r.address)
+            except AttributeError:  # Not all the references have the field address
+                pass
+        return ref
 
     @property
     def operands(self) -> list[Operand]:
         """Returns the list of operands as Operand object"""
-        operand_list = []
-        for o in self.qb_instr.operands:
-            operand_list.append(Operand(LoaderType.qbinexport, o))
-        return operand_list
+        if not self._operands:
+            self._operands = []
+            for o in self.cs_instr.operands:
+                self._operands.append(
+                    Operand(LoaderType.qbinexport, self.cs_instr.op_str, o)
+                )
+
+        return self._operands
 
     @property
     def groups(self) -> list[str]:
@@ -110,6 +139,10 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
 
         # [TODO] Init all the properties and free the memory of qb_prog/qb_func
 
+        # Stop the exploration if it's an imported function
+        if self.is_import():
+            return
+
         bblocks = {
             addr: self.qb_func.get_block(addr) for addr in self.qb_func.graph.nodes
         }
@@ -127,19 +160,35 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
     @property
     def graph(self) -> networkx.DiGraph:
         """The Control Flow Graph of the function"""
-        raise NotImplementedError()
+        return self.qb_func.graph
 
     @property
+    @cache
     def parents(self) -> set[Addr]:
         """Set of function parents in the call graph"""
-        return {
-            self.qb_prog.get_function_by_chunk(c).start for c in self.qb_func.callers
-        }
+
+        parents = set()
+        for chunk in self.qb_func.callers:
+            try:
+                for func in self.qb_prog.get_function_by_chunk(chunk):
+                    parents.add(func.start)
+            except IndexError:
+                pass  # Sometimes there can be a chunk that is not part of any function
+        return parents
 
     @property
+    @cache
     def children(self) -> set[Addr]:
         """Set of function children in the call graph"""
-        return {self.qb_prog.get_function_by_chunk(c).start for c in self.qb_func.calls}
+
+        children = set()
+        for chunk in self.qb_func.calls:
+            try:
+                for func in self.qb_prog.get_function_by_chunk(chunk):
+                    children.add(func.start)
+            except IndexError:
+                pass  # Sometimes there can be a chunk that is not part of any function
+        return children
 
     @property
     def type(self) -> FunctionType:
@@ -169,11 +218,16 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
     def type(self, value: FunctionType) -> None:
         self._type = value
 
-    @property
     def is_import(self) -> bool:
         """True if the function is imported"""
-        # Should we consider also FunctionType.library?
-        if self.type in (FunctionType.imported, FunctionType.thunk):
+        # Should we consider also FunctionType.library and FunctionType.thunk?
+        if self.type in (FunctionType.imported, FunctionType.extern):
+            return True
+        return False
+
+    def is_library(self) -> bool:
+        """True if the function is a library function"""
+        if self.type == FunctionType.library:
             return True
         return False
 
@@ -197,16 +251,25 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
 
         self.qb_prog = qbinexport.Program(export_path, exec_path)
 
+        self._callgraph = networkx.DiGraph()
+
         for addr, func in self.qb_prog.items():
             f = Function(LoaderType.qbinexport, func)
             if addr in program:
                 logging.error("Address collision for 0x%x" % addr)
             program[addr] = f
 
+            self._callgraph.add_node(addr)
+            for c_addr in f.children:
+                self._callgraph.add_edge(addr, c_addr)
+            for p_addr in f.parents:
+                self._callgraph.add_edge(p_addr, addr)
+
     @property
     def name(self):
         return self.qb_prog.executable.exec_file.name
 
     @property
-    def callgraph(self):
-        pass
+    def callgraph(self) -> networkx.DiGraph:
+        """The callgraph of the program"""
+        return self._callgraph

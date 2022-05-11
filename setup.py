@@ -18,6 +18,7 @@ setup(
         "lapjv",
         "networkx",
         "python-louvain",
+        "capstone",
     ],
     extras_require={
         "QBinExport backend": ["qbinexport"],

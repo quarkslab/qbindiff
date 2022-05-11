@@ -1,6 +1,6 @@
-import logging
-import networkx
+import logging, networkx, capstone
 from collections import defaultdict
+from functools import cache
 from typing import Union
 
 from qbindiff.loader.backend import (
@@ -47,6 +47,39 @@ def _instruction_index_range(rng):
     return range(
         rng.begin_index, (rng.end_index if rng.end_index else rng.begin_index + 1)
     )
+
+
+def _get_capstone_disassembler(binexport_arch: str):
+    def capstone_context(arch, mode):
+        context = capstone.Cs(arch, mode)
+        context.detail = True
+        return context
+
+    if binexport_arch == "x86":
+        return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    elif binexport_arch == "x86-64":
+        return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
+
+    raise NotImplementedError(f"Architecture {binexport_arch} has not be implemented")
+
+
+def to_hex2(s):
+    if _python3:
+        r = "".join("{0:02x}".format(c) for c in s)  # <-- Python 3 is OK
+    while r[0] == "0":
+        r = r[1:]
+    return r
+
+
+def to_x(s):
+    from struct import pack
+
+    if not s:
+        return "0"
+    x = pack(">q", s)
+    while x[0] in ("\0", 0):
+        x = x[1:]
+    return to_hex2(x)
 
 
 # ===========================================
@@ -288,6 +321,10 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
     def is_import(self) -> bool:
         return self.type == FunctionType.imported
 
+    def is_library(self) -> bool:
+        """True if the function is a library function"""
+        return self.type in (FunctionType.library, FunctionType.thunk)
+
     def has_basic_block(self, addr: Addr) -> bool:
         """Returns True if the basic block with address `addr` exists, False otherwise."""
         return addr in self._basic_blocks_addr
@@ -307,6 +344,9 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         # Private attributes
         self._addr = None
 
+        bb_asm = b""
+        instr_count = 0
+
         # Ranges are in fact the true basic blocks but BinExport for some reason likes
         # to merge multiple basic blocks into one.
         # For example: BB_1 -- unconditional_jmp --> BB_2
@@ -320,7 +360,26 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                 if self._addr is None:
                     self._addr = inst_addr
 
-                # At this point do the instruction initialization
+                bb_asm += pb_inst.raw_bytes
+                instr_count += 1
+
+        md = _get_capstone_disassembler(
+            be_program.proto.meta_information.architecture_name
+        )
+        instructions = list(md.disasm(bb_asm, self.addr))
+        if len(instructions) != instr_count:
+            logging.error(
+                f"Mismatch between the disassembly of capstone and IDA for the basic block at address 0x{self.addr:x}"
+            )
+            exit(1)
+
+        i = 0
+        # Iterate once again to build the Instruction
+        for rng in pb_basic_block.instruction_index:
+            for idx in _instruction_index_range(rng):
+                pb_inst = be_program.proto.instruction[idx]
+                inst_addr = _get_instruction_address(be_program.proto, idx)
+
                 basic_block.append(
                     Instruction(
                         LoaderType.binexport,
@@ -329,8 +388,10 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                         inst_addr,
                         idx,
                         data_refs,
+                        instructions[i],
                     )
                 )
+                i += 1
 
     @property
     def addr(self) -> Addr:
@@ -345,6 +406,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         addr: Addr,
         i_idx: int,
         data_refs: defaultdict[int, list[Addr]],
+        cs_instr: capstone.CsInsn,
     ):
         super(InstructionBackendBinExport, self).__init__()
 
@@ -355,6 +417,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         self._instruction = be_program.proto.instruction[i_idx]
         self.data_refs = data_refs[i_idx]
         self.comment_index = be_program.proto.instruction[i_idx].comment_index
+        self.cs_instr = cs_instr
 
     @property
     def addr(self):
@@ -365,12 +428,17 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         return self._be_program.proto.mnemonic[self._instruction.mnemonic_index].name
 
     @property
+    @cache
+    def data_references(self) -> set[Addr]:
+        """Returns the collections of addresses that are accessed by the instruction"""
+        return set(self.data_refs)
+
+    @property
+    @cache
     def operands(self):
         return [
-            Operand(
-                LoaderType.binexport, self._be_program, self._be_function, self, op_idx
-            )
-            for op_idx in self._instruction.operand_index
+            Operand(LoaderType.binexport, self.cs_instr, o)
+            for o in self.cs_instr.operands
         ]
 
     @property
@@ -394,137 +462,37 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
 
 
 class OperandBackendBinexport(AbstractOperandBackend):
-
-    __sz_lookup = {
-        "b1": 1,
-        "b2": 2,
-        "b4": 4,
-        "b8": 8,
-        "b10": 10,
-        "b16": 16,
-        "b32": 32,
-        "b64": 64,
-    }
-    __sz_name = {
-        1: "byte",
-        2: "word",
-        4: "dword",
-        8: "qword",
-        10: "b10",
-        16: "xmmword",
-        32: "ymmword",
-        64: "zmmword",
-    }
-
-    def __init__(
-        self,
-        be_program: ProgramBackendBinExport,
-        be_function: FunctionBackendBinExport,
-        be_instruction: InstructionBackendBinExport,
-        op_idx: int,
-    ):
+    def __init__(self, cs_instruction, cs_operand):
         super(OperandBackendBinexport, self).__init__()
 
-        # Private attributes
-        self._be_program = be_program
-        self._be_function = be_function
-        self._be_instruction = be_instruction
-        self._operand = be_program.proto.operand[op_idx]
+        self.cs_instr = cs_instruction
+        self.cs_operand = cs_operand
 
-    def _pb_expressions(self):
-        return (
-            self._be_program.proto.expression[idx]
-            for idx in self._operand.expression_index
-        )
-
-    @property
-    def expressions(self):
-        # is_deref = False
-        size = None
-        for exp in self._pb_expressions():
-            match exp.type:
-                case BinExport2.Expression.SYMBOL:  # If the expression is a symbol
-                    # If it is a function name
-                    if self._be_program.has_function(exp.symbol):
-                        f = self._be_program.get_function(exp.symbol)
-                        if f.type == FunctionType.normal:
-                            yield {"type": "codname", "value": exp.symbol}
-                        elif f.type == FunctionType.library:
-                            yield {"type": "libname", "value": exp.symbol}
-                        elif f.type == FunctionType.imported:
-                            yield {"type": "impname", "value": exp.symbol}
-                        elif f.type == FunctionType.thunk:
-                            yield {"type": "cname", "value": exp.symbol}
-                        else:
-                            pass  # invalid fucntion type just ignore it
-                    else:
-                        yield {"type": "locname", "value": exp.symbol}  # for var_, arg_
-
-                case BinExport2.Expression.IMMEDIATE_INT:  # If the expression is an immediate
-                    if exp.immediate in self._be_instruction.data_refs:
-                        # TODO: (near future) using the addr_refs to return the symbol
-                        s = "%s_%X" % (self.__sz_name[size], exp.immediate)
-                        yield {"type": "datname", "value": s}
-                    elif self._be_program.has_function(
-                        exp.immediate
-                    ):  # if it is a function
-                        yield {"type": "codname", "value": "sub_%X" % exp.immediate}
-                    elif self._be_function.has_basic_block(
-                        exp.immediate
-                    ):  # its a basic block address
-                        yield {"type": "codname", "value": "loc_%X" % exp.immediate}
-                    else:
-                        yield {
-                            "type": "number",
-                            "value": self._be_program.addr_mask(exp.immediate),
-                        }
-
-                case BinExport2.Expression.IMMEDIATE_FLOAT:
-                    logging.warning(f"IMMEDIATE FLOAT ignored: {exp}")
-                case BinExport2.Expression.OPERATOR:
-                    yield {"type": "symbol", "value": exp.symbol}
-                case BinExport2.Expression.REGISTER:
-                    yield {"type": "reg", "value": exp.symbol}
-                case BinExport2.Expression.DEREFERENCE:
-                    yield {"type": "symbol", "value": exp.symbol}
-                    # is_deref = True
-                case BinExport2.Expression.SIZE_PREFIX:
-                    size = self.__sz_lookup[exp.symbol]
-                case _:
-                    logging.warning(f"Expression unrecognized: {exp}")
+    def __str__(self) -> str:
+        op = self.cs_operand
+        if self.type == capstone.X86_OP_REG:
+            return self.cs_instr.reg_name(op.reg)
+        elif self.type == capstone.X86_OP_IMM:
+            to_x(op.imm)
+        elif self.type == capstone.X86_OP_MEM:
+            op_str = ""
+            if op.mem.segment != 0:
+                op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
+            if i.mem.base != 0:
+                op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
+            if i.mem.index != 0:
+                op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
+            op_str += "]"
+            return op_str
+        else:
+            raise NotImplementedError(f"Unrecognized capstone type {self.type}")
 
     @property
-    def type(self) -> OperandType:
-        for exp in self._pb_expressions():
-            if exp.type == BinExport2.Expression.SIZE_PREFIX:
-                continue
-            elif exp.type == BinExport2.Expression.SYMBOL:
-                return OperandType.memory  # As it is either a ref to data or function
-            elif exp.type == BinExport2.Expression.IMMEDIATE_INT:
-                return (
-                    OperandType.immediate
-                )  # Could also have been far, near and memory?
-            elif exp.type == BinExport2.Expression.IMMEDIATE_FLOAT:
-                return OperandType.specific0
-            elif exp.type == BinExport2.Expression.OPERATOR:
-                continue
-            elif exp.type == BinExport2.Expression.REGISTER:
-                return OperandType.register
-            elif exp.type == BinExport2.Expression.DEREFERENCE:
-                return OperandType.displacement  # could also have been phrase
-            else:
-                print("wooot", exp.type)
+    def type(self) -> int:
+        """Returns the capstone operand type"""
+        return self.cs_operand.type
 
-        # if we reach here something necessarily went wrong
-        logging.error("No type found for operand: %s" % str(self))
-
-    def __str__(self):
-        return "".join(
-            self._be_program.proto.expression[idx].symbol
-            for idx in self._operand.expression_index
-            if self._be_program.proto.expression[idx].type
-            != BinExport2.Expression.SIZE_PREFIX
-        )
-
-    def __repr__(self):
-        return "<Op:%s>" % str(self)
+    @property
+    def value(self):
+        """Returns the capstone operand value"""
+        return self.cs_operand.value

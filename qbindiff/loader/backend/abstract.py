@@ -1,10 +1,13 @@
 import networkx
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
+from typing import Any
 
-from qbindiff.loader import Operand, Expr
-from qbindiff.loader.types import FunctionType, OperandType
+from qbindiff.loader import Operand
+from qbindiff.loader.types import FunctionType
 from qbindiff.types import Addr
+
+capstoneValue = Any  # Don't import the whole capstone module just for the typing
 
 
 class AbstractOperandBackend(metaclass=ABCMeta):
@@ -19,14 +22,14 @@ class AbstractOperandBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def type(self) -> OperandType:
-        """Returns the operand type as defined in the types.py"""
+    def type(self) -> int:
+        """Returns the capstone operand type"""
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def expressions(self) -> Iterator[Expr]:
-        """Returns an iterator of expressions"""
+    def value(self) -> capstoneValue:
+        """Returns the capstone operand value"""
         raise NotImplementedError()
 
 
@@ -46,6 +49,12 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
     @abstractmethod
     def mnemonic(self) -> str:
         """Returns the instruction mnemonic as a string"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def data_references(self) -> set[Addr]:
+        """Returns the collections of addresses that are accessed by the instruction"""
         raise NotImplementedError()
 
     @property
@@ -138,6 +147,11 @@ class AbstractFunctionBackend(metaclass=ABCMeta):
     @abstractmethod
     def is_import(self) -> bool:
         """True if the function is imported"""
+        raise NotImplementedError()
+
+    @abstractmethod
+    def is_library(self) -> bool:
+        """True if the function is a library function"""
         raise NotImplementedError()
 
 

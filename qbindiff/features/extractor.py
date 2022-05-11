@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from typing import Union
 
-from qbindiff.loader import Function, BasicBlock, Instruction, Operand, Expr
+from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
 from qbindiff.types import Positive
 
 
@@ -50,7 +50,11 @@ class FeatureCollector:
                 for subkey in subkey_list:
                     vector.append(feature.get(subkey, 0))
             else:
-                vector.append(self._features.get(main_key, 0))
+                value = self._features.get(main_key, 0)
+                if not value:  # It might be a empty dict or a list, ...
+                    vector.append(0)
+                else:
+                    vector.append(value)
 
         return vector
 
@@ -58,10 +62,9 @@ class FeatureCollector:
 class FeatureExtractor:
     """
     Abstract class that represent a feature extractor which sole contraints are to
-    define name, key and a function call that is to be called by the visitor.
+    define a unique key and a function call that is to be called by the visitor.
     """
 
-    name = ""
     key = ""
 
     def __init__(self, weight: Positive = 1.0):
@@ -77,29 +80,28 @@ class FeatureExtractor:
 
 
 class FunctionFeatureExtractor(FeatureExtractor):
-    def visit_function(self, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         raise NotImplementedError()
 
 
 class BasicBlockFeatureExtractor(FeatureExtractor):
     def visit_basic_block(
-        self, basicblock: BasicBlock, collector: FeatureCollector
+        self, program: Program, basicblock: BasicBlock, collector: FeatureCollector
     ) -> None:
         raise NotImplementedError()
 
 
 class InstructionFeatureExtractor(FeatureExtractor):
     def visit_instruction(
-        self, instruction: Instruction, collector: FeatureCollector
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
         raise NotImplementedError()
 
 
 class OperandFeatureExtractor(FeatureExtractor):
-    def visit_operand(self, operand: Operand, collector: FeatureCollector) -> None:
-        raise NotImplementedError()
-
-
-class ExpressionFeatureExtractor(FeatureExtractor):
-    def visit_expression(self, expr: Expr, collector: FeatureCollector) -> None:
+    def visit_operand(
+        self, program: Program, operand: Operand, collector: FeatureCollector
+    ) -> None:
         raise NotImplementedError()

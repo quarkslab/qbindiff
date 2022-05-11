@@ -1,18 +1,13 @@
+from typing import Any
+
 from qbindiff.loader.types import LoaderType
 
-# typing imports
-from collections.abc import Iterator
-from qbindiff.loader.types import OperandType
-
-Expr = dict[
-    str, str
-]  # each dict contains two keys 'types' and 'value' with their associated value
+capstoneValue = Any  # Don't import the whole capstone module just for the typing
 
 
 class Operand:
     """
-    Represent an operand object which hide the underlying
-    backend implementation
+    Represent an operand object which hide the underlying backend implementation
     """
 
     def __init__(self, loader, *args, **kwargs):
@@ -51,24 +46,20 @@ class Operand:
         """Load the operand using the qbinexport backend"""
         from qbindiff.loader.backend.qbinexport import OperandBackendQBinExport
 
-        self._backend = OperandBackendQBinExport(self, *args, **kwargs)
+        self._backend = OperandBackendQBinExport(*args, **kwargs)
 
     @property
-    def type(self) -> OperandType:
+    def type(self) -> int:
         """
-        Returns the operand type as defined in the types.py
-        :return: OperandType
+        Returns the capstone operand type
+        :return: int
         """
         return self._backend.type
 
     @property
-    def expressions(self) -> Iterator[Expr]:
-        """
-        Returns an iterator of expressions. Each expression
-        is a dictionnary containting two keys "type" and "value"
-        :return:
-        """
-        return self._backend.expressions
+    def value(self) -> capstoneValue:
+        """Returns the capstone operand value"""
+        return self._backend.value
 
     def __str__(self):
         return str(self._backend)

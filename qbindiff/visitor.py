@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from typing import Any, Callable
 
-from qbindiff.loader import Function, BasicBlock, Instruction, Operand, Expr
+from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
 from qbindiff.features.extractor import (
     FeatureCollector,
     FeatureExtractor,
@@ -10,7 +10,6 @@ from qbindiff.features.extractor import (
     BasicBlockFeatureExtractor,
     InstructionFeatureExtractor,
     OperandFeatureExtractor,
-    ExpressionFeatureExtractor,
 )
 from qbindiff.types import Graph
 
@@ -44,15 +43,16 @@ class Visitor(metaclass=ABCMeta):
         for i, item in enumerate(graph.items()):
             _, node = item
             collector = FeatureCollector()
-            self.visit_item(node, collector)
+            self.visit_item(graph, node, collector)
             obj_features[key_fun(item, i)] = collector
         return obj_features
 
-    def visit_item(self, item: Any, collector: FeatureCollector) -> None:
+    def visit_item(self, graph: Graph, item: Any, collector: FeatureCollector) -> None:
         """
         Abstract method meant to perform the visit of the item.
         It receives an environment in parameter that is meant to be filled.
 
+        :param graph: the graph that is being visited
         :param item: item to be visited
         :param collector: FeatureCollector to fill during the visit
         """
@@ -70,7 +70,7 @@ class Visitor(metaclass=ABCMeta):
 
 class NoVisitor(Visitor):
     """
-    Trivial visitor that doesn't traverse the items
+    Trivial visitor that doesn't traverse the graph
     """
 
     @property
@@ -78,10 +78,10 @@ class NoVisitor(Visitor):
         return []
 
     def visit(
-        self, it: Iterable, key_fun: Callable = lambda _, i: i
+        self, graph: Graph, key_fun: Callable = lambda _, i: i
     ) -> dict[Any, FeatureCollector]:
         return {
-            key_fun(item, i): FeatureCollector() for i, item in enumerate(it.items())
+            key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())
         }
 
     def register_feature_extractor(self, fte: FeatureExtractor) -> None:
@@ -102,26 +102,25 @@ class ProgramVisitor(Visitor):
         self.basic_block_callbacks = []
         self.instruction_callbacks = []
         self.operand_callbacks = []
-        self.expression_callbacks = []
 
-    def visit_item(self, item: Any, collector: FeatureCollector) -> None:
+    def visit_item(
+        self, program: Program, item: Any, collector: FeatureCollector
+    ) -> None:
         """
         Visit a program item according to its type.
 
+        :param graph: The program that is being visited
         :param item: Can be a Function, Instruction etc..
         :param collector: FeatureCollector to be filled
         """
         if isinstance(item, Function):
-            self.visit_function(item, collector)
+            self.visit_function(program, item, collector)
         elif isinstance(item, BasicBlock):
-            self.visit_basic_block(item, collector)
+            self.visit_basic_block(program, item, collector)
         elif isinstance(item, Instruction):
-            self.visit_instruction(item, collector)
+            self.visit_instruction(program, item, collector)
         elif isinstance(item, Operand):
-            self.visit_operand(item, collector)
-        # elif isinstance(item, Expr):
-        elif isinstance(item, dict):
-            self.visit_expression(item, collector)
+            self.visit_operand(program, item, collector)
 
     def register_feature_extractor(self, fte: FeatureExtractor) -> None:
         """
@@ -139,8 +138,6 @@ class ProgramVisitor(Visitor):
             self.register_instruction_feature_callback(fte.visit_instruction)
         if isinstance(fte, OperandFeatureExtractor):
             self.register_operand_feature_callback(fte.visit_operand)
-        if isinstance(fte, ExpressionFeatureExtractor):
-            self.register_expression_feature_callback(fte.visit_expression)
         self._feature_extractors[fte.key] = fte
 
     def register_function_feature_callback(self, callback: Callable) -> None:
@@ -155,83 +152,74 @@ class ProgramVisitor(Visitor):
     def register_operand_feature_callback(self, callback: Callable) -> None:
         self.operand_callbacks.append(callback)
 
-    def register_expression_feature_callback(self, callback: Callable) -> None:
-        self.expression_callbacks.append(callback)
-
-    def visit_function(self, func: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, func: Function, collector: FeatureCollector
+    ) -> None:
         """
         Visit the given function with the feature extractors registered beforehand.
 
+        :param program: Program that is being visited
         :param func: Function to visit
         :param collector: FeatureCollector to fill
         """
         # Call all callbacks attacked to a function
         for callback in self.function_callbacks:
             if not func.is_import():
-                callback(func, collector)
+                callback(program, func, collector)
 
         # Recursively call visit for all basic blocks
         for bb in func:
-            self.visit_basic_block(bb, collector)
+            self.visit_basic_block(program, bb, collector)
 
     def visit_basic_block(
-        self, basic_block: BasicBlock, collector: FeatureCollector
+        self, program: Program, basic_block: BasicBlock, collector: FeatureCollector
     ) -> None:
         """
         Visit the given basic block with the feature extractors registered beforehand.
 
+        :param program: Program that is being visited
         :param basic_block: Basic Block to visit
         :param collector: FeatureCollector to fill
         """
         # Call all callbacks attacked to a basic block
         for callback in self.basic_block_callbacks:
-            callback(basic_block, collector)
+            callback(program, basic_block, collector)
 
         # Recursively call visit for all instructions
         for inst in basic_block:
-            self.visit_instruction(inst, collector)
+            self.visit_instruction(program, inst, collector)
 
     def visit_instruction(
-        self, instruction: Instruction, collector: FeatureCollector
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
         """
         Visit the instruction with the feature extractor registered beforehand.
 
+        :param program: Program that is being visited
         :param instruction: Instruction to visit
         :param collector: FeatureCollector to fill
         """
         # Call all callbacks attached to an instruction
         for callback in self.instruction_callbacks:
-            callback(instruction, collector)
+            callback(program, instruction, collector)
 
         # Recursively call visit for all operands
         for op in instruction.operands:
-            self.visit_operand(op, collector)
+            self.visit_operand(program, op, collector)
 
-    def visit_operand(self, operand: Operand, collector: FeatureCollector) -> None:
+    def visit_operand(
+        self, program: Program, operand: Operand, collector: FeatureCollector
+    ) -> None:
         """
         Visit the given operand with the feature extractor registered beforehand.
 
+        :param program: Program that is being visited
         :param operand: Operand
         :param collector: FeatureCollector to fill
         """
         # Call all callbacks attached to an operand
         for callback in self.operand_callbacks:
-            callback(operand, collector)
-
-        for exp in operand.expressions:
-            self.visit_expression(exp, collector)
-
-    def visit_expression(self, expression: Expr, collector: FeatureCollector) -> None:
-        """
-        Visit the given operand with the feature extractor registered beforehand.
-
-        :param expression: Expression object to visit
-        :param collector: FeatureCollector
-        """
-        # Call all callbacks attached to an expression
-        for callback in self.expression_callbacks:
-            callback(expression, collector)
+            callback(program, operand, collector)
 
     @property
     def feature_extractors(self):

@@ -9,8 +9,8 @@ from qbindiff.features.graph import (
     GraphTransitivity,
     GraphCommunities,
 )
-from qbindiff.features.artefact import LibName, DatName, Constant, ImpName, Address
-from qbindiff.features.topology import ChildNb, ParentNb, RelativeNb
+from qbindiff.features.artefact import Address, DatName, Constant
+from qbindiff.features.topology import ChildNb, ParentNb, RelativeNb, LibName, ImpName
 
 FEATURES = {
     # FunctionFeatureExtractor
@@ -25,16 +25,15 @@ FEATURES = {
     ChildNb,
     ParentNb,
     RelativeNb,
+    LibName,
+    DatName,
     # BasicBlockFeatureExtractor
     # InstructionFeatureExtractor
     MnemonicSimple,
     MnemonicTyped,
     GroupsCategory,
     Address,
-    # OperandFeatureExtractor
-    # ExpressionFeatureExtractor
-    LibName,
     DatName,
+    # OperandFeatureExtractor
     Constant,
-    ImpName,
 }
