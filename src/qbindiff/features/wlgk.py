@@ -2,6 +2,7 @@ import random
 from functools import cache
 from collections import defaultdict, Counter
 from abc import ABCMeta, abstractmethod
+from typing import Optional
 
 from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function, BasicBlock
@@ -39,7 +40,7 @@ class LSH(metaclass=ABCMeta):
 class BOWLSH(LSH):
     """Extract the bag-of-words representation of a block. The hashes are 4 bytes long"""
 
-    def __init__(self, node: BasicBlock = None):
+    def __init__(self, node: Optional[BasicBlock] = None):
         self.bag = defaultdict(int)
         if node is not None:
             for instr in node:
