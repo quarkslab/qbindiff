@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Union, Any
+from typing import Union, Any, Optional
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
 from qbindiff.types import Positive
@@ -38,7 +38,7 @@ class FeatureCollector:
         return keys
 
     def to_vector(
-        self, key_order: dict[str, Iterable[str]], empty_default: Any = None
+        self, key_order: dict[str, Iterable[str]], empty_default: Optional[Any] = None
     ) -> list[float]:
         """
         Transform the collection to a feature vector. If the parameter `empty_default`
