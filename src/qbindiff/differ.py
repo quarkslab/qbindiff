@@ -231,7 +231,7 @@ class Differ:
         ).astype(Differ.DTYPE)
 
         # Normalize
-        if tmp_sim_matrix.max() != 0:
+        if len(tmp_sim_matrix) > 0 and tmp_sim_matrix.max() != 0:
             tmp_sim_matrix /= tmp_sim_matrix.max()
         tmp_sim_matrix[:] = 1 - tmp_sim_matrix
 
