@@ -45,3 +45,28 @@ class Constant(OperandFeatureExtractor):
     ) -> None:
         if operand.type == 2:  # capstone.x86.X86_OP_IMM
             collector.add_dict_feature(self.key, {operand.value.imm: 1})
+
+
+class FuncName(FunctionFeatureExtractor):
+    """Match the function names"""
+
+    key = "fname"
+
+    def __init__(self, *args, excluded_prefix: tuple[str] = None, **kwargs):
+        """Optionally specify a set of excluded prefix when matching the names"""
+        super(FuncName, self).__init__(*args, **kwargs)
+
+        if excluded_prefix is None:
+            self._excluded_prefix = ("sub_", "SUB_")
+        else:
+            self._excluded_prefix = excluded_prefix
+
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
+        name_len = len(function.name)
+        for prefix in self._excluded_prefix:
+            l = min(len(prefix), name_len)
+            if prefix[:l] == function.name[:l]:
+                return
+        collector.add_dict_feature(self.key, {function.name: 1})
