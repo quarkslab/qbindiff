@@ -125,16 +125,15 @@ class BeliefMWM:
         self.scores.append(self.current_score)
 
     def update_epsilon(self) -> None:
-        if len(self.scores) < 10:
-            return
         avg_score = self.scores[-1] / max(self.matches_mask.sum(), 1)
-        if self.max_avg_score >= avg_score:
-            self.epsilon *= 1.2
-        else:
+        if self.max_avg_score < avg_score:
             self.best_mapping = self.current_mapping
             self.best_marginals = self.marginals.copy()
             self.max_avg_score = avg_score
-            self.epsilon = self._epsilonref
+            if len(self.scores) >= 10:
+                self.epsilon = self._epsilonref
+        elif len(self.scores) >= 10:
+            self.epsilon *= 1.2
 
     def has_converged(self, window: int = 60, pattern_size: int = 15) -> bool:
         """
