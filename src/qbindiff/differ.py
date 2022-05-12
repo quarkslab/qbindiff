@@ -1,27 +1,18 @@
 # third-party imports
 import numpy as np
 import scipy.io
-import json
 import scipy.spatial.distance
 from networkx import DiGraph
 from collections.abc import Generator, Iterator
 
 from qbindiff.abstract import GenericGraph
-from qbindiff.loader import Program, Function
+from qbindiff.loader import Program
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
 from qbindiff.visitor import Visitor, NoVisitor, ProgramVisitor
-from typing import Any
-from qbindiff.types import (
-    Anchors,
-    RawMapping,
-    PathLike,
-    Positive,
-    Ratio,
-    Graph,
-    AdjacencyMatrix,
-)
+from typing import Any, Callable
+from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, SimMatrix
 
 
 class Differ:
