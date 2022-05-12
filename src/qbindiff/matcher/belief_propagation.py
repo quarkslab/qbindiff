@@ -264,16 +264,28 @@ class BeliefQAP(BeliefMWM):
         self.update_square_factor_messages()
 
     def update_square_factor_messages(self):
+        """
+        Update the messages m(h[ii`jj`] -> X[ii`])
+        The formula is this one:
+          m(h[ii`jj`] -> X[ii`]) = clip(w[ii`jj`] + m(X[jj`] -> h[ii`jj`])) - clip(m(X[jj`] -> h[ii`jj`]))
+          where clip(x) = max(0, x)
+
+        The formula can be rewritten as:
+          m(h[ii`jj`] -> X[ii`]) = clip(w[ii`jj`] + clip(-m(X[jj`] -> h[ii`jj`])))
+        """
+
         # partial is the message from node to square factor m(X[ii`] -> h[ii`jj`])
-        partial = self.msg_h2n.copy()
-        np.negative(partial.data, out=partial.data)
-        partial.data += np.repeat(self.marginals.data, self.squares_per_edge)
+        partial = self.msg_h2n
+        partial.data -= np.repeat(self.marginals.data, self.squares_per_edge)
+        np.clip(partial.data, 0, partial.data.max(initial=0), out=partial.data)
 
         # transpose
         partial = partial.T.tocsr()
-        positive_partial = np.clip(partial.data, 0, partial.data.max(initial=0))
 
-        tmp = self.weights_squares + partial.data
-        np.clip(tmp, 0, tmp.max(initial=0), out=tmp)
-
-        self.msg_h2n.data[:] = tmp - positive_partial
+        self.msg_h2n.data[:] = self.weights_squares - partial.data
+        np.clip(
+            self.msg_h2n.data,
+            0,
+            self.msg_h2n.data.max(initial=0),
+            out=self.msg_h2n.data,
+        )
