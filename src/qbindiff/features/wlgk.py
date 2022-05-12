@@ -25,9 +25,8 @@ class LSH(metaclass=ABCMeta):
     def __iadd__(self, lsh: "LSH") -> "LSH":
         raise NotImplementedError()
 
-    @property
     @abstractmethod
-    def hash(self) -> bytes:
+    def __call__(self) -> bytes:
         """Return the hash assigned to the node"""
         raise NotImplementedError()
 
@@ -61,8 +60,7 @@ class BOWLSH(LSH):
         res.bag = self.bag.copy()
         return res
 
-    @property
-    def hash(self) -> bytes:
+    def __call__(self) -> bytes:
         """Return the hash assigned to the node"""
 
         resHash = 0
@@ -127,7 +125,7 @@ class WeisfeilerLehman(FunctionFeatureExtractor):
         for source, target in function.edges:
             adjacency[map_node_to_index[source]].append(map_node_to_index[target])
 
-        vec = [l.hash for l in labels]
+        vec = [l() for l in labels]
         prev_counter = 0
         for step in range(len(labels)):
             # Recalculate labels at each step
@@ -138,7 +136,7 @@ class WeisfeilerLehman(FunctionFeatureExtractor):
                     newLabels[node] += labels[n]
 
             labels = newLabels
-            new_hashes = [l.hash for l in labels]
+            new_hashes = [l() for l in labels]
             counter = sorted(Counter(new_hashes).values())
 
             # Early stop
