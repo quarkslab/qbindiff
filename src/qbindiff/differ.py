@@ -12,7 +12,14 @@ from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
 from qbindiff.visitor import Visitor, NoVisitor, ProgramVisitor
 from typing import Any, Callable
-from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, SimMatrix
+from qbindiff.types import (
+    RawMapping,
+    Positive,
+    Ratio,
+    Graph,
+    AdjacencyMatrix,
+    SimMatrix,
+)
 
 
 class Differ:
@@ -53,6 +60,7 @@ class Differ:
         self.primary = primary
         self.secondary = secondary
         self._visitor = NoVisitor() if visitor is None else visitor
+        self._filters = []
 
         if normalize:
             self.primary = self.normalize(primary)
@@ -149,11 +157,18 @@ class Differ:
         extractor = extractorClass(weight, **extra_args)
         self._visitor.register_feature_extractor(extractor)
 
-    def compute_similarity(self) -> None:
+    def register_filter(self, filter_function: Callable, **extra_args):
         """
-        Populate the self.sim_matrix similarity matrix by computing the pairwise
-        similarity between the nodes of the two graphs to diff.
+        Register a custom filter that will operate on the similarity matrix.
+        All the filters will be called after the similarity has already been computed.
         """
+        self._filters.append((filter_function, extra_args))
+
+    def get_similarity(self) -> SimMatrix:
+        """
+        Compute the similarity matrix between the nodes of the two graphs to diff.
+        """
+
         # Extract the features
         key_fun = lambda *args: args[0][0]  # ((label, node) iteration)
         primary_features = self._visitor.visit(self.primary, key_fun=key_fun)
@@ -221,18 +236,18 @@ class Differ:
         tmp_sim_matrix[:] = 1 - tmp_sim_matrix
 
         # Fill the entire similarity matrix
-        self.sim_matrix = np.zeros(
-            (primary_dim, secondary_dim), dtype=tmp_sim_matrix.dtype
-        )
+        sim_matrix = np.zeros((primary_dim, secondary_dim), dtype=tmp_sim_matrix.dtype)
         for idx in nonempty_rows:  # Rows insertion
-            self.sim_matrix[idx, : tmp_sim_matrix.shape[1]] = tmp_sim_matrix[
+            sim_matrix[idx, : tmp_sim_matrix.shape[1]] = tmp_sim_matrix[
                 temp_map_primary[idx]
             ]
         # Cols permutation
         mapping = np.full(secondary_dim, secondary_dim - 1, dtype=int)
         for idx in nonempty_cols:
             mapping[idx] = temp_map_secondary[idx]
-        self.sim_matrix = self.sim_matrix[:, mapping]
+        sim_matrix = sim_matrix[:, mapping]
+
+        return sim_matrix
 
     def normalize(self, graph: Graph) -> Graph:
         """
@@ -248,14 +263,22 @@ class Differ:
         """
         pass
 
+    def run_user_filters(self) -> None:
+        """Custom filters that have been previously registered by the user"""
+        for filter_func, extra_args in self._filters:
+            filter_func(
+                self.sim_matrix, self.primary_n2i, self.secondary_n2i, **extra_args
+            )
+
     def process(self) -> None:
         """Initialize all the variables for the NAP algorithm"""
         # Perform the initialization only once
         if self.sim_matrix is not None:
             return
 
-        self.compute_similarity()
+        self.sim_matrix = self.get_similarity()
         self.run_filters()
+        self.run_user_filters()
 
     def compute_matching(
         self,
