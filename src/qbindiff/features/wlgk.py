@@ -25,11 +25,6 @@ class LSH(metaclass=ABCMeta):
     def __iadd__(self, lsh: "LSH") -> "LSH":
         raise NotImplementedError()
 
-    @abstractmethod
-    def prepend(self, lsh: "LSH") -> None:
-        """Prepend the lsh to the current hash"""
-        raise NotImplementedError()
-
     @property
     @abstractmethod
     def hash(self) -> bytes:
@@ -43,10 +38,9 @@ class LSH(metaclass=ABCMeta):
 
 
 class BOWLSH(LSH):
-    """Extract the bag-of-words representation of a block. The hashes are 8 bytes long"""
+    """Extract the bag-of-words representation of a block. The hashes are 4 bytes long"""
 
     def __init__(self, node: BasicBlock = None):
-        self.pre = b""  # Prepended hash
         self.bag = defaultdict(int)
         if node is not None:
             for instr in node:
@@ -66,10 +60,6 @@ class BOWLSH(LSH):
         res = BOWLSH()
         res.bag = self.bag.copy()
         return res
-
-    def prepend(self, lsh: "LSH") -> None:
-        """Prepend the lsh to the current hash"""
-        self.pre = lsh.hash
 
     @property
     def hash(self) -> bytes:
