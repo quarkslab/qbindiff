@@ -438,6 +438,11 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         return []  # not supported
 
     @property
+    def capstone(self) -> "capstone.CsInsn":
+        """Return the capstone instruction"""
+        return self.cs_instr
+
+    @property
     def comment(self):
         proto = self._be_program.proto  # Alias
         str_comment = ""

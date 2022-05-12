@@ -86,6 +86,11 @@ class Instruction:
         return self._backend.groups
 
     @property
+    def capstone(self) -> "capstone.CsInsn":
+        """Return the capstone instruction"""
+        return self._backend.capstone
+
+    @property
     def comment(self) -> str:
         """
         Comment as set in IDA on the instruction

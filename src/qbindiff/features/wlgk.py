@@ -43,7 +43,7 @@ class BOWLSH(LSH):
         self.bag = defaultdict(int)
         if node is not None:
             for instr in node:
-                self.bag[instr._backend.cs_instr.id] += 1
+                self.bag[instr.capstone.id] += 1
 
     def __iadd__(self, lsh: "BOWLSH") -> "BOWLSH":
         for k, v in lsh.bag.items():
