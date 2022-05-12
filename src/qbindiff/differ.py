@@ -354,6 +354,9 @@ class DiGraphDiffer(Differ):
             self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs
         )
 
+    def get_similarity(self) -> SimMatrix:
+        return np.ones((len(self.primary_adj_matrix), len(self.secondary_adj_matrix)))
+
 
 class QBinDiff(Differ):
     """
