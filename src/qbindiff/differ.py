@@ -256,8 +256,10 @@ class DiGraphDiffer(Differ):
             self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs
         )
 
-    def get_similarity(self) -> SimMatrix:
-        return np.ones((len(self.primary_adj_matrix), len(self.secondary_adj_matrix)))
+        self.register_pass(self.gen_sim_matrix)
+
+    def gen_sim_matrix(self, sim_matrix: SimMatrix, *_, **__):
+        sim_matrix[:] = 1
 
 
 class QBinDiff(Differ):
