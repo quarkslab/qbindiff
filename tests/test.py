@@ -1,7 +1,9 @@
 import unittest, click, networkx, json, scipy, logging
-import qbindiff
+import scipy.io
 from pathlib import Path
 from dataclasses import dataclass
+
+import qbindiff
 from qbindiff.features import FEATURES
 from qbindiff.loader import LoaderType
 
@@ -17,6 +19,15 @@ class Unit:
     similarity: str = None
     primary_exe: str = None
     secondary_exe: str = None
+
+
+class load_sim_matrix:
+    def __init__(self, path: Path):
+        self._path = path
+
+    def __call__(self, sim_matrix, *_, **__):
+        sparse_sim_matrix = scipy.io.mmread(self._path)
+        sim_matrix[:] = sparse_sim_matrix.toarray()
 
 
 class BinaryTest(unittest.TestCase):
@@ -126,8 +137,7 @@ class GraphSimTest(unittest.TestCase):
         )
 
         # Provide custom similarity matrix
-        sparse_sim_matrix = scipy.io.mmread(self.path(unit.similarity))
-        differ.sim_matrix = sparse_sim_matrix.toarray()
+        differ.register_pass(load_sim_matrix(self.path(unit.similarity)))
 
         mapping = differ.compute_matching()
         output = {(match.primary, match.secondary) for match in mapping}
