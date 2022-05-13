@@ -7,8 +7,7 @@ from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Program
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
-from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
-from qbindiff.visitor import Visitor, NoVisitor, ProgramVisitor
+from qbindiff.features.extractor import FeatureExtractor
 from qbindiff.passes import FeaturePass
 from typing import Any, Callable
 from qbindiff.types import (
@@ -145,13 +144,13 @@ class Differ:
 
         return (matrix, map_i2l, map_l2i)
 
-    def register_pass(self, pass_obj: Callable, **extra_args):
+    def register_pass(self, pass_func: Callable, **extra_args):
         """
         Register a new pass that will operate on the similarity matrix.
         The passes will be called in the same order as they are registered and each one
         of them will operate on the output of the previous one.
         """
-        self._passes.append((pass_obj, extra_args))
+        self._passes.append((pass_func, extra_args))
 
     def normalize(self, graph: Graph) -> Graph:
         """
@@ -294,10 +293,7 @@ class QBinDiff(Differ):
         weight: Positive = 1.0,
         **extra_args
     ):
-        """
-        Register a feature extractor class.
-        The class will be called when the visitor will traverse the graph.
-        """
+        """Register a feature extractor class"""
         extractor = extractorClass(weight, **extra_args)
         self._feature_pass.register_extractor(extractor)
 
