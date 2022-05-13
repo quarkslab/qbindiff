@@ -167,8 +167,7 @@ class Matcher:
             yield niter
 
         score_matrix = self.sparse_sim_matrix.copy()
-        score_matrix.data[:] = belief.best_marginals.data
-        self._mapping = self.refine(belief.best_mapping, score_matrix)
+        self._mapping = self.refine(belief.current_mapping, score_matrix)
 
     def refine(self, mapping: RawMapping, score_matrix: SimMatrix) -> RawMapping:
         """
@@ -184,10 +183,14 @@ class Matcher:
 
         primary_missing = np.setdiff1d(range(score_matrix.shape[0]), primary)
         secondary_missing = np.setdiff1d(range(score_matrix.shape[1]), secondary)
-        score_matrix = score_matrix[primary_missing][:, secondary_missing].toarray()
-        score_matrix = -score_matrix
-
-        primary_ass, secondary_ass = solve_linear_assignment(score_matrix)
+        score_matrix = score_matrix[primary_missing][:, secondary_missing]
+        nnz_indices = score_matrix.nonzero()
+        # Give the zero elements a high score
+        lap_scores = np.full(score_matrix.shape, 1000000, dtype=score_matrix.dtype)
+        # LAP solves solves for the minimum cost but high scores means good match
+        lap_scores[nnz_indices] = -score_matrix[nnz_indices]
+        
+        primary_ass, secondary_ass = solve_linear_assignment(lap_scores)
 
         return np.hstack((primary, primary_missing[primary_ass])), np.hstack(
             (secondary, secondary_missing[secondary_ass])
