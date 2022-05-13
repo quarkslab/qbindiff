@@ -185,6 +185,7 @@ class Matcher:
         secondary_missing = np.setdiff1d(range(score_matrix.shape[1]), secondary)
         score_matrix = score_matrix[primary_missing][:, secondary_missing]
         nnz_indices = score_matrix.nonzero()
+        score_matrix = score_matrix.toarray()
         # Give the zero elements a high score
         lap_scores = np.full(score_matrix.shape, 1000000, dtype=score_matrix.dtype)
         # LAP solves solves for the minimum cost but high scores means good match
