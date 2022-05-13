@@ -189,7 +189,7 @@ class Matcher:
         lap_scores = np.full(score_matrix.shape, 1000000, dtype=score_matrix.dtype)
         # LAP solves solves for the minimum cost but high scores means good match
         lap_scores[nnz_indices] = -score_matrix[nnz_indices]
-        
+
         primary_ass, secondary_ass = solve_linear_assignment(lap_scores)
 
         return np.hstack((primary, primary_missing[primary_ass])), np.hstack(
