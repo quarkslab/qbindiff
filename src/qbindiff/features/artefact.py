@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Optional, Any
 
 from qbindiff.features.extractor import (
     FeatureCollector,
@@ -52,7 +53,9 @@ class FuncName(FunctionFeatureExtractor):
 
     key = "fname"
 
-    def __init__(self, *args, excluded_prefix: tuple[str] = None, **kwargs):
+    def __init__(
+        self, *args: Any, excluded_prefix: Optional[tuple[str]] = None, **kwargs: Any
+    ):
         """Optionally specify a set of excluded prefix when matching the names"""
         super(FuncName, self).__init__(*args, **kwargs)
 
@@ -65,8 +68,6 @@ class FuncName(FunctionFeatureExtractor):
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
         name_len = len(function.name)
-        for prefix in self._excluded_prefix:
-            l = min(len(prefix), name_len)
-            if prefix[:l] == function.name[:l]:
-                return
+        if any(function.name.startswith(prefix) for prefix in self._excluded_prefix):
+            return
         collector.add_dict_feature(self.key, {function.name: 1})
