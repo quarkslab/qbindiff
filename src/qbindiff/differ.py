@@ -1,26 +1,22 @@
 # third-party imports
 import numpy as np
-import scipy.io
-import json
-import scipy.spatial.distance
 from networkx import DiGraph
 from collections.abc import Generator, Iterator
 
 from qbindiff.abstract import GenericGraph
-from qbindiff.loader import Program, Function
+from qbindiff.loader import Program
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
-from qbindiff.features.extractor import FeatureCollector
-from qbindiff.visitor import Visitor, NoVisitor, ProgramVisitor
-from typing import Any
+from qbindiff.features.extractor import FeatureExtractor
+from qbindiff.passes import FeaturePass
+from typing import Any, Callable
 from qbindiff.types import (
-    Anchors,
     RawMapping,
-    PathLike,
     Positive,
     Ratio,
     Graph,
     AdjacencyMatrix,
+    SimMatrix,
 )
 
 
@@ -28,8 +24,6 @@ class Differ:
     """
     Abstract class that perform the NAP diffing between two generic graphs.
 
-    :param distance: the distance function used when comparing the feature vector
-                     extracted from the graphs
     :param sparsity_ratio: the sparsity ratio enforced to the similarity matrix
     :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0)
                      and edge similarity (tradeoff=0.0)
@@ -44,16 +38,14 @@ class Differ:
         self,
         primary: Graph,
         secondary: Graph,
-        distance: str = "canberra",
         sparsity_ratio: Ratio = 0.75,
         tradeoff: Ratio = 0.75,
         epsilon: Positive = 0.5,
         maxiter: int = 1000,
-        visitor: Visitor = None,
         normalize: bool = False,
     ):
 
-        self.distance = distance
+        # NAP parameters
         self.sparsity_ratio = sparsity_ratio
         self.tradeoff = tradeoff
         self.epsilon = epsilon
@@ -61,7 +53,8 @@ class Differ:
 
         self.primary = primary
         self.secondary = secondary
-        self._visitor = NoVisitor() if visitor is None else visitor
+        self._passes = []
+        self._already_processed = False  # Flag to perfom the processing only once
 
         if normalize:
             self.primary = self.normalize(primary)
@@ -77,8 +70,14 @@ class Differ:
             self.secondary_i2n,
             self.secondary_n2i,
         ) = self.extract_adjacency_matrix(secondary)
-        self.sim_matrix = None
 
+        # Dimension of the graphs
+        self.primary_dim = len(self.primary_i2n)
+        self.secondary_dim = len(self.secondary_i2n)
+
+        self.sim_matrix = np.zeros(
+            (self.primary_dim, self.secondary_dim), dtype=Differ.DTYPE
+        )
         self.mapping = None
 
     def _convert_mapping(self, mapping: RawMapping) -> Mapping:
@@ -145,94 +144,42 @@ class Differ:
 
         return (matrix, map_i2l, map_l2i)
 
-    def register_feature_extractor(self, extractorClass: type, weight: Positive = 1.0):
+    def register_pass(self, pass_func: Callable, **extra_args):
         """
-        Register a feature extractor class.
-        The class will be called when the visitor will traverse the graph.
+        Register a new pass that will operate on the similarity matrix.
+        The passes will be called in the same order as they are registered and each one
+        of them will operate on the output of the previous one.
         """
-        extractor = extractorClass(weight)
-        self._visitor.register_feature_extractor(extractor)
-
-    def compute_similarity(self) -> None:
-        """
-        Populate the self.sim_matrix similarity matrix by computing the pairwise
-        similarity between the nodes of the two graphs to diff.
-        """
-        # Extract the features
-        key_fun = lambda *args: args[0][0]  # ((label, node) iteration)
-        primary_features = self._visitor.visit(self.primary, key_fun=key_fun)
-        secondary_features = self._visitor.visit(self.secondary, key_fun=key_fun)
-
-        # Get the weights of each feature
-        f_weights = {}
-        for extractor in self._visitor.feature_extractors:
-            f_weights[extractor.key] = extractor.weight
-
-        # Get all the keys and subkeys of the features
-        # features_keys is a dict: {main_key: set(subkeys), ...}
-        features_keys = {}
-        for features in (primary_features, secondary_features):
-            for f_collector in features.values():
-                for main_key, subkey_list in f_collector.full_keys().items():
-                    features_keys.setdefault(main_key, set())
-                    if subkey_list:
-                        features_keys[main_key].update(subkey_list)
-
-        # Build the weights vector
-        weights = []
-        for main_key, subkey_list in features_keys.items():
-            if subkey_list:
-                dim = len(subkey_list)
-                weights.extend(f_weights[main_key] / dim for _ in range(dim))
-            else:
-                weights.append(f_weights[main_key])
-
-        # Build the feature matrix
-        primary_feature_matrix = np.zeros(
-            (len(primary_features), len(weights)), dtype=Differ.DTYPE
-        )
-        secondary_feature_matrix = np.zeros(
-            (len(secondary_features), len(weights)), dtype=Differ.DTYPE
-        )
-        for node_label, feature in primary_features.items():
-            node_index = self.primary_n2i[node_label]
-            primary_feature_matrix[node_index] = feature.to_vector(features_keys)
-        for node_label, feature in secondary_features.items():
-            node_index = self.secondary_n2i[node_label]
-            secondary_feature_matrix[node_index] = feature.to_vector(features_keys)
-
-        # Generate the similarity matrix
-        self.sim_matrix = scipy.spatial.distance.cdist(
-            primary_feature_matrix, secondary_feature_matrix, self.distance, w=weights
-        ).astype(Differ.DTYPE)
-
-        # Normalize
-        if self.sim_matrix.max() != 0:
-            self.sim_matrix /= self.sim_matrix.max()
-        self.sim_matrix[:] = 1 - self.sim_matrix
+        self._passes.append((pass_func, extra_args))
 
     def normalize(self, graph: Graph) -> Graph:
         """
         Custom function that normalizes the input graph.
         This method is meant to be overriden by a sub-class.
         """
-        pass
+        return graph
 
-    def run_filters(self) -> None:
-        """
-        Custom filters that can edit the self.sim_matrix similarity matrix.
-        This method is meant to be overriden by a sub-class.
-        """
-        pass
+    def run_passes(self) -> None:
+        """Run all the passes that have been previously registered"""
+
+        for pass_func, extra_args in self._passes:
+            pass_func(
+                self.sim_matrix,
+                self.primary,
+                self.secondary,
+                self.primary_n2i,
+                self.secondary_n2i,
+                **extra_args
+            )
 
     def process(self) -> None:
         """Initialize all the variables for the NAP algorithm"""
         # Perform the initialization only once
-        if self.sim_matrix is not None:
+        if self._already_processed:
             return
+        self._already_processed = True
 
-        self.compute_similarity()
-        self.run_filters()
+        self.run_passes()  # User registered passes
 
     def compute_matching(
         self,
@@ -308,18 +255,26 @@ class DiGraphDiffer(Differ):
             self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs
         )
 
+        self.register_pass(self.gen_sim_matrix)
+
+    def gen_sim_matrix(self, sim_matrix: SimMatrix, *args, **kwargs):
+        sim_matrix[:] = 1
+
 
 class QBinDiff(Differ):
     """
     QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
+
+    :param distance: the distance function used when comparing the feature vector
+                     extracted from the graphs
     """
 
     DTYPE = np.float32
 
-    def __init__(self, primary: Program, secondary: Program, **kwargs):
-        super(QBinDiff, self).__init__(
-            primary, secondary, visitor=ProgramVisitor(), **kwargs
-        )
+    def __init__(
+        self, primary: Program, secondary: Program, distance: str = "canberra", **kwargs
+    ):
+        super(QBinDiff, self).__init__(primary, secondary, **kwargs)
 
         # Aliases
         self.primary_f2i = self.primary_n2i
@@ -327,20 +282,42 @@ class QBinDiff(Differ):
         self.secondary_f2i = self.secondary_n2i
         self.secondary_i2f = self.secondary_i2n
 
-    def match_import_functions(self) -> None:
+        # Register the feature extraction pass
+        self._feature_pass = FeaturePass(distance)
+        self.register_pass(self._feature_pass)
+        self.register_pass(self.match_import_functions)
+
+    def register_feature_extractor(
+        self,
+        extractorClass: type[FeatureExtractor],
+        weight: Positive = 1.0,
+        **extra_args
+    ):
+        """Register a feature extractor class"""
+        extractor = extractorClass(weight, **extra_args)
+        self._feature_pass.register_extractor(extractor)
+
+    def match_import_functions(
+        self,
+        sim_matrix: SimMatrix,
+        primary: Program,
+        secondary: Program,
+        primary_mapping: dict,
+        secondary_mapping: dict,
+    ) -> None:
         primary_import = {}
-        for addr, func in self.primary.items():
+        for addr, func in primary.items():
             if func.is_import():
                 primary_import[func.name] = addr
-                self.sim_matrix[self.primary_f2i[addr]] = 0
-        for addr, func in self.secondary.items():
+                sim_matrix[primary_mapping[addr]] = 0
+        for addr, func in secondary.items():
             if func.is_import():
-                s_idx = self.secondary_f2i[addr]
-                self.sim_matrix[:, s_idx] = 0
+                s_idx = secondary_mapping[addr]
+                sim_matrix[:, s_idx] = 0
 
                 if func.name in primary_import:
-                    p_idx = self.primary_f2i[primary_import[func.name]]
-                    self.sim_matrix[p_idx, s_idx] = 1
+                    p_idx = primary_mapping[primary_import[func.name]]
+                    sim_matrix[p_idx, s_idx] = 1
 
     def normalize(self, program: Program) -> Program:
         """Normalize the input Program"""
@@ -357,9 +334,6 @@ class QBinDiff(Differ):
             program.follow_through(addr, import_func_addr)
 
         return program
-
-    def run_filters(self) -> None:
-        self.match_import_functions()
 
     def export_to_bindiff(self, filename: str):
         from qbindiff.mapping.bindiff import BinDiffFormat

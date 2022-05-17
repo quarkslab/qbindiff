@@ -8,67 +8,60 @@ Installation
 
 qBinDiff follows the regular installation process given below:
 
-    python3 setup.py install
+    pip install .
 
 Usage (command line)
 --------------------
 
 After installation, the binary ``qbindiff`` is available in the path.
-It takes in input two exported files and produce a json file containing
-the matching between functions. The default format for input files is
-[BinExport](https://github.com/google/binexport). The complete command
-line options are:
+It takes in input two exported files and start the diffing analysis. The result can then
+be exported in a BinDiff file format.
+The default format for input files is [BinExport](https://github.com/google/binexport),
+for a complete list of backend loader look at the `-l, --loader` option in the help.
+The complete command line options are:
 
     Usage: qbindiff [OPTIONS] <primary file> <secondary file>
 
-      qBinDiff is an experimental binary diffing tool based on machine learning technics, namely Belief
-      propagation.
+      qBinDiff is an experimental binary diffing tool based on machine learning technics, namely Belief propagation.
 
     Options:
-      -o, --output PATH               Output file matching [default: matching.json]
-      -l, --loader <loader>           Input files type between ['qbindiff', 'binexport', 'diaphora', 'ida'].
-                                      [default loader: binexport]
-      -f, --feature <feature>         The following features are available:
-                                      - Gcom, graph_community: Number
-                                      of graph communities (Louvain modularity)
-                                      - lib, libname: Call to
-                                      library functions (local function)
-                                      - Gnb, graph_nblock: Number of
-                                      basic blocks in the function
-                                      - Gt, graph_transitivity: Transitivity of
-                                      the function flow graph
-                                      - Gdi, graph_diameter: Diamater of the
-                                      function flow graph
-                                      - Gnc, graph_num_components: Number of components
-                                      in the function (non-connected flow graphs)
-                                      - imp, impname: References
-                                      to imports in the instruction
-                                      - Gp, groups_category: Group of the
-                                      instruction (FPU, SSE, stack..)
-                                      - Gd, graph_density: Density of the
-                                      function flow graph
-                                      - cst, cstname: Constant (32/64bits) in the
-                                      instruction (not addresses)
-                                      - Mt, mnemonic_typed: Mnemonic and type of
-                                      operand feature
-                                      - Gmd, graph_mean_degree: Mean degree of the function
-                                      - dat, datname: References to data in the instruction
-                                      - M, mnemonic:
-                                      Mnemonic of instructions feature
-                                      - Gmib, graph_mean_inst_block: Mean
-                                      of instruction per basic blocks in the function  [required]
-      -d, --distance <function>       Mathematical distance function between cosine and correlation
-                                      [default: auto]
-      -t, --threshold FLOAT           Global distance threshold to keep matches between 0.0 to 1.0 [default:
-                                      0.00]
-      -s, --sparsity FLOAT            Row based sparsity threshold to keep matches between 0.0 to 1.0
-                                      [default: 0.20]
-      -i, --maxiter INTEGER           Maximum number of iteration for belief propagation [default: 80]
-      -tr, --tradeoff FLOAT           Tradeoff betwee callgraph (neat 0.0) and function content (near 1.0)
-                                      [default: 0]
-      --refine-match / --no-refine-match
-      -v, --verbose                   Activate debugging messages
-      -h, --help                      Show this message and exit.
+      -l, --loader <loader>         Loader type to be used. Must be one of these ['binexport', 'qbinexport']. [default: binexport]
+      -f, --features <feature>      The following features are available:
+                                      - fname: Match the function names
+                                      - dat: References to data in the instruction
+                                      - Gdi: Diamater of the function flow graph
+                                      - Gt: Transitivity of the function flow graph
+                                      - Gmd: Mean degree of the function
+                                      - Gd: Density of the function flow graph
+                                      - meanins: Mean number of instructions per basic blocks in the function
+                                      - Gp: Group of the instruction (FPU, SSE, stack..)
+                                      - M: Mnemonic of instructions feature
+                                      - rnb: Number of relatives of the function
+                                      - cnb: Number of children of the function
+                                      - cst: Constant (32/64bits) in the instruction (not addresses)
+                                      - Gcom: Number of graph communities (Louvain modularity)
+                                      - addr: Address of the function as a feature
+                                      - Gnc: Number of components in the function (non-connected flow graphs)
+                                      - Mt: Mnemonic and type of operand feature
+                                      - bnb: Number of basic blocks in the function
+                                      - lib: Call to library functions (local function)
+                                      - wlgk: Weisfeiler-Lehman Graph Kernel
+                                      - pnb: Number of parents of the function
+                                    [default: ('Mt', 'cst', 'M', 'dat', 'Gdi', 'bnb', 'addr', 'Gnc', 'Gt', 'Gmd', 'lib', 'Gd', 'rnb', 'meanins', 'pnb', 'cnb', 'Gp')]
+      -n, --normalize               Normalize the Call Graph (can potentially lead to a partial matching). [default disabled]
+      -d, --distance <function>     The following distances are available ('canberra', 'correlation', 'cosine', 'euclidean')
+                                    Features may be weighted by a positive value such as <feature>:<weight> [default: 1.0]
+                                    [default: canberra]
+      -s, --sparsity-ratio FLOAT    Ratio of least probable matches to ignore. Between 0.0 to 1.0 [default: 0.75]
+      -t, --tradeoff FLOAT          Tradeoff between function content (near 1.0) and call-graph information (near 0.0) [default: 0.75]
+      -e, --epsilon FLOAT           Relaxation parameter to enforce convergence [default: 0.50]
+      -i, --maxiter INTEGER         Maximum number of iteration for belief propagation [default: 1000]
+      -e1, --executable1 PATH       Path to the primary raw executable. Must be provided if using qbinexport loader
+      -e2, --executable2 PATH       Path to the secondary raw executable. Must be provided if using qbinexport loader
+      -o, --output PATH             Write output to PATH
+      -ff, --file-format [bindiff]  The file format of the output file. Supported formats are [bindiff]. [default: bindiff]
+      -v, --verbose                 Activate debugging messages
+      -h, --help                    Show this message and exit.
 
 
 Usage library
@@ -78,17 +71,20 @@ The strength of qBinDiff is to be usable as a python library. The following snip
 of loading to binexport files and to compare them using the mnemonic feature.
 
 ```python
-from qbindiff.loader.program import Program
-from qbindiff.features.mnemonic import MnemonicSimple
-from qbindiff.differ.qbindiff import QBinDiff
-p1 = Program()
-p1.load_binexport("primary.BinExport")
-p2 = Program()
-p2.load_binexport("secondary.BinExport")
-differ = QBinDiff(p1, p2, distance=0.80, threshold=0.5, maxiter=100)
-differ.register_feature(MnemonicSimple())
-differ.run(match_refine=True)
-matching = differ.matching
+from qbindiff import QBinDiff, Program
+from qbindiff.features import WeisfeilerLehman
+from pathlib import Path
+
+p1 = Program(Path("primary.BinExport"))
+p2 = Program(Path("secondary.BinExport"))
+
+differ = QBinDiff(p1, p2)
+differ.register_feature(WeisfeilerLehman)
+
+differ.process()
+
+mapping = differ.compute_matching()
+output = {(match.primary.addr, match.secondary.addr) for match in mapping}
 ```
 
 qBinViz

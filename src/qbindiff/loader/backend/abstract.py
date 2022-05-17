@@ -74,6 +74,12 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
+    def capstone(self) -> "capstone.CsInsn":
+        """Return the capstone instruction"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
     def comment(self) -> str:
         """Comment associated with the instruction"""
         raise NotImplementedError()

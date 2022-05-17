@@ -101,6 +101,11 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         return []  # Not supported
 
     @property
+    def capstone(self) -> "capstone.CsInsn":
+        """Return the capstone instruction"""
+        return self.cs_instr
+
+    @property
     def comment(self) -> str:
         """Comment associated with the instruction"""
         return []  # Not supported
