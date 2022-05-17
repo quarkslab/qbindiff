@@ -257,7 +257,7 @@ class DiGraphDiffer(Differ):
 
         self.register_pass(self.gen_sim_matrix)
 
-    def gen_sim_matrix(self, sim_matrix: SimMatrix, *_, **__):
+    def gen_sim_matrix(self, sim_matrix: SimMatrix, *args, **kwargs):
         sim_matrix[:] = 1
 
 
