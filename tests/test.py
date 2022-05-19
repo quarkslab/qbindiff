@@ -78,7 +78,7 @@ class BinaryTest(unittest.TestCase):
             p = qbindiff.Program(self.path(unit.primary), unit.loader)
             s = qbindiff.Program(self.path(unit.secondary), unit.loader)
         differ = qbindiff.QBinDiff(
-            p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5, distance='cosine'
+            p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5, distance="cosine"
         )
 
         for f, w in self.features:
