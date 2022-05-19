@@ -18,8 +18,8 @@ class GenericPass(metaclass=ABCMeta):
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict,
-        secondary_mapping: dict,
+        primary_mapping: dict[Any, int],
+        secondary_mapping: dict[Any, int],
     ) -> None:
         """Execute the pass that operates on the similarity matrix inplace"""
         raise NotImplementedError()
@@ -73,22 +73,110 @@ class FeaturePass(GenericPass):
         feature_matrix = np.zeros((0, dim), dtype=dtype)
         mapping = {}
         nonempty_set = set()
-        for i, (node_label, feature) in enumerate(features.items()):
+        i = 0
+        for node_label, feature in features.items():
             node_index = node_to_index[node_label]
-            mapping[node_index] = i
             vec = feature.to_vector(features_keys, False)
             if vec:
+                mapping[node_index] = i
                 feature_matrix = np.vstack((feature_matrix, vec))
                 nonempty_set.add(node_index)
+                i += 1
         return (feature_matrix, mapping, nonempty_set)
+
+    def _compute_sim_matrix(
+        self,
+        shape: tuple[int, int],
+        primary_features: dict[Any, FeatureCollector],
+        secondary_features: dict[Any, FeatureCollector],
+        primary_mapping: dict[Any, int],
+        secondary_mapping: dict[Any, int],
+        features_keys: dict[str, list[str]],
+        dtype: type,
+        weights: Optional[Iterable[float]] = None,
+    ):
+        """
+        Utility function that generate a similarity matrix given two collections of
+        features only considering a subset of the features (specified by feature_keys).
+
+        It returns the whole similarity matrix of the given shape.
+
+        :param shape: The shape of the similarity matrix. It is zero initialized
+        :param primary_features: Dict of features {node : feature_collector}
+        :param secondary_features: Dict of features {node : feature_collector}
+        :param primary_mapping: A mapping between function labels and indexes in the
+                                similarity matrix
+        :param secondary_mapping: A mapping between function labels and indexes in the
+                                  similarity matrix
+        :param features_keys: All the features keys to consider
+        :param dtype: dtype of the similarity matrix
+        :param weights: Optional weights
+        """
+
+        # Find the dimension of the feature matrix
+        dim = 0
+        for main_key, subkeys in features_keys.items():
+            if subkeys:
+                dim += len(subkeys)
+            else:
+                dim += 1
+
+        # Build the feature matrices
+        (
+            primary_feature_matrix,  # the feature matrix
+            temp_map_primary,  # temporary mappings between the nodes index in the adjacency matrix and in the similarity matrix
+            nonempty_rows,  # non empty rows that will be kept after the distance is calculated
+        ) = self._create_feature_matrix(
+            primary_features, features_keys, primary_mapping, dim, dtype
+        )
+        (
+            secondary_feature_matrix,
+            temp_map_secondary,
+            nonempty_cols,
+        ) = self._create_feature_matrix(
+            secondary_features, features_keys, secondary_mapping, dim, dtype
+        )
+
+        # Generate the partial similarity matrix (only non empty rows and cols)
+        if weights:
+            tmp_sim_matrix = scipy.spatial.distance.cdist(
+                primary_feature_matrix,
+                secondary_feature_matrix,
+                self.distance,
+                w=weights,
+            ).astype(dtype)
+        else:
+            tmp_sim_matrix = scipy.spatial.distance.cdist(
+                primary_feature_matrix, secondary_feature_matrix, self.distance
+            ).astype(dtype)
+
+        # Normalize
+        if len(tmp_sim_matrix) > 0 and tmp_sim_matrix.max() != 0:
+            tmp_sim_matrix /= tmp_sim_matrix.max()
+        tmp_sim_matrix[:] = 1 - tmp_sim_matrix
+
+        # Fill the entire similarity matrix
+        sim_matrix = np.zeros(shape, dtype=dtype)
+        for idx in nonempty_rows:  # Rows insertion
+            sim_matrix[idx, : tmp_sim_matrix.shape[1]] = tmp_sim_matrix[
+                temp_map_primary[idx]
+            ]
+        # Cols permutation
+        cols_dim = sim_matrix.shape[1]
+        mapping = np.full(cols_dim, cols_dim - 1, dtype=int)
+        for idx in nonempty_cols:
+            mapping[idx] = temp_map_secondary[idx]
+        sim_matrix[:] = sim_matrix[:, mapping]
+
+        return sim_matrix
 
     def __call__(
         self,
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict,
-        secondary_mapping: dict,
+        primary_mapping: dict[Any, int],
+        secondary_mapping: dict[Any, int],
         fill: Optional[bool] = False,
     ) -> None:
         """
@@ -106,8 +194,6 @@ class FeaturePass(GenericPass):
         key_fun = lambda *args: args[0][0]  # ((label, node) iteration)
         primary_features = self._visitor.visit(primary, key_fun=key_fun)
         secondary_features = self._visitor.visit(secondary, key_fun=key_fun)
-        primary_dim = len(primary_features)
-        secondary_dim = len(secondary_features)
 
         # Get the weights of each feature
         f_weights = {}
@@ -124,50 +210,40 @@ class FeaturePass(GenericPass):
                     if subkey_list:
                         features_keys[main_key].update(subkey_list)
 
-        # Build the weights vector
-        weights = []
-        for main_key, subkey_list in features_keys.items():
-            if subkey_list:
-                dim = len(subkey_list)
-                weights.extend(f_weights[main_key] / dim for _ in range(dim))
+        # Build the similarity matrices separately for each main feature
+        all_sim_matrix = []
+        simple_feature_keys = {}
+        for main_key, subkeys in features_keys.items():
+            if subkeys:
+                # Compute the similarity matrix for the current feature
+                tmp_sim_matrix = self._compute_sim_matrix(
+                    sim_matrix.shape,
+                    primary_features,
+                    secondary_features,
+                    primary_mapping,
+                    secondary_mapping,
+                    {main_key: subkeys},
+                    sim_matrix.dtype,
+                )
+                all_sim_matrix.append(f_weights[main_key] * tmp_sim_matrix)
             else:
-                weights.append(f_weights[main_key])
+                # It is a simple feature (no subkeys)
+                simple_feature_keys[main_key] = []
+        # Add the simple features similarity
+        if simple_feature_keys:
+            tmp_sim_matrix = self._compute_sim_matrix(
+                sim_matrix.shape,
+                primary_features,
+                secondary_features,
+                primary_mapping,
+                secondary_mapping,
+                simple_feature_keys,
+                sim_matrix.dtype,
+                weights=tuple(f_weights[key] for key in simple_feature_keys),
+            )
+            all_sim_matrix.append(tmp_sim_matrix)
 
-        # Build the feature matrix
-        dim = len(weights)
-        dtype = sim_matrix.dtype
-        (
-            primary_feature_matrix,  # the feature matrix
-            temp_map_primary,  # temporary mappings between the nodes index in the adjacency matrix and in the similarity matrix
-            nonempty_rows,  # non empty rows that will be kept after the distance is calculated
-        ) = self._create_feature_matrix(
-            primary_features, features_keys, primary_mapping, dim, dtype
-        )
-        (
-            secondary_feature_matrix,
-            temp_map_secondary,
-            nonempty_cols,
-        ) = self._create_feature_matrix(
-            secondary_features, features_keys, secondary_mapping, dim, dtype
-        )
+        # Build the whole similarity matrix by combining the previous ones
+        res = sum(all_sim_matrix) / sum(f_weights.values())
 
-        # Generate the partial similarity matrix (only non empty rows and cols)
-        tmp_sim_matrix = scipy.spatial.distance.cdist(
-            primary_feature_matrix, secondary_feature_matrix, self.distance, w=weights
-        ).astype(sim_matrix.dtype)
-
-        # Normalize
-        if len(tmp_sim_matrix) > 0 and tmp_sim_matrix.max() != 0:
-            tmp_sim_matrix /= tmp_sim_matrix.max()
-        tmp_sim_matrix[:] = 1 - tmp_sim_matrix
-
-        # Fill the entire similarity matrix
-        for idx in nonempty_rows:  # Rows insertion
-            sim_matrix[idx, : tmp_sim_matrix.shape[1]] = tmp_sim_matrix[
-                temp_map_primary[idx]
-            ]
-        # Cols permutation
-        mapping = np.full(secondary_dim, secondary_dim - 1, dtype=int)
-        for idx in nonempty_cols:
-            mapping[idx] = temp_map_secondary[idx]
-        sim_matrix[:] = sim_matrix[:, mapping]
+        sim_matrix[res.nonzero()] = res[res.nonzero()]
