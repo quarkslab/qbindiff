@@ -4,7 +4,7 @@ from pathlib import Path
 from dataclasses import dataclass
 
 import qbindiff
-from qbindiff.features import FEATURES
+from qbindiff.features import WeisfeilerLehman, Constant
 from qbindiff.loader import LoaderType
 
 BASE_TEST_PATH = Path("tests/data")
@@ -61,14 +61,7 @@ class BinaryTest(unittest.TestCase):
         except ModuleNotFoundError:
             pass
 
-        self.features = []
-        FEATURES_KEYS = {x.key: x for x in FEATURES}
-        for feature in set(tuple(x.key for x in FEATURES)):
-            # Ignore non-deterministic heuristics
-            if feature == "Gcom":
-                continue
-            weight = 1.0
-            self.features.append((FEATURES_KEYS[feature], float(weight)))
+        self.features = [(WeisfeilerLehman, 1.0), (Constant, 1.0)]
 
     def path(self, p):
         return self.base_path / p
@@ -85,7 +78,7 @@ class BinaryTest(unittest.TestCase):
             p = qbindiff.Program(self.path(unit.primary), unit.loader)
             s = qbindiff.Program(self.path(unit.secondary), unit.loader)
         differ = qbindiff.QBinDiff(
-            p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5
+            p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5, distance='cosine'
         )
 
         for f, w in self.features:
