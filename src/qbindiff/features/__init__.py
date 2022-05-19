@@ -13,7 +13,7 @@ from qbindiff.features.artefact import Address, DatName, Constant, FuncName
 from qbindiff.features.topology import ChildNb, ParentNb, RelativeNb, LibName, ImpName
 from qbindiff.features.wlgk import WeisfeilerLehman
 
-FEATURES = {
+FEATURES = (
     # FunctionFeatureExtractor
     BBlockNb,
     MeanInsNB,
@@ -39,9 +39,9 @@ FEATURES = {
     DatName,
     # OperandFeatureExtractor
     Constant,
-}
+)
 
-DEFAULT_FEATURES = {
+DEFAULT_FEATURES = (
     # FunctionFeatureExtractor
     BBlockNb,
     MeanInsNB,
@@ -64,4 +64,4 @@ DEFAULT_FEATURES = {
     DatName,
     # OperandFeatureExtractor
     Constant,
-}
+)
