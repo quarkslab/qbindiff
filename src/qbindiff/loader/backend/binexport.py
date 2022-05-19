@@ -131,6 +131,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
                 logging.error(
                     "Missing function address: 0x%x (%d)" % (node.address, node.type)
                 )
+                continue
 
             program[node.address].type = self.normalize_function_type(node.type)
             if node.demangled_name:
