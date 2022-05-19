@@ -42,8 +42,8 @@ class FeatureCollector:
     ) -> list[float]:
         """
         Transform the collection to a feature vector. If the parameter `empty_default`
-        is specified then if the feature vector is the zero vector then
-        `empty_default` is returned
+        is specified then if the feature vector is the zero vector the `empty_default`
+        is returned
 
         :param key_order: The order in which the keys are accessed
         :param empty_default: Default value to be returned in case the feature vector
