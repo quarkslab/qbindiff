@@ -279,7 +279,14 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
 
         # Load the edges between blocks
         for edge in pb_fun.edge:
+            # Source will always be in a basic block
             bb_src = bb_i2a[edge.source_basic_block_index]
+
+            # Target might be a different function and not a basic block.
+            # e.g. in case of a jmp to another function (or a `bl` in ARM)
+            if edge.target_basic_block_index not in bb_i2a:
+                continue
+
             bb_dst = bb_i2a[edge.target_basic_block_index]
             self._graph.add_edge(bb_src, bb_dst)
 
