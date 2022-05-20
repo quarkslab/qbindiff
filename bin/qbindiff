@@ -72,12 +72,12 @@ help_loaders = (
 help_features = """\b
 The following features are available:
 {}
+Features may be weighted by a positive value such as <feature>:<weight> [default: 1.0]
 [default: {}]""".format(
     "\n".join("  - {}: {}".format(x.key, x.__doc__) for x in FEATURES), DEFAULT_FEATURES
 )
 help_distance = f"""\b
 The following distances are available {DISTANCES}
-Features may be weighted by a positive value such as <feature>:<weight> [default: 1.0]
 [default: {DISTANCES[0]}]"""
 
 
@@ -172,6 +172,11 @@ Features may be weighted by a positive value such as <feature>:<weight> [default
     type=click.Choice(["bindiff"]),
     help=help_formats,
 )
+@click.option(
+    "--enable-cortexm",
+    is_flag=True,
+    help="Enable the usage of the cortex-m extension when disassembling",
+)
 @click.option("-v", "--verbose", count=True, help="Activate debugging messages")
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
@@ -188,6 +193,7 @@ def main(
     exec_secondary,
     output,
     file_format,
+    enable_cortexm,
     verbose,
     primary,
     secondary,
@@ -243,9 +249,9 @@ def main(
         secondary = Program(secondary, loader, exec_secondary)
     else:
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(primary, loader)
+        primary = Program(primary, loader, enable_cortexm=enable_cortexm)
         logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(secondary, loader)
+        secondary = Program(secondary, loader, enable_cortexm=enable_cortexm)
 
     qbindiff = QBinDiff(
         primary,

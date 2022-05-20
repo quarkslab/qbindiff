@@ -1,7 +1,7 @@
 import logging, networkx, capstone
 from collections import defaultdict
 from functools import cache
-from typing import Union
+from typing import Union, Optional
 
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
@@ -49,16 +49,18 @@ def _instruction_index_range(rng):
     )
 
 
-def _get_capstone_disassembler(binexport_arch: str):
+def _get_capstone_disassembler(binexport_arch: str, mode: Optional[int] = 0):
     def capstone_context(arch, mode):
         context = capstone.Cs(arch, mode)
         context.detail = True
         return context
 
     if binexport_arch == "x86":
-        return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+        return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_32 | mode)
     elif binexport_arch == "x86-64":
-        return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_64)
+        return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_64 | mode)
+    elif binexport_arch == "ARM-32":
+        return capstone_context(capstone.CS_ARCH_ARM, mode)
 
     raise NotImplementedError(f"Architecture {binexport_arch} has not be implemented")
 
@@ -81,12 +83,37 @@ def to_x(s):
     return to_hex2(x)
 
 
+def is_same_mnemonic(mnemonic1: str, mnemonic2: str) -> bool:
+    """Check whether two mnemonics are the same"""
+    def normalize(mnemonic: str) -> str:
+        if mnemonic == 'ldmia':
+            return 'ldm'
+        return mnemonic.replace("lo", "cc")
+    
+    mnemonic1 = normalize(mnemonic1)
+    mnemonic2 = normalize(mnemonic2)
+    
+    if mnemonic1 == mnemonic2:
+        return True
+
+    if len(mnemonic1) > len(mnemonic2):
+        mnemonic1, mnemonic2 = mnemonic2, mnemonic1
+    if mnemonic1 + ".w" == mnemonic2:
+        return True
+
+    return False
+
+
 # ===========================================
 
 
 class ProgramBackendBinExport(AbstractProgramBackend):
-    def __init__(self, program: Program, file: str):
+    def __init__(
+        self, program: Program, file: str, enable_cortexm: Optional[bool] = False
+    ):
         super(ProgramBackendBinExport, self).__init__()
+
+        self._enable_cortexm = enable_cortexm
 
         self._pb = BinExport2()
         with open(file, "rb") as f:
@@ -155,6 +182,10 @@ class ProgramBackendBinExport(AbstractProgramBackend):
             "total all:%d, imported:%d collision:%d (total:%d)"
             % (count_f, count_imp, coll, (count_f + count_imp + coll))
         )
+
+    @property
+    def cortexm(self) -> bool:
+        return self._enable_cortexm
 
     def addr_mask(self, value):
         return value & self._mask
@@ -357,16 +388,20 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                 inst_addr = _get_instruction_address(be_program.proto, idx)
 
                 # The first instruction determines the basic block address
+                # Save the first instruction to guess the instruction set
                 if self._addr is None:
                     self._addr = inst_addr
+                    first_instr = be_program.proto.instruction[idx]
 
                 bb_asm += pb_inst.raw_bytes
                 instr_count += 1
 
-        md = _get_capstone_disassembler(
-            be_program.proto.meta_information.architecture_name
+        instructions = self._disassemble(
+            be_program,
+            bb_asm,
+            be_program.proto.mnemonic[first_instr.mnemonic_index].name,
+            len(first_instr.raw_bytes),
         )
-        instructions = list(md.disasm(bb_asm, self.addr))
         if len(instructions) != instr_count:
             logging.error(
                 f"Mismatch between the disassembly of capstone and IDA for the basic block at address 0x{self.addr:x}"
@@ -392,6 +427,56 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                     )
                 )
                 i += 1
+
+    def _disassemble(
+        self,
+        be_program: ProgramBackendBinExport,
+        bb_asm: bytes,
+        correct_mnemonic: str,
+        correct_size: int,
+    ):
+        """
+        Disassemble the basic block using capstone trying to guess the instruction set
+        when unable to determine it from binexport
+        """
+
+        instructions = []
+        mnemonic = None
+        size = None
+        arch = be_program.proto.meta_information.architecture_name
+        capstone_mode = 0
+        arm_mode = 0
+
+        while size != correct_size or not is_same_mnemonic(mnemonic, correct_mnemonic):
+            # change mode
+            if arch == "ARM-32":
+                capstone_mode = 0
+                if arm_mode & 0b1:
+                    capstone_mode |= capstone.CS_MODE_ARM
+                if arm_mode & 0b10:
+                    capstone_mode |= capstone.CS_MODE_THUMB
+                if be_program.cortexm:
+                    capstone_mode |= capstone.CS_MODE_MCLASS
+                if arm_mode > 0b11:
+                    logging.error(
+                        f"Cannot guess the instruction set of the instruction at address 0x{self.addr:x}"
+                    )
+                    exit(1)
+                arm_mode += 1
+
+            md = _get_capstone_disassembler(arch, capstone_mode)
+            disasm = md.disasm(bb_asm, self.addr)
+            try:
+                instr = next(disasm)
+                mnemonic = instr.mnemonic
+                size = instr.size
+            except StopIteration:
+                mnemonic = None
+                size = None
+
+        instructions.append(instr)
+        instructions.extend(disasm)
+        return instructions
 
     @property
     def addr(self) -> Addr:

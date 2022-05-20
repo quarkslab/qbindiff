@@ -1,5 +1,5 @@
 import networkx
-from typing import Callable, Union, Any
+from typing import Callable, Union, Any, Optional
 from collections.abc import Iterator
 
 from qbindiff.abstract import GenericGraph
@@ -17,9 +17,10 @@ class Program(dict, GenericGraph):
 
     def __init__(
         self,
-        file_path: str = None,
-        loader: LoaderType = LoaderType.binexport,
-        exec_path: str = None,
+        file_path: Optional[str] = None,
+        loader: Optional[LoaderType] = LoaderType.binexport,
+        exec_path: Optional[str] = None,
+        **kwargs
     ):
         super(Program, self).__init__()
         self._backend = None
@@ -29,29 +30,46 @@ class Program(dict, GenericGraph):
         if file_path is None:  # Inside IDA just call Program()
             from qbindiff.loader.backend.ida import ProgramBackendIDA
 
-            self._backend = ProgramBackendIDA(self)
+            self._backend = ProgramBackendIDA(self, **kwargs)
 
         elif loader == LoaderType.binexport:
             from qbindiff.loader.backend.binexport import ProgramBackendBinExport
 
-            self._backend = ProgramBackendBinExport(self, file_path)
+            self._backend = ProgramBackendBinExport(self, file_path, **kwargs)
 
         elif loader == LoaderType.qbinexport:
             from qbindiff.loader.backend.qbinexport import ProgramBackendQBinExport
 
-            self._backend = ProgramBackendQBinExport(self, file_path, exec_path)
+            self._backend = ProgramBackendQBinExport(
+                self, file_path, exec_path, **kwargs
+            )
 
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
         self._filter = lambda x: True
 
     @staticmethod
-    def from_binexport(file_path: str) -> "Program":
+    def from_binexport(
+        file_path: str, enable_cortexm: Optional[bool] = False
+    ) -> "Program":
         """
-        Load the Program using the binexport backend. This function
-        is meant to be used with an empty instanciation: Program()
+        Load the Program using the binexport backend
+
         :param file_path: File path to the binexport file
-        :return: None
+        :param enable_cortexm: Whether to check for cortexm instructions while
+                               disassembling with capstone
+        :return: Program instance
+        """
+        return Program(file_path, LoaderType.binexport, enable_cortexm)
+
+    @staticmethod
+    def from_qbinexport(file_path: str, exec_path: str) -> "Program":
+        """
+        Load the Program using the QBinExport backend.
+
+        :param file_path: File path to the binexport file
+        :param exec_path: Path of the raw binary
+        :return: Program instance
         """
         return Program(file_path, LoaderType.binexport)
 
