@@ -1,4 +1,5 @@
 from collections import defaultdict
+from capstone import CS_GRP_JUMP
 from typing import Optional, Any
 
 from qbindiff.features.extractor import (
@@ -36,16 +37,20 @@ class DatName(InstructionFeatureExtractor):
         collector.add_dict_feature(self.key, value)
 
 
-class Constant(OperandFeatureExtractor):
+class Constant(InstructionFeatureExtractor):
     """Constant (32/64bits) in the instruction (not addresses)"""
 
     key = "cst"
 
-    def visit_operand(
-        self, program: Program, operand: Operand, collector: FeatureCollector
+    def visit_instruction(
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        if operand.type == 2:  # capstone.x86.X86_OP_IMM
-            collector.add_dict_feature(self.key, {operand.value.imm: 1})
+        # Ignore jumps since the target is an immutable
+        if instruction.capstone.group(CS_GRP_JUMP):
+            return
+        for operand in instruction.operands:
+            if operand.is_immutable():
+                collector.add_dict_feature(self.key, {operand.capstone.value.imm: 1})
 
 
 class FuncName(FunctionFeatureExtractor):

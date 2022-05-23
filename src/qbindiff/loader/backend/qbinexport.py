@@ -37,6 +37,11 @@ class OperandBackendQBinExport(AbstractOperandBackend):
         return self._str
 
     @property
+    def capstone(self) -> capstoneOperand:
+        """Returns the capstone operand object"""
+        return self.cs_operand
+
+    @property
     def type(self) -> int:
         """Returns the capstone operand type"""
         return self.cs_operand.type

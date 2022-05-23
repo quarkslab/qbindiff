@@ -1,7 +1,7 @@
 import logging, networkx, capstone
 from collections import defaultdict
 from functools import cache
-from typing import Union, Optional
+from typing import Union, Optional, Any
 
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
@@ -14,6 +14,9 @@ from qbindiff.loader.backend.binexport2_pb2 import BinExport2
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
 from qbindiff.loader.types import LoaderType, FunctionType, OperandType
 from qbindiff.types import Addr
+
+# Don't import the whole capstone module just for the typing
+capstoneOperand = Any
 
 
 # === General purpose binexport functions ===
@@ -576,6 +579,11 @@ class OperandBackendBinexport(AbstractOperandBackend):
             return op_str
         else:
             raise NotImplementedError(f"Unrecognized capstone type {self.type}")
+
+    @property
+    def capstone(self) -> capstoneOperand:
+        """Returns the capstone operand object"""
+        return self.cs_operand
 
     @property
     def type(self) -> int:
