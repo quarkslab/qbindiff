@@ -37,8 +37,8 @@ FEATURES = (
     GroupsCategory,
     Address,
     DatName,
-    # OperandFeatureExtractor
     Constant,
+    # OperandFeatureExtractor
 )
 
 DEFAULT_FEATURES = (
