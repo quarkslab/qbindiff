@@ -88,14 +88,15 @@ def to_x(s):
 
 def is_same_mnemonic(mnemonic1: str, mnemonic2: str) -> bool:
     """Check whether two mnemonics are the same"""
+
     def normalize(mnemonic: str) -> str:
-        if mnemonic == 'ldmia':
-            return 'ldm'
+        if mnemonic == "ldmia":
+            return "ldm"
         return mnemonic.replace("lo", "cc")
-    
+
     mnemonic1 = normalize(mnemonic1)
     mnemonic2 = normalize(mnemonic2)
-    
+
     if mnemonic1 == mnemonic2:
         return True
 
@@ -450,6 +451,12 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         capstone_mode = 0
         arm_mode = 0
 
+        # No need to guess the context for these arch
+        if arch in ("x86", "x86-64"):
+            md = _get_capstone_disassembler(arch)
+            return list(md.disasm(bb_asm, self.addr))
+
+        # Bruteforce-guessing the context
         while size != correct_size or not is_same_mnemonic(mnemonic, correct_mnemonic):
             # change mode
             if arch == "ARM-32":
@@ -575,6 +582,8 @@ class OperandBackendBinexport(AbstractOperandBackend):
                 op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
             if op.mem.index != 0:
                 op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
+            if op.mem.disp != 0:
+                op_str += f"+0x{op.mem.disp:x}"
             op_str += "]"
             return op_str
         else:
