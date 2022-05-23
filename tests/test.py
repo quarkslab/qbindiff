@@ -4,7 +4,7 @@ from pathlib import Path
 from dataclasses import dataclass
 
 import qbindiff
-from qbindiff.features import WeisfeilerLehman, Constant
+from qbindiff.features import WeisfeilerLehman, Constant, Address
 from qbindiff.loader import LoaderType
 
 BASE_TEST_PATH = Path("tests/data")
@@ -61,7 +61,13 @@ class BinaryTest(unittest.TestCase):
         except ModuleNotFoundError:
             pass
 
-        self.features = [(WeisfeilerLehman, 1.0), (Constant, 1.0)]
+        # We need the address heuristic with a very low weight to discern between nearly
+        # identical functions
+        self.features = [
+            (WeisfeilerLehman, 1.0, "cosine"),
+            (Constant, 1.0, "canberra"),
+            (Address, 0.01, "canberra"),
+        ]
 
     def path(self, p):
         return self.base_path / p
@@ -78,11 +84,11 @@ class BinaryTest(unittest.TestCase):
             p = qbindiff.Program(self.path(unit.primary), unit.loader)
             s = qbindiff.Program(self.path(unit.secondary), unit.loader)
         differ = qbindiff.QBinDiff(
-            p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5, distance="cosine"
+            p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5, distance="canberra"
         )
 
-        for f, w in self.features:
-            differ.register_feature_extractor(f, w)
+        for f, w, d in self.features:
+            differ.register_feature_extractor(f, w, distance=d)
 
         differ.process()
         mapping = differ.compute_matching()

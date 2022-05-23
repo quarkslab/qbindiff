@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.spatial
+from collections import defaultdict
 from abc import ABCMeta, abstractmethod
 from typing import Any, Optional, Iterable
 
@@ -32,15 +33,24 @@ class FeaturePass(GenericPass):
     """
 
     def __init__(self, distance: str):
-        self.distance = distance
+        self._default_distance = distance
+        self._distances = {}
         self._visitor = ProgramVisitor()
 
-    def register_extractor(self, extractor: FeatureExtractor):
+    def distance(self, key: str) -> str:
+        """Returns the correct distance for the given feature key"""
+        return self._distances.get(key, self._default_distance)
+
+    def register_extractor(
+        self, extractor: FeatureExtractor, distance: Optional[str] = None
+    ) -> None:
         """
-        Register a feature extractor.
+        Register a feature extractor optionally specifying a distance to use.
         The class will be called when the visitor will traverse the graph.
         """
         self._visitor.register_feature_extractor(extractor)
+        if distance:
+            self._distances[extractor.key] = distance
 
     def _create_feature_matrix(
         self,
@@ -92,6 +102,7 @@ class FeaturePass(GenericPass):
         primary_mapping: dict[Any, int],
         secondary_mapping: dict[Any, int],
         features_keys: dict[str, list[str]],
+        distance: str,
         dtype: type,
         weights: Optional[Iterable[float]] = None,
     ):
@@ -109,6 +120,7 @@ class FeaturePass(GenericPass):
         :param secondary_mapping: A mapping between function labels and indexes in the
                                   similarity matrix
         :param features_keys: All the features keys to consider
+        :param distance: The distance to use
         :param dtype: dtype of the similarity matrix
         :param weights: Optional weights
         """
@@ -142,12 +154,12 @@ class FeaturePass(GenericPass):
             tmp_sim_matrix = scipy.spatial.distance.cdist(
                 primary_feature_matrix,
                 secondary_feature_matrix,
-                self.distance,
+                distance,
                 w=weights,
             ).astype(dtype)
         else:
             tmp_sim_matrix = scipy.spatial.distance.cdist(
-                primary_feature_matrix, secondary_feature_matrix, self.distance
+                primary_feature_matrix, secondary_feature_matrix, distance
             ).astype(dtype)
 
         # Normalize
@@ -212,7 +224,8 @@ class FeaturePass(GenericPass):
 
         # Build the similarity matrices separately for each main feature
         all_sim_matrix = []
-        simple_feature_keys = {}
+        simple_feature_keys = defaultdict(dict)  # {distance: {main_key: (), ...}, ...}
+        norm_coeff = 0
         for main_key, subkeys in features_keys.items():
             if subkeys:
                 # Compute the similarity matrix for the current feature
@@ -223,14 +236,17 @@ class FeaturePass(GenericPass):
                     primary_mapping,
                     secondary_mapping,
                     {main_key: subkeys},
+                    self.distance(main_key),
                     sim_matrix.dtype,
                 )
                 all_sim_matrix.append(f_weights[main_key] * tmp_sim_matrix)
+                norm_coeff += f_weights[main_key]
             else:
                 # It is a simple feature (no subkeys)
-                simple_feature_keys[main_key] = []
+                simple_feature_keys[self.distance(main_key)][main_key] = ()
         # Add the simple features similarity
-        if simple_feature_keys:
+        for distance, simple_feature_keys in simple_feature_keys.items():
+            weights = tuple(f_weights[key] for key in simple_feature_keys)
             tmp_sim_matrix = self._compute_sim_matrix(
                 sim_matrix.shape,
                 primary_features,
@@ -238,12 +254,15 @@ class FeaturePass(GenericPass):
                 primary_mapping,
                 secondary_mapping,
                 simple_feature_keys,
+                distance,
                 sim_matrix.dtype,
-                weights=tuple(f_weights[key] for key in simple_feature_keys),
+                weights=weights,
             )
-            all_sim_matrix.append(tmp_sim_matrix)
+            norm_weight = sum(weights)
+            all_sim_matrix.append(norm_weight * tmp_sim_matrix)
+            norm_coeff += norm_weight
 
         # Build the whole similarity matrix by combining the previous ones
-        res = sum(all_sim_matrix) / sum(f_weights.values())
+        res = sum(all_sim_matrix) / norm_coeff
 
         sim_matrix[res.nonzero()] = res[res.nonzero()]

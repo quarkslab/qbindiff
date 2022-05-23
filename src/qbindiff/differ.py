@@ -2,6 +2,7 @@
 import numpy as np
 from networkx import DiGraph
 from collections.abc import Generator, Iterator
+from typing import Any, Callable, Optional
 
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Program
@@ -9,7 +10,6 @@ from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
 from qbindiff.passes import FeaturePass
-from typing import Any, Callable
 from qbindiff.types import (
     RawMapping,
     Positive,
@@ -290,12 +290,13 @@ class QBinDiff(Differ):
     def register_feature_extractor(
         self,
         extractorClass: type[FeatureExtractor],
-        weight: Positive = 1.0,
+        weight: Optional[Positive] = 1.0,
+        distance: Optional[str] = None,
         **extra_args
     ):
         """Register a feature extractor class"""
         extractor = extractorClass(weight, **extra_args)
-        self._feature_pass.register_extractor(extractor)
+        self._feature_pass.register_extractor(extractor, distance=distance)
 
     def match_import_functions(
         self,

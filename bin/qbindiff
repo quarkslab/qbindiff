@@ -72,7 +72,7 @@ help_loaders = (
 help_features = """\b
 The following features are available:
 {}
-Features may be weighted by a positive value such as <feature>:<weight> [default: 1.0]
+Features may be weighted by a positive value (default 1.0) and compared with a specificdistance (by default the option -d is used) like this <feature>:<weight>:<distance>
 [default: {}]""".format(
     "\n".join("  - {}: {}".format(x.key, x.__doc__) for x in FEATURES), DEFAULT_FEATURES
 )
@@ -270,12 +270,15 @@ def main(
 
     for feature in set(features):
         weight = 1.0
+        distance = None
         if ":" in feature:
-            feature, weight = feature.split(":")
+            feature, weight, distance = feature.split(":")
         if feature not in FEATURES_KEYS:
             logging.warning(f"Feature '{feature}' not recognized - ignored.")
             continue
-        qbindiff.register_feature_extractor(FEATURES_KEYS[feature], float(weight))
+        qbindiff.register_feature_extractor(
+            FEATURES_KEYS[feature], float(weight), distance=distance
+        )
 
     logging.info("[+] Initializing NAP")
     qbindiff.process()
