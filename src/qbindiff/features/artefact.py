@@ -65,7 +65,7 @@ class FuncName(FunctionFeatureExtractor):
         super(FuncName, self).__init__(*args, **kwargs)
 
         if excluded_prefix is None:
-            self._excluded_prefix = ("sub_", "SUB_")
+            self._excluded_prefix = ("sub_", "SUB_", "fun_", "_FUN")
         else:
             self._excluded_prefix = excluded_prefix
 
