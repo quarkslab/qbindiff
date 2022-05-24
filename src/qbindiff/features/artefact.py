@@ -38,7 +38,7 @@ class DatName(InstructionFeatureExtractor):
 
 
 class Constant(InstructionFeatureExtractor):
-    """Constant (32/64bits) in the instruction (not addresses)"""
+    """Numeric constant (32/64bits) in the instruction (not addresses)"""
 
     key = "cst"
 
