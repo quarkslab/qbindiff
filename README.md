@@ -27,30 +27,31 @@ The complete command line options are:
     Options:
       -l, --loader <loader>         Loader type to be used. Must be one of these ['binexport', 'qbinexport']. [default: binexport]
       -f, --features <feature>      The following features are available:
-                                      - fname: Match the function names
-                                      - dat: References to data in the instruction
-                                      - Gdi: Diamater of the function flow graph
-                                      - Gt: Transitivity of the function flow graph
+                                      - bnb: Number of basic blocks in the function
+                                      - meanins: Mean number of instructions per basic blocks in the function
                                       - Gmd: Mean degree of the function
                                       - Gd: Density of the function flow graph
-                                      - meanins: Mean number of instructions per basic blocks in the function
-                                      - Gp: Group of the instruction (FPU, SSE, stack..)
-                                      - M: Mnemonic of instructions feature
-                                      - rnb: Number of relatives of the function
-                                      - cnb: Number of children of the function
-                                      - cst: Constant (32/64bits) in the instruction (not addresses)
-                                      - Gcom: Number of graph communities (Louvain modularity)
-                                      - addr: Address of the function as a feature
                                       - Gnc: Number of components in the function (non-connected flow graphs)
-                                      - Mt: Mnemonic and type of operand feature
-                                      - bnb: Number of basic blocks in the function
-                                      - lib: Call to library functions (local function)
-                                      - wlgk: Weisfeiler-Lehman Graph Kernel
+                                      - Gdi: Diamater of the function flow graph
+                                      - Gt: Transitivity of the function flow graph
+                                      - Gcom: Number of graph communities (Louvain modularity)
+                                      - cnb: Number of children of the function
                                       - pnb: Number of parents of the function
-                                    [default: ('Mt', 'cst', 'M', 'dat', 'Gdi', 'bnb', 'addr', 'Gnc', 'Gt', 'Gmd', 'lib', 'Gd', 'rnb', 'meanins', 'pnb', 'cnb', 'Gp')]
+                                      - rnb: Number of relatives of the function
+                                      - lib: Call to library functions (local function)
+                                      - dat: References to data in the instruction
+                                      - wlgk: Weisfeiler-Lehman Graph Kernel
+                                      - fname: Match the function names
+                                      - M: Mnemonic of instructions feature
+                                      - Mt: Mnemonic and type of operand feature
+                                      - Gp: Group of the instruction (FPU, SSE, stack..)
+                                      - addr: Address of the function as a feature
+                                      - dat: References to data in the instruction
+                                      - cst: Numeric constant (32/64bits) in the instruction (not addresses)
+                                    Features may be weighted by a positive value (default 1.0) and compared with a specificdistance (by default the option -d is used) like this <feature>:<weight>:<distance>
+                                    [default: ('bnb', 'meanins', 'Gmd', 'Gd', 'Gnc', 'Gdi', 'Gt', 'cnb', 'pnb', 'rnb', 'lib', 'dat', 'M', 'Mt', 'Gp', 'addr', 'dat', 'cst')]
       -n, --normalize               Normalize the Call Graph (can potentially lead to a partial matching). [default disabled]
       -d, --distance <function>     The following distances are available ('canberra', 'correlation', 'cosine', 'euclidean')
-                                    Features may be weighted by a positive value such as <feature>:<weight> [default: 1.0]
                                     [default: canberra]
       -s, --sparsity-ratio FLOAT    Ratio of least probable matches to ignore. Between 0.0 to 1.0 [default: 0.75]
       -t, --tradeoff FLOAT          Tradeoff between function content (near 1.0) and call-graph information (near 0.0) [default: 0.75]
@@ -60,6 +61,7 @@ The complete command line options are:
       -e2, --executable2 PATH       Path to the secondary raw executable. Must be provided if using qbinexport loader
       -o, --output PATH             Write output to PATH
       -ff, --file-format [bindiff]  The file format of the output file. Supported formats are [bindiff]. [default: bindiff]
+      --enable-cortexm              Enable the usage of the cortex-m extension when disassembling
       -v, --verbose                 Activate debugging messages
       -h, --help                    Show this message and exit.
 
@@ -79,7 +81,7 @@ p1 = Program(Path("primary.BinExport"))
 p2 = Program(Path("secondary.BinExport"))
 
 differ = QBinDiff(p1, p2)
-differ.register_feature(WeisfeilerLehman)
+differ.register_feature_extractor(WeisfeilerLehman, 1.0, distance='cosine')
 
 differ.process()
 
