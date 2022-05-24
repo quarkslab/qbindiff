@@ -1,6 +1,7 @@
+import re
 from collections import defaultdict
 from capstone import CS_GRP_JUMP
-from typing import Optional, Any
+from typing import Optional, Any, Pattern
 
 from qbindiff.features.extractor import (
     FeatureCollector,
@@ -59,20 +60,22 @@ class FuncName(FunctionFeatureExtractor):
     key = "fname"
 
     def __init__(
-        self, *args: Any, excluded_prefix: Optional[tuple[str]] = None, **kwargs: Any
+        self, *args: Any, excluded_regex: Optional[Pattern[str]] = None, **kwargs: Any
     ):
-        """Optionally specify a set of excluded prefix when matching the names"""
+        """Optionally specify a regular expression pattern to exclude function names"""
         super(FuncName, self).__init__(*args, **kwargs)
 
-        if excluded_prefix is None:
-            self._excluded_prefix = ("sub_", "SUB_", "fun_", "FUN_")
+        if excluded_regex is None:
+            self._excluded_regex = re.compile(
+                r"^(sub|fun)_[0-9a-f]{1,8}$", re.IGNORECASE
+            )
         else:
-            self._excluded_prefix = excluded_prefix
+            self._excluded_regex = excluded_regex
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
         name_len = len(function.name)
-        if any(function.name.startswith(prefix) for prefix in self._excluded_prefix):
+        if self._excluded_regex.match(function.name):
             return
         collector.add_dict_feature(self.key, {function.name: 1})
