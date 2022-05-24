@@ -525,8 +525,12 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
     @property
     @cache
     def data_references(self) -> list[Data]:
-        """Returns the list of data that are referenced by the instruction"""
-        return []  # Not implemented. TODO: look at self.data_refs
+        """
+        Returns the list of data that are referenced by the instruction.
+        BinExport only exports data references' address so no data type nor value.
+        """
+
+        return [Data(DataType.UNKNOWN, addr, None) for addr in self.data_refs]
 
     @property
     @cache
