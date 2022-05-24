@@ -9,6 +9,7 @@ from qbindiff.features.extractor import (
     OperandFeatureExtractor,
 )
 from qbindiff.loader import Program, Function, Instruction, Operand
+from qbindiff.types import DataType
 
 
 class Address(FunctionFeatureExtractor):
@@ -31,10 +32,9 @@ class DatName(InstructionFeatureExtractor):
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        value = defaultdict(int)
-        for addr in instruction.data_references:
-            value[addr] += 1
-        collector.add_dict_feature(self.key, value)
+        for data in instruction.data_references:
+            if data.type != DataType.UNKNOWN and data.value is not None:
+                collector.add_dict_feature(self.key, {data.value: 1})
 
 
 class Constant(InstructionFeatureExtractor):

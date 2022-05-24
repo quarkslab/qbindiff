@@ -11,7 +11,7 @@ from qbindiff.loader.backend import (
     AbstractOperandBackend,
 )
 from qbindiff.loader.backend.binexport2_pb2 import BinExport2
-from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
+from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Data
 from qbindiff.loader.types import LoaderType, FunctionType, OperandType
 from qbindiff.types import Addr
 
@@ -524,9 +524,9 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
 
     @property
     @cache
-    def data_references(self) -> set[Addr]:
-        """Returns the collections of addresses that are accessed by the instruction"""
-        return set(self.data_refs)
+    def data_references(self) -> list[Data]:
+        """Returns the list of data that are referenced by the instruction"""
+        return []  # Not implemented. TODO: look at self.data_refs
 
     @property
     @cache

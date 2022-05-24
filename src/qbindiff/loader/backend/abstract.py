@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
 from typing import Any
 
-from qbindiff.loader import Operand
+from qbindiff.loader import Operand, Data
 from qbindiff.loader.types import FunctionType
 from qbindiff.types import Addr
 
@@ -61,8 +61,8 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def data_references(self) -> set[Addr]:
-        """Returns the collections of addresses that are accessed by the instruction"""
+    def data_references(self) -> list[Data]:
+        """Returns the list of data that are referenced by the instruction"""
         raise NotImplementedError()
 
     @property

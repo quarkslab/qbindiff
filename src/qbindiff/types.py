@@ -1,6 +1,7 @@
-from typing import Union, Tuple, List, Any, Iterable
+from typing import Any, Iterable
 
 import numpy
+import enum
 from pathlib import Path
 from scipy.sparse import csr_matrix
 from collections import namedtuple
@@ -35,12 +36,12 @@ Item = Any
 """
 Pair of lists of user defined index correspondences. Default None.
 """
-Anchors = List[Tuple[Item, Item]]
+Anchors = list[tuple[Item, Item]]
 
 """
 Pair of lists of indexes that are mapped together.
 """
-RawMapping = Tuple[List[Idx], List[Idx]]
+RawMapping = tuple[list[Idx], list[Idx]]
 
 """
 Match represent the matching between two functions and can hold the similarity between the two
@@ -51,7 +52,7 @@ Match = namedtuple("Match", "primary secondary similarity squares")
 """
 An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
 """
-ExtendedMapping = Iterable[Tuple[Item, Item, float, int]]
+ExtendedMapping = Iterable[tuple[Item, Item, float, int]]
 
 """
 Numpy data type
@@ -91,9 +92,21 @@ SparseMatrix = csr_matrix
 """
 Path
 """
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 """
 A generic Graph, iterable over the nodes
 """
 Graph = GenericGraph
+
+
+class DataType(enum.Enum):
+    UNKNOWN = enum.auto()
+    BYTE = enum.auto()
+    WORD = enum.auto()
+    DOUBLE_WORD = enum.auto()
+    QUAD_WORD = enum.auto()
+    OCTO_WORD = enum.auto()
+    FLOAT = enum.auto()
+    DOUBLE = enum.auto()
+    ASCII = enum.auto()
