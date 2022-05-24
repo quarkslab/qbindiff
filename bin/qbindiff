@@ -272,7 +272,17 @@ def main(
         weight = 1.0
         distance = None
         if ":" in feature:
-            feature, weight, distance = feature.split(":")
+            feature, *opts = feature.split(":")
+            if len(opts) == 2:
+                weight, distance = opts
+            elif len(opts) == 1:
+                try:
+                    weight = float(opts[0])
+                except ValueError:
+                    distance = opts[0]
+            else:
+                logging.error(f"Malformed feature {feature}")
+                continue
         if feature not in FEATURES_KEYS:
             logging.warning(f"Feature '{feature}' not recognized - ignored.")
             continue
