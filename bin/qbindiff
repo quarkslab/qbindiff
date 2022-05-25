@@ -72,12 +72,12 @@ help_loaders = (
 help_features = """\b
 The following features are available:
 {}
+Features may be weighted by a positive value (default 1.0) and compared with a specificdistance (by default the option -d is used) like this <feature>:<weight>:<distance>
 [default: {}]""".format(
     "\n".join("  - {}: {}".format(x.key, x.__doc__) for x in FEATURES), DEFAULT_FEATURES
 )
 help_distance = f"""\b
 The following distances are available {DISTANCES}
-Features may be weighted by a positive value such as <feature>:<weight> [default: 1.0]
 [default: {DISTANCES[0]}]"""
 
 
@@ -172,6 +172,11 @@ Features may be weighted by a positive value such as <feature>:<weight> [default
     type=click.Choice(["bindiff"]),
     help=help_formats,
 )
+@click.option(
+    "--enable-cortexm",
+    is_flag=True,
+    help="Enable the usage of the cortex-m extension when disassembling",
+)
 @click.option("-v", "--verbose", count=True, help="Activate debugging messages")
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
@@ -188,6 +193,7 @@ def main(
     exec_secondary,
     output,
     file_format,
+    enable_cortexm,
     verbose,
     primary,
     secondary,
@@ -243,9 +249,9 @@ def main(
         secondary = Program(secondary, loader, exec_secondary)
     else:
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(primary, loader)
+        primary = Program(primary, loader, enable_cortexm=enable_cortexm)
         logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(secondary, loader)
+        secondary = Program(secondary, loader, enable_cortexm=enable_cortexm)
 
     qbindiff = QBinDiff(
         primary,
@@ -264,12 +270,25 @@ def main(
 
     for feature in set(features):
         weight = 1.0
+        distance = None
         if ":" in feature:
-            feature, weight = feature.split(":")
+            feature, *opts = feature.split(":")
+            if len(opts) == 2:
+                weight, distance = opts
+            elif len(opts) == 1:
+                try:
+                    weight = float(opts[0])
+                except ValueError:
+                    distance = opts[0]
+            else:
+                logging.error(f"Malformed feature {feature}")
+                continue
         if feature not in FEATURES_KEYS:
             logging.warning(f"Feature '{feature}' not recognized - ignored.")
             continue
-        qbindiff.register_feature_extractor(FEATURES_KEYS[feature], float(weight))
+        qbindiff.register_feature_extractor(
+            FEATURES_KEYS[feature], float(weight), distance=distance
+        )
 
     logging.info("[+] Initializing NAP")
     qbindiff.process()

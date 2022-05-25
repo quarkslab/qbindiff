@@ -1,8 +1,11 @@
+from capstone import CS_OP_IMM
 from typing import Any
 
 from qbindiff.loader.types import LoaderType
 
-capstoneValue = Any  # Don't import the whole capstone module just for the typing
+# Capstone typing
+capstoneOperand = Any
+capstoneValue = Any
 
 
 class Operand:
@@ -49,6 +52,11 @@ class Operand:
         self._backend = OperandBackendQBinExport(*args, **kwargs)
 
     @property
+    def capstone(self) -> capstoneOperand:
+        """Returns the latent capstone operand object"""
+        return self._backend.capstone
+
+    @property
     def type(self) -> int:
         """
         Returns the capstone operand type
@@ -60,6 +68,9 @@ class Operand:
     def value(self) -> capstoneValue:
         """Returns the capstone operand value"""
         return self._backend.value
+
+    def is_immutable(self):
+        return self.capstone.type == CS_OP_IMM
 
     def __str__(self):
         return str(self._backend)

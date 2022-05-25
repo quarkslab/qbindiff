@@ -3,11 +3,13 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
 from typing import Any
 
-from qbindiff.loader import Operand
+from qbindiff.loader import Operand, Data
 from qbindiff.loader.types import FunctionType
 from qbindiff.types import Addr
 
-capstoneValue = Any  # Don't import the whole capstone module just for the typing
+# Don't import the whole capstone module just for the typing
+capstoneOperand = Any
+capstoneValue = Any
 
 
 class AbstractOperandBackend(metaclass=ABCMeta):
@@ -18,6 +20,12 @@ class AbstractOperandBackend(metaclass=ABCMeta):
 
     @abstractmethod
     def __str__(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def capstone(self) -> capstoneOperand:
+        """Returns the capstone operand object"""
         raise NotImplementedError()
 
     @property
@@ -53,8 +61,8 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def data_references(self) -> set[Addr]:
-        """Returns the collections of addresses that are accessed by the instruction"""
+    def data_references(self) -> list[Data]:
+        """Returns the list of data that are referenced by the instruction"""
         raise NotImplementedError()
 
     @property

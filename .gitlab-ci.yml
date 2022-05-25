@@ -33,6 +33,9 @@ before_script:
   - "git clone https://github.com/src-d/lapjv"
   - "sed -ie 's/march=native/mavx2/g' lapjv/setup.py"
   - "cd lapjv && python setup.py install && cd .."
+  
+  # Install extra dependencies
+  - pip install 'protobuf>=3,<4'
 
   # Build qbindiff
   - pip install .

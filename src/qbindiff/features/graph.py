@@ -1,7 +1,6 @@
 import networkx
 from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function
-import community
 
 
 class BBlockNb(FunctionFeatureExtractor):
@@ -179,6 +178,8 @@ class GraphCommunities(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
+        import community
+
         partition = community.best_partition(function.flowgraph.to_undirected())
         if len(function) > 1:
             value = max(x for x in partition.values() if x != function.addr)

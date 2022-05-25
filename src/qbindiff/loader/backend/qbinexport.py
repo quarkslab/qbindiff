@@ -2,7 +2,7 @@ import qbinexport, networkx
 from functools import cache
 from typing import Any
 
-from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
+from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Data
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
     AbstractFunctionBackend,
@@ -11,7 +11,7 @@ from qbindiff.loader.backend import (
     AbstractOperandBackend,
 )
 from qbindiff.loader.types import FunctionType, LoaderType
-from qbindiff.types import Addr
+from qbindiff.types import Addr, DataType
 
 
 # Aliases
@@ -35,6 +35,11 @@ class OperandBackendQBinExport(AbstractOperandBackend):
 
     def __str__(self) -> str:
         return self._str
+
+    @property
+    def capstone(self) -> capstoneOperand:
+        """Returns the capstone operand object"""
+        return self.cs_operand
 
     @property
     def type(self) -> int:
@@ -69,15 +74,33 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
 
     @property
     @cache
-    def data_references(self) -> set[Addr]:
-        """Returns the collections of addresses that are accessed by the instruction"""
+    def data_references(self) -> list[Data]:
+        """Returns the list of data that are referenced by the instruction"""
 
-        ref = set()
+        ref = []
         for r in self.qb_instr.data_references:
-            try:
-                ref.add(r.address)
-            except AttributeError:  # Not all the references have the field address
-                pass
+            if isinstance(r, qbinexport.data.Data):
+                if r.type == qbinexport.types.DataType.ASCII:
+                    data_type = DataType.ASCII
+                elif r.type == qbinexport.types.DataType.BYTE:
+                    data_type = DataType.BYTE
+                elif r.type == qbinexport.types.DataType.WORD:
+                    data_type = DataType.WORD
+                elif r.type == qbinexport.types.DataType.DOUBLE_WORD:
+                    data_type = DataType.DOUBLE_WORD
+                elif r.type == qbinexport.types.DataType.QUAD_WORD:
+                    data_type = DataType.QUAD_WORD
+                elif r.type == qbinexport.types.DataType.OCTO_WORD:
+                    data_type = DataType.OCTO_WORD
+                elif r.type == qbinexport.types.DataType.FLOAT:
+                    data_type = DataType.FLOAT
+                elif r.type == qbinexport.types.DataType.DOUBLE:
+                    data_type = DataType.DOUBLE
+                else:
+                    data_type = DataType.UNKNOWN
+                ref.append(Data(data_type, r.address, r.value))
+            else:
+                pass  # TODO understand what it is
         return ref
 
     @property

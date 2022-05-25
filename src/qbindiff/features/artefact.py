@@ -1,5 +1,7 @@
+import re
 from collections import defaultdict
-from typing import Optional, Any
+from capstone import CS_GRP_JUMP
+from typing import Optional, Any, Pattern
 
 from qbindiff.features.extractor import (
     FeatureCollector,
@@ -8,6 +10,7 @@ from qbindiff.features.extractor import (
     OperandFeatureExtractor,
 )
 from qbindiff.loader import Program, Function, Instruction, Operand
+from qbindiff.types import DataType
 
 
 class Address(FunctionFeatureExtractor):
@@ -30,22 +33,25 @@ class DatName(InstructionFeatureExtractor):
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        value = defaultdict(int)
-        for addr in instruction.data_references:
-            value[addr] += 1
-        collector.add_dict_feature(self.key, value)
+        for data in instruction.data_references:
+            if data.type != DataType.UNKNOWN and data.value is not None:
+                collector.add_dict_feature(self.key, {data.value: 1})
 
 
-class Constant(OperandFeatureExtractor):
-    """Constant (32/64bits) in the instruction (not addresses)"""
+class Constant(InstructionFeatureExtractor):
+    """Numeric constant (32/64bits) in the instruction (not addresses)"""
 
     key = "cst"
 
-    def visit_operand(
-        self, program: Program, operand: Operand, collector: FeatureCollector
+    def visit_instruction(
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        if operand.type == 2:  # capstone.x86.X86_OP_IMM
-            collector.add_dict_feature(self.key, {operand.value.imm: 1})
+        # Ignore jumps since the target is an immutable
+        if instruction.capstone.group(CS_GRP_JUMP):
+            return
+        for operand in instruction.operands:
+            if operand.is_immutable():
+                collector.add_dict_feature(self.key, {operand.capstone.value.imm: 1})
 
 
 class FuncName(FunctionFeatureExtractor):
@@ -54,20 +60,26 @@ class FuncName(FunctionFeatureExtractor):
     key = "fname"
 
     def __init__(
-        self, *args: Any, excluded_prefix: Optional[tuple[str]] = None, **kwargs: Any
+        self, *args: Any, excluded_regex: Optional[Pattern[str]] = None, **kwargs: Any
     ):
-        """Optionally specify a set of excluded prefix when matching the names"""
+        """Optionally specify a regular expression pattern to exclude function names"""
         super(FuncName, self).__init__(*args, **kwargs)
 
-        if excluded_prefix is None:
-            self._excluded_prefix = ("sub_", "SUB_")
+        self._excluded_regex = excluded_regex
+
+    def is_excluded(self, function: Function) -> bool:
+        if self._excluded_regex is None:
+            return bool(
+                re.match(
+                    rf"^(sub|fun)_0*{function.addr:x}$", function.name, re.IGNORECASE
+                )
+            )
         else:
-            self._excluded_prefix = excluded_prefix
+            return bool(self._excluded_regex.match(function.name))
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        name_len = len(function.name)
-        if any(function.name.startswith(prefix) for prefix in self._excluded_prefix):
+        if self.is_excluded(function):
             return
         collector.add_dict_feature(self.key, {function.name: 1})
