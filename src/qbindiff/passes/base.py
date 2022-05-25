@@ -198,14 +198,31 @@ class FeaturePass(GenericPass):
         :param fill: if True the whole matrix will be erased before writing in it
         """
 
-        # fill the matrix with zeros
+        # fill the matrix with -1 (not-set value)
         if fill:
-            sim_matrix[:] = 0
+            sim_matrix[:] = -1
+
+        reverse_primary_mapping = {idx: l for l, idx in primary_mapping.items()}
+        reverse_secondary_mapping = {idx: l for l, idx in secondary_mapping.items()}
+
+        # Do not extract features on functions that already have a similarity score
+        ignore_primary = set()
+        ignore_secondary = set()
+        for i in range(sim_matrix.shape[0]):
+            if -1 not in sim_matrix[i]:
+                ignore_primary.add(reverse_primary_mapping[i])
+        for j in range(sim_matrix.shape[1]):
+            if -1 not in sim_matrix[:, j]:
+                ignore_secondary.add(reverse_secondary_mapping[j])
 
         # Extract the features
-        key_fun = lambda *args: args[0][0]  # ((label, node) iteration)
+        primary.set_function_filter(lambda label: label not in ignore_primary)
+        secondary.set_function_filter(lambda label: label not in ignore_secondary)
+        key_fun = lambda *args: args[0][0]  # ((label, node), iteration)
         primary_features = self._visitor.visit(primary, key_fun=key_fun)
         secondary_features = self._visitor.visit(secondary, key_fun=key_fun)
+        primary.set_function_filter(lambda _: True)
+        secondary.set_function_filter(lambda _: True)
 
         # Get the weights of each feature
         f_weights = {}

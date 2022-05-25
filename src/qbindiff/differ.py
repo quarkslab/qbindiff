@@ -53,7 +53,8 @@ class Differ:
 
         self.primary = primary
         self.secondary = secondary
-        self._passes = []
+        self._pre_passes = []
+        self._post_passes = []
         self._already_processed = False  # Flag to perfom the processing only once
 
         if normalize:
@@ -75,8 +76,9 @@ class Differ:
         self.primary_dim = len(self.primary_i2n)
         self.secondary_dim = len(self.secondary_i2n)
 
-        self.sim_matrix = np.zeros(
-            (self.primary_dim, self.secondary_dim), dtype=Differ.DTYPE
+        # Similarity matrix filled with -1 (unknown value)
+        self.sim_matrix = np.full(
+            (self.primary_dim, self.secondary_dim), -1, dtype=Differ.DTYPE
         )
         self.mapping = None
 
@@ -144,13 +146,21 @@ class Differ:
 
         return (matrix, map_i2l, map_l2i)
 
-    def register_pass(self, pass_func: Callable, **extra_args):
+    def register_prepass(self, pass_func: Callable, **extra_args):
         """
-        Register a new pass that will operate on the similarity matrix.
+        Register a new pre-pass that will operate on the similarity matrix.
         The passes will be called in the same order as they are registered and each one
         of them will operate on the output of the previous one.
         """
-        self._passes.append((pass_func, extra_args))
+        self._pre_passes.append((pass_func, extra_args))
+
+    def register_postpass(self, pass_func: Callable, **extra_args):
+        """
+        Register a new post-pass that will operate on the similarity matrix.
+        The passes will be called in the same order as they are registered and each one
+        of them will operate on the output of the previous one.
+        """
+        self._post_passes.append((pass_func, extra_args))
 
     def normalize(self, graph: Graph) -> Graph:
         """
@@ -162,7 +172,16 @@ class Differ:
     def run_passes(self) -> None:
         """Run all the passes that have been previously registered"""
 
-        for pass_func, extra_args in self._passes:
+        for pass_func, extra_args in self._pre_passes:
+            pass_func(
+                self.sim_matrix,
+                self.primary,
+                self.secondary,
+                self.primary_n2i,
+                self.secondary_n2i,
+                **extra_args
+            )
+        for pass_func, extra_args in self._post_passes:
             pass_func(
                 self.sim_matrix,
                 self.primary,
@@ -255,7 +274,7 @@ class DiGraphDiffer(Differ):
             self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs
         )
 
-        self.register_pass(self.gen_sim_matrix)
+        self.register_prepass(self.gen_sim_matrix)
 
     def gen_sim_matrix(self, sim_matrix: SimMatrix, *args, **kwargs):
         sim_matrix[:] = 1
@@ -284,8 +303,8 @@ class QBinDiff(Differ):
 
         # Register the feature extraction pass
         self._feature_pass = FeaturePass(distance)
-        self.register_pass(self._feature_pass)
-        self.register_pass(self.match_import_functions)
+        self.register_postpass(self._feature_pass)
+        self.register_prepass(self.match_import_functions)
 
     def register_feature_extractor(
         self,

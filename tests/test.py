@@ -136,7 +136,7 @@ class GraphSimTest(unittest.TestCase):
         )
 
         # Provide custom similarity matrix
-        differ.register_pass(load_sim_matrix(self.path(unit.similarity)))
+        differ.register_prepass(load_sim_matrix(self.path(unit.similarity)))
 
         mapping = differ.compute_matching()
         output = {(match.primary, match.secondary) for match in mapping}
