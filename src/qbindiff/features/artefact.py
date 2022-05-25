@@ -65,17 +65,21 @@ class FuncName(FunctionFeatureExtractor):
         """Optionally specify a regular expression pattern to exclude function names"""
         super(FuncName, self).__init__(*args, **kwargs)
 
-        if excluded_regex is None:
-            self._excluded_regex = re.compile(
-                r"^(sub|fun)_[0-9a-f]{1,8}$", re.IGNORECASE
+        self._excluded_regex = excluded_regex
+
+    def is_excluded(self, function: Function) -> bool:
+        if self._excluded_regex is None:
+            return bool(
+                re.match(
+                    rf"^(sub|fun)_0*{function.addr:x}$", function.name, re.IGNORECASE
+                )
             )
         else:
-            self._excluded_regex = excluded_regex
+            return bool(self._excluded_regex.match(function.name))
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        name_len = len(function.name)
-        if self._excluded_regex.match(function.name):
+        if self.is_excluded(function):
             return
         collector.add_dict_feature(self.key, {function.name: 1})
