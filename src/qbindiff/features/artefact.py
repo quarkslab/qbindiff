@@ -26,7 +26,7 @@ class Address(FunctionFeatureExtractor):
 
 
 class DatName(InstructionFeatureExtractor):
-    """References to data in the instruction"""
+    """References to data in the instruction. It's a superset of strref"""
 
     key = "dat"
 
@@ -35,6 +35,19 @@ class DatName(InstructionFeatureExtractor):
     ) -> None:
         for data in instruction.data_references:
             if data.type != DataType.UNKNOWN and data.value is not None:
+                collector.add_dict_feature(self.key, {data.value: 1})
+
+
+class StrRef(InstructionFeatureExtractor):
+    """References to strings in the instruction"""
+
+    key = "strref"
+
+    def visit_instruction(
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
+        for data in instruction.data_references:
+            if data.type == DataType.ASCII:
                 collector.add_dict_feature(self.key, {data.value: 1})
 
 
