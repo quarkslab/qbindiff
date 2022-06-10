@@ -9,8 +9,16 @@ from qbindiff.features.extractor import (
     InstructionFeatureExtractor,
     OperandFeatureExtractor,
 )
-from qbindiff.loader import Program, Function, Instruction, Operand
-from qbindiff.types import DataType
+from qbindiff.loader.types import DataType, ReferenceType
+from qbindiff.loader import (
+    Program,
+    Function,
+    Instruction,
+    Operand,
+    Data,
+    Structure,
+    StructureMember,
+)
 
 
 class Address(FunctionFeatureExtractor):
@@ -26,15 +34,51 @@ class Address(FunctionFeatureExtractor):
 
 
 class DatName(InstructionFeatureExtractor):
-    """References to data in the instruction"""
+    """References to data in the instruction. It's a superset of strref"""
 
     key = "dat"
 
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
+        for ref_type, references in instruction.references.items():
+            for reference in references:
+                if (
+                    ref_type == ReferenceType.DATA
+                    and reference.type != DataType.UNKNOWN
+                    and reference.value is not None
+                ):
+                    assert isinstance(
+                        reference, Data
+                    ), "DATA reference not referencing Data"
+                    collector.add_dict_feature(self.key, {reference.value: 1})
+
+                elif ref_type == ReferenceType.STRUC:
+                    assert isinstance(
+                        reference, Structure | StructureMember
+                    ), "STRUC reference not referencing Structure nor StructureMember"
+                    if isinstance(reference, Structure):
+                        collector.add_dict_feature(self.key, {reference.name: 1})
+                    elif isinstance(reference, StructureMember):
+                        collector.add_dict_feature(
+                            self.key,
+                            {reference.structure.name + "." + reference.name: 1},
+                        )
+
+                else:  # Enum, calls
+                    pass
+
+
+class StrRef(InstructionFeatureExtractor):
+    """References to strings in the instruction"""
+
+    key = "strref"
+
+    def visit_instruction(
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
         for data in instruction.data_references:
-            if data.type != DataType.UNKNOWN and data.value is not None:
+            if data.type == DataType.ASCII:
                 collector.add_dict_feature(self.key, {data.value: 1})
 
 

@@ -3,8 +3,8 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
 from typing import Any
 
-from qbindiff.loader import Operand, Data
-from qbindiff.loader.types import FunctionType
+from qbindiff.loader import Operand, Data, Structure
+from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 
 # Don't import the whole capstone module just for the typing
@@ -61,8 +61,8 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def data_references(self) -> list[Data]:
-        """Returns the list of data that are referenced by the instruction"""
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
+        """Returns all the references towards the instruction"""
         raise NotImplementedError()
 
     @property
@@ -169,6 +169,12 @@ class AbstractProgramBackend(metaclass=ABCMeta):
     @abstractmethod
     def name(self) -> str:
         """The name of the program"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def structures(self) -> list[Structure]:
+        """Returns the list of structures defined in program"""
         raise NotImplementedError()
 
     @property

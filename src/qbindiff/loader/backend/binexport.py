@@ -11,8 +11,22 @@ from qbindiff.loader.backend import (
     AbstractOperandBackend,
 )
 from qbindiff.loader.backend.binexport2_pb2 import BinExport2
-from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Data
-from qbindiff.loader.types import LoaderType, FunctionType, OperandType
+from qbindiff.loader import (
+    Program,
+    Function,
+    BasicBlock,
+    Instruction,
+    Operand,
+    Data,
+    Structure,
+)
+from qbindiff.loader.types import (
+    LoaderType,
+    FunctionType,
+    OperandType,
+    ReferenceType,
+    ReferenceTarget,
+)
 from qbindiff.types import Addr
 
 # Don't import the whole capstone module just for the typing
@@ -201,6 +215,15 @@ class ProgramBackendBinExport(AbstractProgramBackend):
     @property
     def name(self):
         return self.proto.meta_information.executable_name
+
+    @property
+    def structures(self) -> list[Structure]:
+        """
+        Returns the list of structures defined in program.
+        WARNING: Not supported by BinExport
+        """
+
+        return []  # Not supported
 
     @property
     def architecture(self):
@@ -524,13 +547,16 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
 
     @property
     @cache
-    def data_references(self) -> list[Data]:
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
         """
-        Returns the list of data that are referenced by the instruction.
+        Returns all the references towards the instruction
         BinExport only exports data references' address so no data type nor value.
         """
-
-        return [Data(DataType.UNKNOWN, addr, None) for addr in self.data_refs]
+        return {
+            ReferenceType.DATA: [
+                Data(DataType.UNKNOWN, addr, None) for addr in self.data_refs
+            ]
+        }
 
     @property
     @cache

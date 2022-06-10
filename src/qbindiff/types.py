@@ -98,15 +98,3 @@ PathLike = str | Path
 A generic Graph, iterable over the nodes
 """
 Graph = GenericGraph
-
-
-class DataType(enum.Enum):
-    UNKNOWN = enum.auto()
-    BYTE = enum.auto()
-    WORD = enum.auto()
-    DOUBLE_WORD = enum.auto()
-    QUAD_WORD = enum.auto()
-    OCTO_WORD = enum.auto()
-    FLOAT = enum.auto()
-    DOUBLE = enum.auto()
-    ASCII = enum.auto()

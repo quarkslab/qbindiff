@@ -1,8 +1,13 @@
-import sqlite3, hashlib, datetime
+import sqlite3
+import hashlib
+import datetime
+from collections.abc import Generator
 from collections import defaultdict
+from functools import cache
 
-from qbindiff.loader import Program
+from qbindiff.loader import Program, Function, BasicBlock
 from qbindiff.mapping.mapping import Mapping
+from qbindiff.types import Addr
 
 
 class BinDiffFormat:
@@ -15,6 +20,7 @@ class BinDiffFormat:
         open(filename, "w").close()
 
         self.db = sqlite3.connect(filename)
+        self.db.row_factory = sqlite3.Row
         self.primary = primary
         self.secondary = secondary
         self.mapping = mapping
@@ -97,13 +103,13 @@ class BinDiffFormat:
         )
         conn.execute(
             """
-            CREATE TABLE basicblockalgorithm (id SMALLINT PRIMARY KEY, name TEXT)
+            CREATE TABLE basicblockalgorithm (id INTEGER PRIMARY KEY, name TEXT)
             """
         )
         conn.execute(
             """
             CREATE TABLE basicblock (
-                id INT,
+                id INTEGER,
                 functionid INT,
                 address1 BIGINT,
                 address2 BIGINT,
@@ -127,6 +133,91 @@ class BinDiffFormat:
         )
 
         self.db.commit()
+
+        conn.execute(
+            """
+            INSERT INTO basicblockalgorithm(name) VALUES ("basicBlock: edges prime product")
+            """
+        )
+
+        self.db.commit()
+
+    @property
+    @cache
+    def primes(self) -> list[int]:
+        """Generates the primes up to 1'000'000 using the segmented sieve algorithm"""
+        n = 1000000
+        S = 30000
+        nsqrt = round(n**0.5)
+
+        is_prime = [True] * (nsqrt + 1)
+        low_primes = []
+        start_indices = []
+        for i in range(3, nsqrt + 1, 2):
+            if is_prime[i]:
+                low_primes.append(i)
+                start_indices.append(i * i // 2)
+                for j in range(i * i, nsqrt + 1, 2 * i):
+                    is_prime[j] = False
+
+        primes = [2]
+        high = (n - 1) // 2
+        for low in range(0, high + 1, S):
+            block = [True] * S
+            for i in range(len(low_primes)):
+                p = low_primes[i]
+                idx = start_indices[i]
+                while idx < S:
+                    block[idx] = False
+                    idx += p
+                start_indices[i] = idx - S
+            if low == 0:
+                block[0] = False
+            i = 0
+            while i < S and low + i <= high:
+                if block[i]:
+                    primes.append((low + i) * 2 + 1)
+                i += 1
+
+        return primes
+
+    def _prime_product(self, basic_block: BasicBlock) -> int:
+        """Calculate the prime product value of the basic block"""
+        tot = 1
+        for instruction in basic_block:
+            tot *= self.primes[instruction.capstone.id]
+        return tot
+
+    def _basic_block_match(
+        self, primary_func: Function, secondary_func: Function
+    ) -> Generator[tuple[Addr, Addr]]:
+        """Matches the basic blocks between the two functions"""
+
+        primary_hash = defaultdict(list)  # {prime product -> addrs}
+        secondary_hash = defaultdict(list)  # {prime product -> addrs}
+        for bb_addr, basic_block in primary_func.items():
+            primary_hash[self._prime_product(basic_block)].append(bb_addr)
+        for bb_addr, basic_block in secondary_func.items():
+            secondary_hash[self._prime_product(basic_block)].append(bb_addr)
+
+        matches = primary_hash.keys() & secondary_hash.keys()
+        for h in matches:
+            yield from zip(primary_hash[h], secondary_hash[h])
+
+    def _instruction_match(
+        self, primary_bb: BasicBlock, secondary_bb: BasicBlock
+    ) -> Generator[tuple[Addr, Addr]]:
+        """Matches the instructions between the two basic blocks"""
+
+        primary_instr = defaultdict(list)
+        secondary_instr = defaultdict(list)
+        for instr in primary_bb:
+            primary_instr[bytes(instr.capstone.bytes)].append(instr.addr)
+        for instr in secondary_bb:
+            secondary_instr[bytes(instr.capstone.bytes)].append(instr.addr)
+        common = primary_instr.keys() & secondary_instr.keys()
+        for k in common:
+            yield from zip(primary_instr[k], secondary_instr[k])
 
     def save_file(self, program: Program) -> None:
         """Save the file `program` in database"""
@@ -200,25 +291,86 @@ class BinDiffFormat:
 
         idx = 1
         for match in self.mapping:
-            params = {}
-            params["id"] = idx
-            params["address1"] = match.primary.addr
-            params["address2"] = match.secondary.addr
-            params["name1"] = match.primary.name
-            params["name2"] = match.secondary.name
-            params["similarity"] = float(match.similarity)
-            params["confidence"] = 1
+            params = {
+                "id": idx,
+                "address1": match.primary.addr,
+                "address2": match.secondary.addr,
+                "name1": match.primary.name,
+                "name2": match.secondary.name,
+                "similarity": float(match.similarity),
+                "confidence": 1,
+            }
 
             conn.execute(
                 """
                 INSERT INTO function
-                    (id, address1, address2, name1, name2, similarity, confidence)
+                    (id, address1, address2, name1, name2, similarity, confidence, basicblocks)
                 VALUES
-                    (:id, :address1, :address2, :name1, :name2, :similarity, :confidence)
+                    (:id, :address1, :address2, :name1, :name2, :similarity, :confidence, 0)
                 """,
                 params,
             )
 
             idx += 1
+
+        self.db.commit()
+
+        # Basic Block & Instruction
+
+        for match in self.mapping:
+            same_bb_count = 0
+            bb_matches = self._basic_block_match(match.primary, match.secondary)
+            for addr1, addr2 in bb_matches:
+                same_bb_count += 1
+                params = {
+                    "function_address1": match.primary.addr,
+                    "function_address2": match.secondary.addr,
+                    "address1": addr1,
+                    "address2": addr2,
+                    "algorithm": "1",
+                }
+
+                conn.execute(
+                    """
+                    INSERT INTO basicblock
+                        (functionid, address1, address2, algorithm)
+                    VALUES
+                        ((SELECT id FROM function WHERE address1=:function_address1 AND address2=:function_address2), :address1, :address2, :algorithm)
+                    """,
+                    params,
+                )
+
+                basicblock_id = conn.lastrowid
+                for instr_addr1, instr_addr2 in self._instruction_match(
+                    match.primary[addr1], match.secondary[addr2]
+                ):
+                    params = {
+                        "address1": instr_addr1,
+                        "address2": instr_addr2,
+                        "basicblockid": basicblock_id,
+                    }
+                    conn.execute(
+                        """
+                        INSERT INTO instruction
+                            (basicblockid, address1, address2)
+                        VALUES
+                            (:basicblockid, :address1, :address2)
+                        """,
+                        params,
+                    )
+
+            # Set number of equal basic blocks
+            conn.execute(
+                """
+                UPDATE function
+                SET basicblocks = :basicblocks
+                WHERE id = (SELECT id FROM function WHERE address1=:function_address1 AND address2=:function_address2)
+                """,
+                {
+                    "basicblocks": same_bb_count,
+                    "function_address1": match.primary.addr,
+                    "function_address2": match.secondary.addr,
+                },
+            )
 
         self.db.commit()

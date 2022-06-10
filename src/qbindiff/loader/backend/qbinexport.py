@@ -2,7 +2,15 @@ import qbinexport, networkx
 from functools import cache
 from typing import Any
 
-from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Data
+from qbindiff.loader import (
+    Program,
+    Function,
+    BasicBlock,
+    Instruction,
+    Operand,
+    Data,
+    Structure,
+)
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
     AbstractFunctionBackend,
@@ -10,8 +18,15 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
-from qbindiff.loader.types import FunctionType, LoaderType
-from qbindiff.types import Addr, DataType
+from qbindiff.loader.types import (
+    FunctionType,
+    LoaderType,
+    DataType,
+    StructureType,
+    ReferenceType,
+    ReferenceTarget,
+)
+from qbindiff.types import Addr
 
 
 # Aliases
@@ -22,6 +37,65 @@ qbInstruction = qbinexport.instruction.Instruction
 qbOperand = qbinexport.instruction.Operand
 capstoneOperand = Any  # Don't import the whole capstone module just for the typing
 capstoneValue = Any  # Don't import the whole capstone module just for the typing
+
+
+# ===== General purpose utils functions =====
+
+
+def convert_data_type(qbe_data_type: qbinexport.types.DataType) -> DataType:
+    """Convert a qbinexport DataType to qbindiff DataType"""
+
+    if qbe_data_type == qbinexport.types.DataType.ASCII:
+        return DataType.ASCII
+    elif qbe_data_type == qbinexport.types.DataType.BYTE:
+        return DataType.BYTE
+    elif qbe_data_type == qbinexport.types.DataType.WORD:
+        return DataType.WORD
+    elif qbe_data_type == qbinexport.types.DataType.DOUBLE_WORD:
+        return DataType.DOUBLE_WORD
+    elif qbe_data_type == qbinexport.types.DataType.QUAD_WORD:
+        return DataType.QUAD_WORD
+    elif qbe_data_type == qbinexport.types.DataType.OCTO_WORD:
+        return DataType.OCTO_WORD
+    elif qbe_data_type == qbinexport.types.DataType.FLOAT:
+        return DataType.FLOAT
+    elif qbe_data_type == qbinexport.types.DataType.DOUBLE:
+        return DataType.DOUBLE
+    else:
+        return DataType.UNKNOWN
+
+
+def convert_struct_type(
+    qbe_struct_type: qbinexport.types.StructureType,
+) -> StructureType:
+    """Convert a qbinexport StructureType to qbindiff StructureType"""
+
+    if qbe_struct_type == qbinexport.types.StructureType.ENUM:
+        return StructureType.ENUM
+    elif qbe_struct_type == qbinexport.types.StructureType.STRUCT:
+        return StructureType.STRUCT
+    elif qbe_struct_type == qbinexport.types.StructureType.UNION:
+        return StructureType.UNION
+    else:
+        return StructureType.UNKNOWN
+
+
+def convert_ref_type(qbe_ref_type: qbinexport.types.ReferenceType) -> ReferenceType:
+    """Convert a qbinexport ReferenceType to qbindiff ReferenceType"""
+
+    if qbe_ref_type == qbinexport.types.ReferenceType.CALL:
+        return ReferenceType.CALL
+    elif qbe_ref_type == qbinexport.types.ReferenceType.DATA:
+        return ReferenceType.DATA
+    elif qbe_ref_type == qbinexport.types.ReferenceType.ENUM:
+        return ReferenceType.ENUM
+    elif qbe_ref_type == qbinexport.types.ReferenceType.STRUC:
+        return ReferenceType.STRUC
+    else:
+        return StructureType.UNKNOWN
+
+
+# ===========================================
 
 
 class OperandBackendQBinExport(AbstractOperandBackend):
@@ -55,12 +129,37 @@ class OperandBackendQBinExport(AbstractOperandBackend):
 class InstructionBackendQBinExport(AbstractInstructionBackend):
     """Backend loader of a Instruction using QBinExport"""
 
-    def __init__(self, qb_instruction: qbInstruction):
+    def __init__(self, qb_instruction: qbInstruction, structures: list[Structure]):
         super(InstructionBackendQBinExport, self).__init__()
 
         self.qb_instr = qb_instruction
         self.cs_instr = qb_instruction.cs_inst
+        # Hoping that there won't be two struct with the same name
+        self.structures = {struct.name: struct for struct in structures}
         self._operands = None
+
+    def _cast_references(
+        self, references: list[qbinexport.types.ReferenceTarget]
+    ) -> list[ReferenceTarget]:
+        """Cast the qbinexport references to qbindiff reference types"""
+
+        ret_ref = []
+        for ref in references:
+            match ref:
+                case qbinexport.data.Data():
+                    data_type = convert_data_type(ref.type)
+                    ret_ref.append(Data(data_type, ref.address, ref.value))
+                case qbinexport.structure.Structure(name=name):
+                    ret_ref.append(self.structures[name])
+                case qbinexport.structure.StructureMember(
+                    structure=qbe_struct, name=name
+                ):
+                    ret_ref.append(
+                        self.structures[qbe_struct.name].member_by_name(name)
+                    )
+                case qbinexport.Instruction():  # Not implemented for now
+                    logging.warning("Skipping instruction reference")
+        return ret_ref
 
     @property
     def addr(self) -> Addr:
@@ -74,33 +173,12 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
 
     @property
     @cache
-    def data_references(self) -> list[Data]:
-        """Returns the list of data that are referenced by the instruction"""
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
+        """Returns all the references towards the instruction"""
 
-        ref = []
-        for r in self.qb_instr.data_references:
-            if isinstance(r, qbinexport.data.Data):
-                if r.type == qbinexport.types.DataType.ASCII:
-                    data_type = DataType.ASCII
-                elif r.type == qbinexport.types.DataType.BYTE:
-                    data_type = DataType.BYTE
-                elif r.type == qbinexport.types.DataType.WORD:
-                    data_type = DataType.WORD
-                elif r.type == qbinexport.types.DataType.DOUBLE_WORD:
-                    data_type = DataType.DOUBLE_WORD
-                elif r.type == qbinexport.types.DataType.QUAD_WORD:
-                    data_type = DataType.QUAD_WORD
-                elif r.type == qbinexport.types.DataType.OCTO_WORD:
-                    data_type = DataType.OCTO_WORD
-                elif r.type == qbinexport.types.DataType.FLOAT:
-                    data_type = DataType.FLOAT
-                elif r.type == qbinexport.types.DataType.DOUBLE:
-                    data_type = DataType.DOUBLE
-                else:
-                    data_type = DataType.UNKNOWN
-                ref.append(Data(data_type, r.address, r.value))
-            else:
-                pass  # TODO understand what it is
+        ref = {}
+        for ref_type, references in self.qb_instr.references.items():
+            ref[convert_ref_type(ref_type)] = self._cast_references(references)
         return ref
 
     @property
@@ -137,14 +215,16 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
 class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
     """Backend loader of a BasicBlock using QBinExport"""
 
-    def __init__(self, basic_block: BasicBlock, qb_block: qbBlock):
+    def __init__(
+        self, basic_block: BasicBlock, qb_block: qbBlock, structures: list[Structure]
+    ):
         super(BasicBlockBackendQBinExport, self).__init__()
 
         # Private attributes
         self._addr = qb_block.start
 
         for instr in qb_block.instructions:
-            basic_block.append(Instruction(LoaderType.qbinexport, instr))
+            basic_block.append(Instruction(LoaderType.qbinexport, instr, structures))
 
     @property
     def addr(self) -> Addr:
@@ -155,7 +235,9 @@ class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
 class FunctionBackendQBinExport(AbstractFunctionBackend):
     """Backend loader of a Function using QBinExport"""
 
-    def __init__(self, function: Function, qb_func: qbFunction):
+    def __init__(
+        self, function: Function, qb_func: qbFunction, structures: list[Structure]
+    ):
         super(FunctionBackendQBinExport, self).__init__()
 
         self.qb_prog = qb_func.program
@@ -175,7 +257,7 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
             addr: self.qb_func.get_block(addr) for addr in self.qb_func.graph.nodes
         }
         for addr, block in bblocks.items():
-            b = BasicBlock(LoaderType.qbinexport, block)
+            b = BasicBlock(LoaderType.qbinexport, block, structures)
             if addr in function:
                 logging.error("Address collision for 0x%x" % addr)
             function[addr] = b
@@ -276,7 +358,7 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
         self._callgraph = networkx.DiGraph()
 
         for addr, func in self.qb_prog.items():
-            f = Function(LoaderType.qbinexport, func)
+            f = Function(LoaderType.qbinexport, func, self.structures)
             if addr in program:
                 logging.error("Address collision for 0x%x" % addr)
             program[addr] = f
@@ -290,6 +372,27 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
     @property
     def name(self):
         return self.qb_prog.executable.exec_file.name
+
+    @property
+    @cache
+    def structures(self) -> list[Structure]:
+        """Returns the list of structures defined in program"""
+
+        struct_list = []
+        for qbe_struct in self.qb_prog.structures:
+            struct = Structure(
+                convert_struct_type(qbe_struct.type), qbe_struct.name, qbe_struct.size
+            )
+            for offset, member in qbe_struct.items():
+                struct.add_member(
+                    offset,
+                    convert_data_type(member.type),
+                    member.name,
+                    member.size,
+                    member.value,
+                )
+            struct_list.append(struct)
+        return struct_list
 
     @property
     def callgraph(self) -> networkx.DiGraph:
