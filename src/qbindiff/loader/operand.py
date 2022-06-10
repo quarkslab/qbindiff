@@ -46,10 +46,7 @@ class Operand:
 
     @property
     def type(self) -> int:
-        """
-        Returns the capstone operand type
-        :return: int
-        """
+        """Returns the operand type as int"""
         return self._backend.type
 
     @property

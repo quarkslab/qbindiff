@@ -7,9 +7,6 @@ from qbindiff.loader import Operand, Data, Structure
 from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 
-# Don't import the whole capstone module just for the typing
-capstoneValue = Any
-
 
 class AbstractOperandBackend(metaclass=ABCMeta):
     """
@@ -33,7 +30,7 @@ class AbstractOperandBackend(metaclass=ABCMeta):
     @property
     @abstractmethod
     def type(self) -> int:
-        """Returns the capstone operand type"""
+        """Returns the operand type as int"""
         raise NotImplementedError()
 
     @abstractmethod
