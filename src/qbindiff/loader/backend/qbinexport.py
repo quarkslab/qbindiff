@@ -10,8 +10,15 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
-from qbindiff.loader.types import FunctionType, LoaderType
-from qbindiff.types import Addr, DataType
+from qbindiff.loader.types import (
+    FunctionType,
+    LoaderType,
+    DataType,
+    StructureType,
+    ReferenceType,
+    ReferenceTarget,
+)
+from qbindiff.types import Addr
 
 
 # Aliases
@@ -22,6 +29,65 @@ qbInstruction = qbinexport.instruction.Instruction
 qbOperand = qbinexport.instruction.Operand
 capstoneOperand = Any  # Don't import the whole capstone module just for the typing
 capstoneValue = Any  # Don't import the whole capstone module just for the typing
+
+
+# ===== General purpose utils functions =====
+
+
+def convert_data_type(qbe_data_type: qbinexport.types.DataType) -> DataType:
+    """Convert a qbinexport DataType to qbindiff DataType"""
+
+    if qbe_data_type == qbinexport.types.DataType.ASCII:
+        return DataType.ASCII
+    elif qbe_data_type == qbinexport.types.DataType.BYTE:
+        return DataType.BYTE
+    elif qbe_data_type == qbinexport.types.DataType.WORD:
+        return DataType.WORD
+    elif qbe_data_type == qbinexport.types.DataType.DOUBLE_WORD:
+        return DataType.DOUBLE_WORD
+    elif qbe_data_type == qbinexport.types.DataType.QUAD_WORD:
+        return DataType.QUAD_WORD
+    elif qbe_data_type == qbinexport.types.DataType.OCTO_WORD:
+        return DataType.OCTO_WORD
+    elif qbe_data_type == qbinexport.types.DataType.FLOAT:
+        return DataType.FLOAT
+    elif qbe_data_type == qbinexport.types.DataType.DOUBLE:
+        return DataType.DOUBLE
+    else:
+        return DataType.UNKNOWN
+
+
+def convert_struct_type(
+    qbe_struct_type: qbinexport.types.StructureType,
+) -> StructureType:
+    """Convert a qbinexport StructureType to qbindiff StructureType"""
+
+    if qbe_struct_type == qbinexport.types.StructureType.ENUM:
+        return StructureType.ENUM
+    elif qbe_struct_type == qbinexport.types.StructureType.STRUCT:
+        return StructureType.STRUCT
+    elif qbe_struct_type == qbinexport.types.StructureType.UNION:
+        return StructureType.UNION
+    else:
+        return StructureType.UNKNOWN
+
+
+def convert_ref_type(qbe_ref_type: qbinexport.types.ReferenceType) -> ReferenceType:
+    """Convert a qbinexport ReferenceType to qbindiff ReferenceType"""
+
+    if qbe_ref_type == qbinexport.types.ReferenceType.CALL:
+        return ReferenceType.CALL
+    elif qbe_ref_type == qbinexport.types.ReferenceType.DATA:
+        return ReferenceType.DATA
+    elif qbe_ref_type == qbinexport.types.ReferenceType.ENUM:
+        return ReferenceType.ENUM
+    elif qbe_ref_type == qbinexport.types.ReferenceType.STRUC:
+        return ReferenceType.STRUC
+    else:
+        return StructureType.UNKNOWN
+
+
+# ===========================================
 
 
 class OperandBackendQBinExport(AbstractOperandBackend):
