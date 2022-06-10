@@ -1,5 +1,6 @@
 import qbinexport, networkx
 from functools import cache
+from capstone import CS_OP_IMM, CS_GRP_JUMP
 from typing import Any
 
 from qbindiff.loader import (
@@ -95,25 +96,67 @@ def convert_ref_type(qbe_ref_type: qbinexport.types.ReferenceType) -> ReferenceT
         return StructureType.UNKNOWN
 
 
+def to_hex2(s):
+    r = "".join("{0:02x}".format(c) for c in s)
+    while r[0] == "0":
+        r = r[1:]
+    return r
+
+
+def to_x(s):
+    from struct import pack
+
+    if not s:
+        return "0"
+    x = pack(">q", s)
+    while x[0] in ("\0", 0):
+        x = x[1:]
+    return to_hex2(x)
+
+
 # ===========================================
 
 
 class OperandBackendQBinExport(AbstractOperandBackend):
     """Backend loader of a Operand using QBinExport"""
 
-    def __init__(self, operand_str: str, cs_operand: capstoneOperand):
+    def __init__(self, cs_instruction, cs_operand: capstoneOperand):
         super(OperandBackendQBinExport, self).__init__()
 
+        self.cs_instr = cs_instruction
         self.cs_operand = cs_operand
-        self._str = operand_str
 
     def __str__(self) -> str:
-        return self._str
+        op = self.cs_operand
+        if self.type == capstone.CS_OP_REG:
+            return self.cs_instr.reg_name(op.reg)
+        elif self.type == capstone.CS_OP_IMM:
+            return to_x(op.imm)
+        elif self.type == capstone.CS_OP_MEM:
+            op_str = ""
+            if op.mem.segment != 0:
+                op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
+            if op.mem.base != 0:
+                op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
+            if op.mem.index != 0:
+                op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
+            if op.mem.disp != 0:
+                op_str += f"+0x{op.mem.disp:x}"
+            op_str += "]"
+            return op_str
+        else:
+            raise NotImplementedError(f"Unrecognized capstone type {self.type}")
 
     @property
-    def capstone(self) -> capstoneOperand:
-        """Returns the capstone operand object"""
-        return self.cs_operand
+    def immutable_value(self) -> int | None:
+        """
+        Returns the immutable value (not addresses) used by the operand.
+        If there is no immutable value then returns None.
+        """
+
+        if self.is_immutable():
+            return self.cs_operand.value.imm
+        return None
 
     @property
     def type(self) -> int:
@@ -124,6 +167,14 @@ class OperandBackendQBinExport(AbstractOperandBackend):
     def value(self) -> capstoneValue:
         """Returns the capstone operand value"""
         return self.cs_operand.value
+
+    def is_immutable(self) -> bool:
+        """Returns whether the operand is an immutable (not considering addresses)"""
+
+        # Ignore jumps since the target is an immutable
+        return self.cs_operand.type == CS_OP_IMM and not self.cs_instr.group(
+            CS_GRP_JUMP
+        )
 
 
 class InstructionBackendQBinExport(AbstractInstructionBackend):
@@ -187,9 +238,7 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         if not self._operands:
             self._operands = []
             for o in self.cs_instr.operands:
-                self._operands.append(
-                    Operand(LoaderType.qbinexport, self.cs_instr.op_str, o)
-                )
+                self._operands.append(Operand(LoaderType.qbinexport, self.cs_instr, o))
 
         return self._operands
 

@@ -8,7 +8,6 @@ from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 
 # Don't import the whole capstone module just for the typing
-capstoneOperand = Any
 capstoneValue = Any
 
 
@@ -24,8 +23,11 @@ class AbstractOperandBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def capstone(self) -> capstoneOperand:
-        """Returns the capstone operand object"""
+    def immutable_value(self) -> int | None:
+        """
+        Returns the immutable value (not addresses) used by the operand.
+        If there is no immutable value then returns None.
+        """
         raise NotImplementedError()
 
     @property
@@ -38,6 +40,11 @@ class AbstractOperandBackend(metaclass=ABCMeta):
     @abstractmethod
     def value(self) -> capstoneValue:
         """Returns the capstone operand value"""
+        raise NotImplementedError()
+
+    @abstractmethod
+    def is_immutable(self) -> bool:
+        """Returns whether the operand is an immutable (not considering addresses)"""
         raise NotImplementedError()
 
 
