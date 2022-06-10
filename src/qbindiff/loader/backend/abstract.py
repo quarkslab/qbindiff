@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
 from typing import Any
 
-from qbindiff.loader import Operand, Data
+from qbindiff.loader import Operand, Data, Structure
 from qbindiff.loader.types import FunctionType
 from qbindiff.types import Addr
 
@@ -169,6 +169,12 @@ class AbstractProgramBackend(metaclass=ABCMeta):
     @abstractmethod
     def name(self) -> str:
         """The name of the program"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def structures(self) -> list[Structure]:
+        """Returns the list of structures defined in program"""
         raise NotImplementedError()
 
     @property

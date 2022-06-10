@@ -3,7 +3,7 @@ from typing import Callable, Union, Any, Optional
 from collections.abc import Iterator
 
 from qbindiff.abstract import GenericGraph
-from qbindiff.loader import Function
+from qbindiff.loader import Function, Structure
 from qbindiff.loader.types import LoaderType
 from qbindiff.types import Addr
 
@@ -122,6 +122,11 @@ class Program(dict, GenericGraph):
         :return: program name
         """
         return self._backend.name
+
+    @property
+    def structures(self) -> list[Structure]:
+        """Returns the list of structures defined in program"""
+        return self._backend.structures
 
     @property
     def file_path(self):

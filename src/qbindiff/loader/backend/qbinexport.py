@@ -2,7 +2,15 @@ import qbinexport, networkx
 from functools import cache
 from typing import Any
 
-from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Data
+from qbindiff.loader import (
+    Program,
+    Function,
+    BasicBlock,
+    Instruction,
+    Operand,
+    Data,
+    Structure,
+)
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
     AbstractFunctionBackend,
@@ -121,11 +129,13 @@ class OperandBackendQBinExport(AbstractOperandBackend):
 class InstructionBackendQBinExport(AbstractInstructionBackend):
     """Backend loader of a Instruction using QBinExport"""
 
-    def __init__(self, qb_instruction: qbInstruction):
+    def __init__(self, qb_instruction: qbInstruction, structures: list[Structure]):
         super(InstructionBackendQBinExport, self).__init__()
 
         self.qb_instr = qb_instruction
         self.cs_instr = qb_instruction.cs_inst
+        # Hoping that there won't be two struct with the same name
+        self.structures = {struct.name: struct for struct in structures}
         self._operands = None
 
     @property
@@ -203,14 +213,16 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
 class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
     """Backend loader of a BasicBlock using QBinExport"""
 
-    def __init__(self, basic_block: BasicBlock, qb_block: qbBlock):
+    def __init__(
+        self, basic_block: BasicBlock, qb_block: qbBlock, structures: list[Structure]
+    ):
         super(BasicBlockBackendQBinExport, self).__init__()
 
         # Private attributes
         self._addr = qb_block.start
 
         for instr in qb_block.instructions:
-            basic_block.append(Instruction(LoaderType.qbinexport, instr))
+            basic_block.append(Instruction(LoaderType.qbinexport, instr, structures))
 
     @property
     def addr(self) -> Addr:
@@ -221,7 +233,9 @@ class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
 class FunctionBackendQBinExport(AbstractFunctionBackend):
     """Backend loader of a Function using QBinExport"""
 
-    def __init__(self, function: Function, qb_func: qbFunction):
+    def __init__(
+        self, function: Function, qb_func: qbFunction, structures: list[Structure]
+    ):
         super(FunctionBackendQBinExport, self).__init__()
 
         self.qb_prog = qb_func.program
@@ -241,7 +255,7 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
             addr: self.qb_func.get_block(addr) for addr in self.qb_func.graph.nodes
         }
         for addr, block in bblocks.items():
-            b = BasicBlock(LoaderType.qbinexport, block)
+            b = BasicBlock(LoaderType.qbinexport, block, structures)
             if addr in function:
                 logging.error("Address collision for 0x%x" % addr)
             function[addr] = b
@@ -342,7 +356,7 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
         self._callgraph = networkx.DiGraph()
 
         for addr, func in self.qb_prog.items():
-            f = Function(LoaderType.qbinexport, func)
+            f = Function(LoaderType.qbinexport, func, self.structures)
             if addr in program:
                 logging.error("Address collision for 0x%x" % addr)
             program[addr] = f
@@ -356,6 +370,27 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
     @property
     def name(self):
         return self.qb_prog.executable.exec_file.name
+
+    @property
+    @cache
+    def structures(self) -> list[Structure]:
+        """Returns the list of structures defined in program"""
+
+        struct_list = []
+        for qbe_struct in self.qb_prog.structures:
+            struct = Structure(
+                convert_struct_type(qbe_struct.type), qbe_struct.name, qbe_struct.size
+            )
+            for offset, member in qbe_struct.items():
+                struct.add_member(
+                    offset,
+                    convert_data_type(member.type),
+                    member.name,
+                    member.size,
+                    member.value,
+                )
+            struct_list.append(struct)
+        return struct_list
 
     @property
     def callgraph(self) -> networkx.DiGraph:

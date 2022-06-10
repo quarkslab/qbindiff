@@ -11,7 +11,15 @@ from qbindiff.loader.backend import (
     AbstractOperandBackend,
 )
 from qbindiff.loader.backend.binexport2_pb2 import BinExport2
-from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand, Data
+from qbindiff.loader import (
+    Program,
+    Function,
+    BasicBlock,
+    Instruction,
+    Operand,
+    Data,
+    Structure,
+)
 from qbindiff.loader.types import LoaderType, FunctionType, OperandType
 from qbindiff.types import Addr
 
@@ -201,6 +209,15 @@ class ProgramBackendBinExport(AbstractProgramBackend):
     @property
     def name(self):
         return self.proto.meta_information.executable_name
+
+    @property
+    def structures(self) -> list[Structure]:
+        """
+        Returns the list of structures defined in program.
+        WARNING: Not supported by BinExport
+        """
+
+        return []  # Not supported
 
     @property
     def architecture(self):
