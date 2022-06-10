@@ -182,11 +182,6 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         return ref
 
     @property
-    def data_references(self) -> list[Data]:
-        """Returns the list of data that are referenced by the instruction"""
-        return self.references[ReferenceType.DATA]
-
-    @property
     def operands(self) -> list[Operand]:
         """Returns the list of operands as Operand object"""
         if not self._operands:

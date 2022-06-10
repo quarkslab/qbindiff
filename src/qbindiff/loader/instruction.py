@@ -69,7 +69,7 @@ class Instruction:
     @property
     def data_references(self) -> list[Data]:
         """Returns the list of data that are referenced by the instruction"""
-        return self._backend.data_references
+        return self.references[ReferenceType.DATA]
 
     @property
     def operands(self) -> list[Operand]:

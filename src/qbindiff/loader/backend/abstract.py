@@ -67,12 +67,6 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def data_references(self) -> list[Data]:
-        """Returns the list of data that are referenced by the instruction"""
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
     def operands(self) -> list[Operand]:
         """Returns the list of operands as Operand object"""
         raise NotImplementedError()
