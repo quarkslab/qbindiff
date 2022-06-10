@@ -1,4 +1,5 @@
 from enum import IntEnum
+from typing import TypeAlias
 
 
 class LoaderType(IntEnum):
@@ -45,3 +46,35 @@ class FunctionType(IntEnum):
     thunk = 3
     invalid = 4
     extern = 5
+
+
+class DataType(IntEnum):
+    UNKNOWN = 0
+    BYTE = 1
+    WORD = 2
+    DOUBLE_WORD = 3
+    QUAD_WORD = 4
+    OCTO_WORD = 5
+    FLOAT = 6
+    DOUBLE = 7
+    ASCII = 8
+
+
+class StructureType(IntEnum):
+    UNKNOWN = 0
+    STRUCT = 1
+    ENUM = 2
+    UNION = 3
+
+
+class ReferenceType(IntEnum):
+    """Reference types"""
+
+    CALL = 0
+    DATA = 1
+    ENUM = 2
+    STRUC = 3
+    UNKNOWN = 4
+
+
+ReferenceTarget: TypeAlias = "Data | Structure | StructureMember"
