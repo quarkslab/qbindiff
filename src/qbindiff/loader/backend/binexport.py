@@ -30,9 +30,6 @@ from qbindiff.loader.types import (
 )
 from qbindiff.types import Addr
 
-# Don't import the whole capstone module just for the typing
-capstoneOperand = Any
-
 
 # === General purpose binexport functions ===
 def _get_instruction_address(pb, inst_idx):
@@ -635,11 +632,6 @@ class OperandBackendBinexport(AbstractOperandBackend):
     def type(self) -> int:
         """Returns the capstone operand type"""
         return self.cs_operand.type
-
-    @property
-    def value(self):
-        """Returns the capstone operand value"""
-        return self.cs_operand.value
 
     def is_immutable(self) -> bool:
         """Returns whether the operand is an immutable (not considering addresses)"""

@@ -1,9 +1,4 @@
-from typing import Any
-
 from qbindiff.loader.types import LoaderType
-
-# Capstone typing
-capstoneValue = Any
 
 
 class Operand:
@@ -56,11 +51,6 @@ class Operand:
         :return: int
         """
         return self._backend.type
-
-    @property
-    def value(self) -> capstoneValue:
-        """Returns the capstone operand value"""
-        return self._backend.value
 
     @property
     def immutable_value(self) -> int | None:

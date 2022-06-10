@@ -36,12 +36,6 @@ class AbstractOperandBackend(metaclass=ABCMeta):
         """Returns the capstone operand type"""
         raise NotImplementedError()
 
-    @property
-    @abstractmethod
-    def value(self) -> capstoneValue:
-        """Returns the capstone operand value"""
-        raise NotImplementedError()
-
     @abstractmethod
     def is_immutable(self) -> bool:
         """Returns whether the operand is an immutable (not considering addresses)"""

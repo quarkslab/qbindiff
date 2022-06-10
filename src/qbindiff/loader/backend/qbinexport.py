@@ -163,11 +163,6 @@ class OperandBackendQBinExport(AbstractOperandBackend):
         """Returns the capstone operand type"""
         return self.cs_operand.type
 
-    @property
-    def value(self) -> capstoneValue:
-        """Returns the capstone operand value"""
-        return self.cs_operand.value
-
     def is_immutable(self) -> bool:
         """Returns whether the operand is an immutable (not considering addresses)"""
 
