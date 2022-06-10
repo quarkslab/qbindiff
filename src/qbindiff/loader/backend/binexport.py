@@ -20,7 +20,13 @@ from qbindiff.loader import (
     Data,
     Structure,
 )
-from qbindiff.loader.types import LoaderType, FunctionType, OperandType
+from qbindiff.loader.types import (
+    LoaderType,
+    FunctionType,
+    OperandType,
+    ReferenceType,
+    ReferenceTarget,
+)
 from qbindiff.types import Addr
 
 # Don't import the whole capstone module just for the typing
@@ -538,6 +544,19 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
     @property
     def mnemonic(self):
         return self._be_program.proto.mnemonic[self._instruction.mnemonic_index].name
+
+    @property
+    @cache
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
+        """
+        Returns all the references towards the instruction
+        BinExport only exports data references' address so no data type nor value.
+        """
+        return {
+            ReferenceType.DATA: [
+                Data(DataType.UNKNOWN, addr, None) for addr in self.data_refs
+            ]
+        }
 
     @property
     @cache

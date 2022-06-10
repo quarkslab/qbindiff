@@ -138,6 +138,29 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         self.structures = {struct.name: struct for struct in structures}
         self._operands = None
 
+    def _cast_references(
+        self, references: list[qbinexport.types.ReferenceTarget]
+    ) -> list[ReferenceTarget]:
+        """Cast the qbinexport references to qbindiff reference types"""
+
+        ret_ref = []
+        for ref in references:
+            match ref:
+                case qbinexport.data.Data():
+                    data_type = convert_data_type(ref.type)
+                    ret_ref.append(Data(data_type, ref.address, ref.value))
+                case qbinexport.structure.Structure(name=name):
+                    ret_ref.append(self.structures[name])
+                case qbinexport.structure.StructureMember(
+                    structure=qbe_struct, name=name
+                ):
+                    ret_ref.append(
+                        self.structures[qbe_struct.name].member_by_name(name)
+                    )
+                case qbinexport.Instruction():  # Not implemented for now
+                    logging.warning("Skipping instruction reference")
+        return ret_ref
+
     @property
     def addr(self) -> Addr:
         """The address of the instruction"""
@@ -150,34 +173,18 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
 
     @property
     @cache
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
+        """Returns all the references towards the instruction"""
+
+        ref = {}
+        for ref_type, references in self.qb_instr.references.items():
+            ref[convert_ref_type(ref_type)] = self._cast_references(references)
+        return ref
+
+    @property
     def data_references(self) -> list[Data]:
         """Returns the list of data that are referenced by the instruction"""
-
-        ref = []
-        for r in self.qb_instr.data_references:
-            if isinstance(r, qbinexport.data.Data):
-                if r.type == qbinexport.types.DataType.ASCII:
-                    data_type = DataType.ASCII
-                elif r.type == qbinexport.types.DataType.BYTE:
-                    data_type = DataType.BYTE
-                elif r.type == qbinexport.types.DataType.WORD:
-                    data_type = DataType.WORD
-                elif r.type == qbinexport.types.DataType.DOUBLE_WORD:
-                    data_type = DataType.DOUBLE_WORD
-                elif r.type == qbinexport.types.DataType.QUAD_WORD:
-                    data_type = DataType.QUAD_WORD
-                elif r.type == qbinexport.types.DataType.OCTO_WORD:
-                    data_type = DataType.OCTO_WORD
-                elif r.type == qbinexport.types.DataType.FLOAT:
-                    data_type = DataType.FLOAT
-                elif r.type == qbinexport.types.DataType.DOUBLE:
-                    data_type = DataType.DOUBLE
-                else:
-                    data_type = DataType.UNKNOWN
-                ref.append(Data(data_type, r.address, r.value))
-            else:
-                pass  # TODO understand what it is
-        return ref
+        return self.references[ReferenceType.DATA]
 
     @property
     def operands(self) -> list[Operand]:

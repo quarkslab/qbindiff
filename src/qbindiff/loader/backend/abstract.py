@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from qbindiff.loader import Operand, Data, Structure
-from qbindiff.loader.types import FunctionType
+from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 
 # Don't import the whole capstone module just for the typing
@@ -57,6 +57,12 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
     @abstractmethod
     def mnemonic(self) -> str:
         """Returns the instruction mnemonic as a string"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
+        """Returns all the references towards the instruction"""
         raise NotImplementedError()
 
     @property

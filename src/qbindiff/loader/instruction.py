@@ -1,5 +1,5 @@
-from qbindiff.loader.types import LoaderType
-from qbindiff.loader.operand import Operand
+from qbindiff.loader.types import LoaderType, ReferenceType, ReferenceTarget
+from qbindiff.loader import Data, Operand
 from qbindiff.types import Addr
 
 
@@ -62,8 +62,13 @@ class Instruction:
         return self._backend.mnemonic
 
     @property
-    def data_references(self) -> set[Addr]:
-        """Returns the collections of addresses that are accessed by the instruction"""
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
+        """Returns all the references towards the instruction"""
+        return self._backend.references
+
+    @property
+    def data_references(self) -> list[Data]:
+        """Returns the list of data that are referenced by the instruction"""
         return self._backend.data_references
 
     @property
