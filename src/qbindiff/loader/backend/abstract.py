@@ -77,8 +77,11 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def capstone(self) -> "capstone.CsInsn":
-        """Return the capstone instruction"""
+    def id(self) -> int:
+        """
+        Return the instruction ID as int.
+        WARNING: the instruction ID must be in range [0, 2000[
+        """
         raise NotImplementedError()
 
     @property

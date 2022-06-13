@@ -1,7 +1,7 @@
 import qbinexport, networkx
 from functools import cache
 from capstone import CS_OP_IMM, CS_GRP_JUMP
-from typing import Any
+from typing import Any, TypeAlias
 
 from qbindiff.loader import (
     Program,
@@ -31,13 +31,14 @@ from qbindiff.types import Addr
 
 
 # Aliases
-qbProgram = qbinexport.Program
-qbFunction = qbinexport.function.Function
-qbBlock = qbinexport.block.Block
-qbInstruction = qbinexport.instruction.Instruction
-qbOperand = qbinexport.instruction.Operand
-capstoneOperand = Any  # Don't import the whole capstone module just for the typing
-capstoneValue = Any  # Don't import the whole capstone module just for the typing
+qbProgram: TypeAlias = qbinexport.Program
+qbFunction: TypeAlias = qbinexport.function.Function
+qbBlock: TypeAlias = qbinexport.block.Block
+qbInstruction: TypeAlias = qbinexport.instruction.Instruction
+qbOperand: TypeAlias = qbinexport.instruction.Operand
+capstoneInstruction: TypeAlias = "capstone.CsInsn"
+capstoneOperand: TypeAlias = Any  # Relaxed typing
+capstoneValue: TypeAlias = Any  # Relaxed typing
 
 
 # ===== General purpose utils functions =====
@@ -118,7 +119,7 @@ def to_x(s):
 class OperandBackendQBinExport(AbstractOperandBackend):
     """Backend loader of a Operand using QBinExport"""
 
-    def __init__(self, cs_instruction, cs_operand: capstoneOperand):
+    def __init__(self, cs_instruction: capstoneInstruction, cs_operand: capstoneOperand):
         super(OperandBackendQBinExport, self).__init__()
 
         self.cs_instr = cs_instruction
@@ -244,9 +245,9 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         return []  # Not supported
 
     @property
-    def capstone(self) -> "capstone.CsInsn":
-        """Return the capstone instruction"""
-        return self.cs_instr
+    def id(self) -> int:
+        """Return the capstone instruction ID"""
+        return self.cs_instr.id
 
     @property
     def comment(self) -> str:

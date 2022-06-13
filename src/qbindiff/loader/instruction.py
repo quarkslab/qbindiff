@@ -90,9 +90,9 @@ class Instruction:
         return self._backend.groups
 
     @property
-    def capstone(self) -> "capstone.CsInsn":
-        """Return the capstone instruction"""
-        return self._backend.capstone
+    def id(self) -> int:
+        """Return the instruction ID as int"""
+        return self._backend.id
 
     @property
     def comment(self) -> str:

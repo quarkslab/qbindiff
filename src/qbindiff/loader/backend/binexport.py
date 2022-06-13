@@ -569,9 +569,9 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         return []  # not supported
 
     @property
-    def capstone(self) -> "capstone.CsInsn":
-        """Return the capstone instruction"""
-        return self.cs_instr
+    def id(self) -> int:
+        """Return the capstone instruction ID"""
+        return self.cs_instr.id
 
     @property
     def comment(self):
