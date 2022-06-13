@@ -62,6 +62,7 @@ class Instruction:
         return self._backend.mnemonic
 
     @property
+    @cache
     def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
         """Returns all the references towards the instruction"""
         return self._backend.references
