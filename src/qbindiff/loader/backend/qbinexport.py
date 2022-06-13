@@ -84,9 +84,7 @@ def convert_struct_type(
 def convert_ref_type(qbe_ref_type: qbinexport.types.ReferenceType) -> ReferenceType:
     """Convert a qbinexport ReferenceType to qbindiff ReferenceType"""
 
-    if qbe_ref_type == qbinexport.types.ReferenceType.CALL:
-        return ReferenceType.CALL
-    elif qbe_ref_type == qbinexport.types.ReferenceType.DATA:
+    if qbe_ref_type == qbinexport.types.ReferenceType.DATA:
         return ReferenceType.DATA
     elif qbe_ref_type == qbinexport.types.ReferenceType.ENUM:
         return ReferenceType.ENUM
