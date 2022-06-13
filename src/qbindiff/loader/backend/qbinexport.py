@@ -118,7 +118,9 @@ def to_x(s):
 class OperandBackendQBinExport(AbstractOperandBackend):
     """Backend loader of a Operand using QBinExport"""
 
-    def __init__(self, cs_instruction: capstoneInstruction, cs_operand: capstoneOperand):
+    def __init__(
+        self, cs_instruction: capstoneInstruction, cs_operand: capstoneOperand
+    ):
         super(OperandBackendQBinExport, self).__init__()
 
         self.cs_instr = cs_instruction
