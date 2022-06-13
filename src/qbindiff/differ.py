@@ -83,6 +83,8 @@ class Differ:
         self.mapping = None
 
     def _convert_mapping(self, mapping: RawMapping) -> Mapping:
+        """Return the result of the diffing as a Mapping object"""
+
         primary_idx, secondary_idx = mapping
         get_node = lambda idx, graph, map_i2n: graph.get_node(map_i2n[idx])
         get_node_primary = lambda idx: get_node(idx, self.primary, self.primary_i2n)
