@@ -1,3 +1,5 @@
+from functools import cache
+
 from qbindiff.loader.types import LoaderType, ReferenceType, ReferenceTarget
 from qbindiff.loader import Data, Operand
 from qbindiff.types import Addr
