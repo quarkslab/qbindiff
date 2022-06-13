@@ -82,11 +82,9 @@ class Instruction:
         return self._backend.operands
 
     @property
-    def groups(self) -> list[str]:
+    def groups(self) -> list[int]:
         """
-        Returns a list of groups of this instruction. Groups are capstone based
-        but enriched.
-        Note: Binexport does not support groups and thus the list is empty
+        Returns a list of groups of this instruction.
         :return: list of groups for the instruction
         """
         return self._backend.groups

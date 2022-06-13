@@ -236,7 +236,7 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         return self._operands
 
     @property
-    def groups(self) -> list[str]:
+    def groups(self) -> list[int]:
         """
         Returns a list of groups of this instruction. Groups are capstone based
         but enriched.

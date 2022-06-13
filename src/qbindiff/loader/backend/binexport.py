@@ -565,7 +565,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         ]
 
     @property
-    def groups(self):
+    def groups(self) -> list[int]:
         return []  # not supported
 
     @property

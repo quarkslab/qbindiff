@@ -71,11 +71,8 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def groups(self) -> list[str]:
-        """
-        Returns a list of groups of this instruction. Groups are capstone based
-        but enriched.
-        """
+    def groups(self) -> list[int]:
+        """Returns a list of groups of this instruction"""
         raise NotImplementedError()
 
     @property
