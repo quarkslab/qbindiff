@@ -1,4 +1,5 @@
 import qbinexport, networkx
+from struct import pack
 from functools import cache
 from capstone import CS_OP_IMM, CS_GRP_JUMP
 from typing import Any, TypeAlias
@@ -103,8 +104,6 @@ def to_hex2(s):
 
 
 def to_x(s):
-    from struct import pack
-
     if not s:
         return "0"
     x = pack(">q", s)

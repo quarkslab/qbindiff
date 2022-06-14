@@ -1,4 +1,5 @@
 import logging, networkx, capstone
+from struct import pack
 from collections import defaultdict
 from functools import cache
 from typing import Union, Optional, Any
@@ -88,8 +89,6 @@ def to_hex2(s):
 
 
 def to_x(s):
-    from struct import pack
-
     if not s:
         return "0"
     x = pack(">q", s)
