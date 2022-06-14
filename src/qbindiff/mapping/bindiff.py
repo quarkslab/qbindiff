@@ -185,7 +185,7 @@ class BinDiffFormat:
         """Calculate the prime product value of the basic block"""
         tot = 1
         for instruction in basic_block:
-            tot *= self.primes[instruction.capstone.id]
+            tot *= self.primes[instruction.id]
         return tot
 
     def _basic_block_match(
@@ -212,9 +212,9 @@ class BinDiffFormat:
         primary_instr = defaultdict(list)
         secondary_instr = defaultdict(list)
         for instr in primary_bb:
-            primary_instr[bytes(instr.capstone.bytes)].append(instr.addr)
+            primary_instr[instr.bytes].append(instr.addr)
         for instr in secondary_bb:
-            secondary_instr[bytes(instr.capstone.bytes)].append(instr.addr)
+            secondary_instr[instr.bytes].append(instr.addr)
         common = primary_instr.keys() & secondary_instr.keys()
         for k in common:
             yield from zip(primary_instr[k], secondary_instr[k])
