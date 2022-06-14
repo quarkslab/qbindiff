@@ -70,11 +70,10 @@ class StructureType(IntEnum):
 class ReferenceType(IntEnum):
     """Reference types"""
 
-    CALL = 0
-    DATA = 1
-    ENUM = 2
-    STRUC = 3
-    UNKNOWN = 4
+    DATA = 0
+    ENUM = 1
+    STRUC = 2
+    UNKNOWN = 3
 
 
 ReferenceTarget: TypeAlias = "Data | Structure | StructureMember"

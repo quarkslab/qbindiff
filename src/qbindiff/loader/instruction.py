@@ -1,3 +1,5 @@
+from functools import cache
+
 from qbindiff.loader.types import LoaderType, ReferenceType, ReferenceTarget
 from qbindiff.loader import Data, Operand
 from qbindiff.types import Addr
@@ -62,6 +64,7 @@ class Instruction:
         return self._backend.mnemonic
 
     @property
+    @cache
     def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
         """Returns all the references towards the instruction"""
         return self._backend.references
@@ -81,19 +84,17 @@ class Instruction:
         return self._backend.operands
 
     @property
-    def groups(self) -> list[str]:
+    def groups(self) -> list[int]:
         """
-        Returns a list of groups of this instruction. Groups are capstone based
-        but enriched.
-        Note: Binexport does not support groups and thus the list is empty
+        Returns a list of groups of this instruction.
         :return: list of groups for the instruction
         """
         return self._backend.groups
 
     @property
-    def capstone(self) -> "capstone.CsInsn":
-        """Return the capstone instruction"""
-        return self._backend.capstone
+    def id(self) -> int:
+        """Return the instruction ID as int"""
+        return self._backend.id
 
     @property
     def comment(self) -> str:

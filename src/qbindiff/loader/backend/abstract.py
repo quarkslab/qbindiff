@@ -7,10 +7,6 @@ from qbindiff.loader import Operand, Data, Structure
 from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 
-# Don't import the whole capstone module just for the typing
-capstoneOperand = Any
-capstoneValue = Any
-
 
 class AbstractOperandBackend(metaclass=ABCMeta):
     """
@@ -24,20 +20,22 @@ class AbstractOperandBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def capstone(self) -> capstoneOperand:
-        """Returns the capstone operand object"""
+    def immutable_value(self) -> int | None:
+        """
+        Returns the immutable value (not addresses) used by the operand.
+        If there is no immutable value then returns None.
+        """
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def type(self) -> int:
-        """Returns the capstone operand type"""
+        """Returns the operand type as int"""
         raise NotImplementedError()
 
-    @property
     @abstractmethod
-    def value(self) -> capstoneValue:
-        """Returns the capstone operand value"""
+    def is_immutable(self) -> bool:
+        """Returns whether the operand is an immutable (not considering addresses)"""
         raise NotImplementedError()
 
 
@@ -73,17 +71,17 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def groups(self) -> list[str]:
-        """
-        Returns a list of groups of this instruction. Groups are capstone based
-        but enriched.
-        """
+    def groups(self) -> list[int]:
+        """Returns a list of groups of this instruction"""
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def capstone(self) -> "capstone.CsInsn":
-        """Return the capstone instruction"""
+    def id(self) -> int:
+        """
+        Return the instruction ID as int.
+        WARNING: the instruction ID must be in range [0, 2000[
+        """
         raise NotImplementedError()
 
     @property

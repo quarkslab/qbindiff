@@ -9,7 +9,7 @@ from qbindiff.loader import Program
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
-from qbindiff.passes import FeaturePass
+from qbindiff.passes import FeaturePass, ZeroPass
 from qbindiff.types import (
     RawMapping,
     Positive,
@@ -304,6 +304,7 @@ class QBinDiff(Differ):
         # Register the feature extraction pass
         self._feature_pass = FeaturePass(distance)
         self.register_postpass(self._feature_pass)
+        self.register_postpass(ZeroPass)
         self.register_prepass(self.match_import_functions)
 
     def register_feature_extractor(

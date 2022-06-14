@@ -1,7 +1,9 @@
 import logging, networkx, capstone
+from struct import pack
 from collections import defaultdict
 from functools import cache
 from typing import Union, Optional, Any
+from capstone import CS_OP_IMM, CS_GRP_JUMP
 
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
@@ -28,9 +30,6 @@ from qbindiff.loader.types import (
     ReferenceTarget,
 )
 from qbindiff.types import Addr
-
-# Don't import the whole capstone module just for the typing
-capstoneOperand = Any
 
 
 # === General purpose binexport functions ===
@@ -90,8 +89,6 @@ def to_hex2(s):
 
 
 def to_x(s):
-    from struct import pack
-
     if not s:
         return "0"
     x = pack(">q", s)
@@ -567,13 +564,13 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         ]
 
     @property
-    def groups(self):
+    def groups(self) -> list[int]:
         return []  # not supported
 
     @property
-    def capstone(self) -> "capstone.CsInsn":
-        """Return the capstone instruction"""
-        return self.cs_instr
+    def id(self) -> int:
+        """Return the capstone instruction ID"""
+        return self.cs_instr.id
 
     @property
     def comment(self):
@@ -620,16 +617,25 @@ class OperandBackendBinexport(AbstractOperandBackend):
             raise NotImplementedError(f"Unrecognized capstone type {self.type}")
 
     @property
-    def capstone(self) -> capstoneOperand:
-        """Returns the capstone operand object"""
-        return self.cs_operand
+    def immutable_value(self) -> int | None:
+        """
+        Returns the immutable value (not addresses) used by the operand.
+        If there is no immutable value then returns None.
+        """
+
+        if self.is_immutable():
+            return self.cs_operand.value.imm
+        return None
 
     @property
     def type(self) -> int:
         """Returns the capstone operand type"""
         return self.cs_operand.type
 
-    @property
-    def value(self):
-        """Returns the capstone operand value"""
-        return self.cs_operand.value
+    def is_immutable(self) -> bool:
+        """Returns whether the operand is an immutable (not considering addresses)"""
+
+        # Ignore jumps since the target is an immutable
+        return self.cs_operand.type == CS_OP_IMM and not self.cs_instr.group(
+            CS_GRP_JUMP
+        )
