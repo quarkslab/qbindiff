@@ -255,6 +255,11 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         """Comment associated with the instruction"""
         return []  # Not supported
 
+    @property
+    def bytes(self) -> bytes:
+        """Returns the bytes representation of the instruction"""
+        return self.qb_instr.bytes
+
 
 class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
     """Backend loader of a BasicBlock using QBinExport"""

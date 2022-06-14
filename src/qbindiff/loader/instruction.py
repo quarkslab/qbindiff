@@ -104,6 +104,11 @@ class Instruction:
         """
         return self._backend.comment
 
+    @property
+    def bytes(self) -> bytes:
+        """Returns the bytes representation of the instruction"""
+        return self._backend.bytes
+
     def __str__(self):
         return "%s %s" % (
             self.mnemonic,

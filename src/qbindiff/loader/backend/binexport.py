@@ -587,6 +587,11 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
 
         return str_comment
 
+    @property
+    def bytes(self) -> bytes:
+        """Returns the bytes representation of the instruction"""
+        return self._instruction.raw_bytes
+
 
 class OperandBackendBinexport(AbstractOperandBackend):
     def __init__(self, cs_instruction, cs_operand):
