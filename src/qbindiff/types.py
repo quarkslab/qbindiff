@@ -46,7 +46,7 @@ RawMapping: TypeAlias = tuple[list[Idx], list[Idx]]
 """
 Match represent the matching between two functions and can hold the similarity between the two
 """
-Match: TypeAlias = namedtuple("Match", "primary secondary similarity squares")
+Match = namedtuple("Match", "primary secondary similarity confidence squares")
 
 
 """

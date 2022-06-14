@@ -298,7 +298,7 @@ class BinDiffFormat:
                 "name1": match.primary.name,
                 "name2": match.secondary.name,
                 "similarity": float(match.similarity),
-                "confidence": 1,
+                "confidence": float(match.confidence),
             }
 
             conn.execute(

@@ -95,8 +95,13 @@ class Differ:
 
         return self.sim_matrix[primary_idx, secondary_idx]
 
-    def _convert_mapping(self, mapping: RawMapping) -> Mapping:
-        """Return the result of the diffing as a Mapping object"""
+    def _convert_mapping(self, mapping: RawMapping, confidence: list[float]) -> Mapping:
+        """
+        Return the result of the diffing as a Mapping object.
+
+        :param mapping: The raw mapping between the nodes
+        :param confidence: The confidence score for each match
+        """
 
         primary_idx, secondary_idx = mapping
         get_node_primary = lambda idx: self.primary.get_node(self.primary_i2n[idx])
@@ -138,7 +143,7 @@ class Differ:
         squares = common_subgraph.sum(0) + common_subgraph.sum(1)
 
         return Mapping(
-            zip(primary_matched, secondary_matched, similarities, squares),
+            zip(primary_matched, secondary_matched, similarities, confidence, squares),
             primary_unmatched,
             secondary_unmatched,
         )
@@ -238,7 +243,7 @@ class Differ:
 
         yield from matcher.compute(self.tradeoff, self.epsilon, self.maxiter)
 
-        self.mapping = self._convert_mapping(matcher.mapping)
+        self.mapping = self._convert_mapping(matcher.mapping, matcher.confidence_score)
 
 
 class DiGraphDiffer(Differ):

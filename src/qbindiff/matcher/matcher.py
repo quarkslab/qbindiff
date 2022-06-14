@@ -147,6 +147,11 @@ class Matcher:
         """Returns the nodes mapping between the two graphs"""
         return self._mapping
 
+    @property
+    def confidence_score(self) -> list[float]:
+        """Returns the confidence score for each match in the nodes mapping"""
+        return [self._confidence[idx1, idx2] for idx1, idx2 in zip(*self.mapping)]
+
     def process(self, sparsity_ratio: Ratio = 0.75, compute_squares: bool = True):
         self._compute_sparse_sim_matrix(sparsity_ratio)
         if compute_squares:
@@ -167,6 +172,7 @@ class Matcher:
             yield niter
 
         score_matrix = self.sparse_sim_matrix.copy()
+        self._confidence = belief.current_marginals
         self._mapping = self.refine(belief.current_mapping, score_matrix)
 
     def refine(self, mapping: RawMapping, score_matrix: SimMatrix) -> RawMapping:
