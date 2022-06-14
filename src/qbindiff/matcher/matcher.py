@@ -22,7 +22,7 @@ from qbindiff.types import (
 def iter_csr_matrix(matrix: SparseMatrix):
     """
     Iter over non-null items in a CSR (Compressed Sparse Row) matrix.
-    It returns a generator that, after each iteration, returns the tuple (row_index, column_index, value)
+    It returns a generator that, at each iteration, returns the tuple (row_index, column_index, value)
     """
     coo_matrix = matrix.tocoo()
     for x, y, v in zip(coo_matrix.row, coo_matrix.col, coo_matrix.data):
