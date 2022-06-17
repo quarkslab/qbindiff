@@ -1,9 +1,8 @@
 import networkx
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
-from typing import Any
 
-from qbindiff.loader import Operand, Data, Structure
+from qbindiff.loader import Structure
 from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 
@@ -65,8 +64,8 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def operands(self) -> list[Operand]:
-        """Returns the list of operands as Operand object"""
+    def operands(self) -> Iterator[AbstractOperandBackend]:
+        """Returns an iterator over backend operand objects"""
         raise NotImplementedError()
 
     @property
@@ -109,12 +108,24 @@ class AbstractBasicBlockBackend(metaclass=ABCMeta):
         """The address of the basic block"""
         raise NotImplementedError()
 
+    @property
+    @abstractmethod
+    def instructions(self) -> Iterator[AbstractInstructionBackend]:
+        """Returns an iterator over backend instruction objects"""
+        raise NotImplementedError()
+
 
 class AbstractFunctionBackend(metaclass=ABCMeta):
     """
     This is an abstract class and should not be used as is.
     It represent a generic backend loader for a Function
     """
+
+    @property
+    @abstractmethod
+    def basic_blocks(self) -> Iterator[AbstractBasicBlockBackend]:
+        """Returns an iterator over backend basic blocks objects"""
+        raise NotImplementedError()
 
     @property
     @abstractmethod

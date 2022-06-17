@@ -1,18 +1,23 @@
-import networkx
+import networkx, gc, sys
+from collections.abc import Mapping
 from typing import Set
 
+from qbindiff.loader import BasicBlock
 from qbindiff.loader.types import LoaderType, FunctionType
 from qbindiff.types import Addr
 
 
-class Function(dict):
+class Function(Mapping[Addr, BasicBlock]):
     """
-    Function representation of a binary function. This class is a dict
-    of basic block addreses to the basic block.
+    Representation of a binary function.
+    This class is a dict of basic block addreses to the basic block.
     """
 
     def __init__(self, loader, *args, **kwargs):
         super(Function, self).__init__()
+
+        # The basic blocks are lazily loaded
+        self._basic_blocks = None
 
         self._backend = None
         if loader == LoaderType.binexport:
@@ -23,9 +28,6 @@ class Function(dict):
             self.load_qbinexport(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
-
-    def __hash__(self):
-        return hash(self.addr)
 
     def load_binexport(self, *args, **kwargs):
         from qbindiff.loader.backend.binexport import FunctionBackendBinExport
@@ -40,7 +42,55 @@ class Function(dict):
     def load_qbinexport(self, *args, **kwargs):
         from qbindiff.loader.backend.qbinexport import FunctionBackendQBinExport
 
-        self._backend = FunctionBackendQBinExport(self, *args, **kwargs)
+        self._backend = FunctionBackendQBinExport(*args, **kwargs)
+
+    def __hash__(self):
+        return hash(self.addr)
+
+    def __getitem__(self, key: Addr) -> BasicBlock:
+        if self._basic_blocks is not None:
+            return self._basic_blocks[key]
+
+        self._preload()
+        bb = self._basic_blocks[key]
+        self._unload()
+        return bb
+
+    def __iter__(self):
+        """Iterate over basic blocks, not addresses"""
+        if self._basic_blocks is not None:
+            return self._basic_blocks.values()
+
+        self._preload()
+        yield from self._basic_blocks.values()
+        self._unload()
+
+    def __len__(self):
+        if self._basic_blocks is not None:
+            return len(self._basic_blocks)
+
+        self._preload()
+        size = len(self._basic_blocks)
+        self._unload()
+        return size
+
+    def items(self):
+        if self._basic_blocks is not None:
+            return self._basic_blocks.items()
+
+        self._preload()
+        yield from self._basic_blocks.items()
+        self._unload()
+
+    def _preload(self) -> None:
+        """Load in memory all the basic blocks"""
+        self._basic_blocks = {}
+        for bb in map(BasicBlock.from_backend, self._backend.basic_blocks):
+            self._basic_blocks[bb.addr] = bb
+
+    def _unload(self) -> None:
+        """Unload from memory all the basic blocks"""
+        self._basic_blocks = None
 
     @property
     def edges(self):
@@ -136,7 +186,3 @@ class Function(dict):
     @name.setter
     def name(self, name):
         self._backend.name = name
-
-    def __iter__(self):
-        """ """
-        return iter(self.values())

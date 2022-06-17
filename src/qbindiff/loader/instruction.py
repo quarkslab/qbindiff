@@ -1,7 +1,9 @@
-from functools import cache
+from __future__ import annotations
+from functools import cached_property
 
-from qbindiff.loader.types import LoaderType, ReferenceType, ReferenceTarget
+from qbindiff.loader.backend import AbstractInstructionBackend
 from qbindiff.loader import Data, Operand
+from qbindiff.loader.types import LoaderType, ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 
 
@@ -10,9 +12,11 @@ class Instruction:
     Defines an Instruction object that wrap the backend using under the scene.
     """
 
-    def __init__(self, loader, *args, **kwargs):
+    def __init__(self, loader: LoaderType | None, *args, **kwargs):
         self._backend = None
-        if loader == LoaderType.binexport:
+        if loader is None and (backend := kwargs.get("backend")) is not None:
+            self._backend = backend  # Load directly from instanciated backend
+        elif loader == LoaderType.binexport:
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
@@ -47,6 +51,11 @@ class Instruction:
 
         self._backend = InstructionBackendQBinExport(*args, **kwargs)
 
+    @staticmethod
+    def from_backend(backend: AbstractInstructionBackend) -> Instruction:
+        """Load the Instruction from an instanciated instruction backend object"""
+        return Instruction(None, backend=backend)
+
     @property
     def addr(self) -> int:
         """
@@ -63,8 +72,7 @@ class Instruction:
         """
         return self._backend.mnemonic
 
-    @property
-    @cache
+    @cached_property
     def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
         """Returns all the references towards the instruction"""
         return self._backend.references
@@ -74,14 +82,13 @@ class Instruction:
         """Returns the list of data that are referenced by the instruction"""
         return self.references[ReferenceType.DATA]
 
-    @property
+    @cached_property
     def operands(self) -> list[Operand]:
         """
         Returns the list of operands as Operand object.
-        Note: The objects are recreated each time this function is called.
         :return: list of operands
         """
-        return self._backend.operands
+        return [Operand.from_backend(o) for o in self._backend.operands]
 
     @property
     def groups(self) -> list[int]:
