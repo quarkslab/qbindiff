@@ -300,10 +300,6 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
     def basic_blocks(self) -> Iterator[BasicBlockBackendBinExport]:
         """Returns an iterator over backend basic blocks objects"""
 
-        # Stop the exploration if it's an imported function
-        if self.is_import():
-            return iter([])
-
         return (
             BasicBlockBackendBinExport(self._program, bb)
             for addr, bb in self.be_func.blocks.items()
