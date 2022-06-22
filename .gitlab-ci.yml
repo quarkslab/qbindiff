@@ -36,7 +36,7 @@ before_script:
   - "cd lapjv && python setup.py install && cd .."
   
   # Install extra dependencies
-  - "git clone gitlab@gitlab.qb:rmori/python-binexport.git"
+  - "git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.qb/rmori/python-binexport.git"
   - "cd python-binexport && pip install . && cd .."
 
   # Build qbindiff
