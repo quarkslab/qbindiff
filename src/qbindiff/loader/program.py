@@ -168,6 +168,10 @@ class Program(dict, GenericGraph):
         funcs = list(self)  # functions already filtered
         return cg.subgraph([x.addr for x in funcs])
 
+    def get_function(self, name: str) -> Function:
+        """Returns the function by its name"""
+        return self[self._backend.fun_names[name]]
+
     def follow_through(self, to_remove: Addr, target: Addr) -> None:
         """
         Replace node `to_remove` with a follow-through edge from every parent of the

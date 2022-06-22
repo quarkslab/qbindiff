@@ -32,7 +32,7 @@ class Function(Mapping[Addr, BasicBlock]):
     def load_binexport(self, *args, **kwargs):
         from qbindiff.loader.backend.binexport import FunctionBackendBinExport
 
-        self._backend = FunctionBackendBinExport(self, *args, **kwargs)
+        self._backend = FunctionBackendBinExport(*args, **kwargs)
 
     def load_ida(self, addr):
         from qbindiff.loader.backend.ida import FunctionBackendIDA
@@ -91,6 +91,7 @@ class Function(Mapping[Addr, BasicBlock]):
     def _unload(self) -> None:
         """Unload from memory all the basic blocks"""
         self._basic_blocks = None
+        self._backend.unload_blocks()
 
     @property
     def edges(self):

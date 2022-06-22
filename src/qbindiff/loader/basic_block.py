@@ -31,7 +31,7 @@ class BasicBlock(Iterable[Instruction]):
     def load_binexport(self, *args, **kwargs):
         from qbindiff.loader.backend.binexport import BasicBlockBackendBinExport
 
-        self._backend = BasicBlockBackendBinExport(self, *args, **kwargs)
+        self._backend = BasicBlockBackendBinExport(*args, **kwargs)
 
     def load_ida(self, addr):
         raise NotImplementedError("Ida backend loader is not yet fully implemented")
