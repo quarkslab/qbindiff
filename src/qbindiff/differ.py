@@ -1,5 +1,6 @@
 # third-party imports
 import numpy as np
+from datasketch import MinHash
 from networkx import DiGraph
 from collections.abc import Generator, Iterator
 from typing import Any, Callable, Optional
@@ -82,12 +83,30 @@ class Differ:
         )
         self.mapping = None
 
-    def _convert_mapping(self, mapping: RawMapping) -> Mapping:
+    def get_similarities(
+        self, primary_idx: list[int], secondary_idx: list[int]
+    ) -> list[float]:
+        """
+        Returns the similarity scores between the nodes specified as parameter.
+        By default it uses the similarity matrix.
+        This method is meant to be overridden by subclasses to give more meaningful
+        scores
+        """
+
+        return self.sim_matrix[primary_idx, secondary_idx]
+
+    def _convert_mapping(self, mapping: RawMapping, confidence: list[float]) -> Mapping:
+        """
+        Return the result of the diffing as a Mapping object.
+
+        :param mapping: The raw mapping between the nodes
+        :param confidence: The confidence score for each match
+        """
+
         primary_idx, secondary_idx = mapping
-        get_node = lambda idx, graph, map_i2n: graph.get_node(map_i2n[idx])
-        get_node_primary = lambda idx: get_node(idx, self.primary, self.primary_i2n)
-        get_node_secondary = lambda idx: get_node(
-            idx, self.secondary, self.secondary_i2n
+        get_node_primary = lambda idx: self.primary.get_node(self.primary_i2n[idx])
+        get_node_secondary = lambda idx: self.secondary.get_node(
+            self.secondary_i2n[idx]
         )
 
         # Get the matching nodes
@@ -109,7 +128,7 @@ class Differ:
         )
 
         # Get the similiarity scores
-        similarities = self.sim_matrix[primary_idx, secondary_idx]
+        similarities = self.get_similarities(primary_idx, secondary_idx)
 
         # Get the number of squares for each matching pair. We are counting both squares
         # in which the pair is a starting pair and the ones in which is a ending pair.
@@ -124,7 +143,7 @@ class Differ:
         squares = common_subgraph.sum(0) + common_subgraph.sum(1)
 
         return Mapping(
-            zip(primary_matched, secondary_matched, similarities, squares),
+            zip(primary_matched, secondary_matched, similarities, confidence, squares),
             primary_unmatched,
             secondary_unmatched,
         )
@@ -200,9 +219,7 @@ class Differ:
 
         self.run_passes()  # User registered passes
 
-    def compute_matching(
-        self,
-    ) -> Mapping:
+    def compute_matching(self) -> Mapping:
         """
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is returned as a Mapping object.
@@ -211,9 +228,7 @@ class Differ:
             pass
         return self.mapping
 
-    def matching_iterator(
-        self,
-    ) -> Generator[int]:
+    def matching_iterator(self) -> Generator[int]:
         """
         Run the belief propagation algorithm. This method returns a generator the yields
         the iteration number until the algorithm either converges or reaches `self.maxiter`
@@ -228,7 +243,7 @@ class Differ:
 
         yield from matcher.compute(self.tradeoff, self.epsilon, self.maxiter)
 
-        self.mapping = self._convert_mapping(matcher.mapping)
+        self.mapping = self._convert_mapping(matcher.mapping, matcher.confidence_score)
 
 
 class DiGraphDiffer(Differ):
@@ -355,6 +370,32 @@ class QBinDiff(Differ):
             program.follow_through(addr, import_func_addr)
 
         return program
+
+    def get_similarities(
+        self, primary_idx: list[int], secondary_idx: list[int]
+    ) -> list[float]:
+        """
+        Returns the similarity scores between the nodes specified as parameter.
+        Uses MinHash fuzzy hash at basic block level to give a similarity score.
+        """
+
+        # Utils functions
+        get_func_primary = lambda idx: self.primary[self.primary_i2f[idx]]
+        get_func_secondary = lambda idx: self.secondary[self.secondary_i2f[idx]]
+
+        # Get the matching nodes
+        primary_matched = map(get_func_primary, primary_idx)
+        secondary_matched = map(get_func_secondary, secondary_idx)
+
+        similarities = []
+        for f1, f2 in zip(primary_matched, secondary_matched):
+            h1, h2 = MinHash(), MinHash()
+            for _, bb in f1.items():
+                h1.update(b"".join(instr.mnemonic.encode("utf8") for instr in bb))
+            for _, bb in f2.items():
+                h2.update(b"".join(instr.mnemonic.encode("utf8") for instr in bb))
+            similarities.append(h1.jaccard(h2))
+        return similarities
 
     def export_to_bindiff(self, filename: str):
         from qbindiff.mapping.bindiff import BinDiffFormat

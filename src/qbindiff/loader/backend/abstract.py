@@ -90,6 +90,12 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
         """Comment associated with the instruction"""
         raise NotImplementedError()
 
+    @property
+    @abstractmethod
+    def bytes(self) -> bytes:
+        """Returns the bytes representation of the instruction"""
+        raise NotImplementedError()
+
 
 class AbstractBasicBlockBackend(metaclass=ABCMeta):
     """

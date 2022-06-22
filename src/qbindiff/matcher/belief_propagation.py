@@ -1,9 +1,8 @@
 import logging
-
+import math
 import numpy as np
-
-# Import for types
 from typing import Generator
+
 from qbindiff.types import Positive, Ratio, RawMapping, Vector, SparseMatrix
 
 
@@ -175,6 +174,15 @@ class BeliefMWM:
     @property
     def current_score(self) -> float:
         return self.weights.data[self.matches_mask].sum()
+
+    @property
+    def current_marginals(self) -> SparseMatrix:
+        """Returns all the marginals in a sparse matrix"""
+        curr_marginals = self.marginals.copy()
+        curr_marginals.data[:] = [
+            x / (1 + x) for x in np.power(math.e, curr_marginals.data)
+        ]
+        return curr_marginals
 
 
 class BeliefQAP(BeliefMWM):

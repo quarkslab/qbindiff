@@ -19,6 +19,7 @@ variables:
 # them in a virtualenv and cache it as well.
 
 stages:
+  - lint
   - test
 
 before_script:
@@ -39,6 +40,13 @@ before_script:
 
   # Build qbindiff
   - pip install .
+
+lint:
+  stage: lint
+  script:
+    - pip install black
+    - black --check src/
+    - black --check bin/qbindiff
 
 test:
   stage: test
