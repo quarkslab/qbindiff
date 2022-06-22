@@ -163,6 +163,9 @@ class AbstractFunctionBackend(metaclass=ABCMeta):
         """The name of the function"""
         raise NotImplementedError()
 
+    def unload_blocks(self) -> None:
+        """Unload basic blocks from memory"""
+        pass
 
 
 class AbstractProgramBackend(metaclass=ABCMeta):
@@ -187,4 +190,12 @@ class AbstractProgramBackend(metaclass=ABCMeta):
     @abstractmethod
     def callgraph(self) -> networkx.DiGraph:
         """The callgraph of the program"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def fun_names(self) -> dict[str, Addr]:
+        """
+        Returns a dictionary with function name as key and the function address as value
+        """
         raise NotImplementedError()
