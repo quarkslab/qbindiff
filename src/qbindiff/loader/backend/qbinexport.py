@@ -131,8 +131,13 @@ class OperandBackendQBinExport(AbstractOperandBackend):
                 op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
             if op.mem.index != 0:
                 op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
-            if op.mem.disp != 0:
-                op_str += f"+0x{op.mem.disp:x}"
+            if (disp := op.mem.disp) != 0:
+                if disp > 0:
+                    op_str += "+"
+                else:
+                    op_str += "-"
+                    disp = -disp
+                op_str += f"0x{disp:x}"
             op_str += "]"
             return op_str
         else:
@@ -185,7 +190,7 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         """Clean qbinexport internal state to deallocate memory"""
 
         # Clear the reference to capstone object
-        self.qb_instr.cs_instr = None
+        self.qb_instr._cs_instr = None
         # Unload cached instruction
         block = self.qb_instr.parent
         block._raw_dict[self.qb_instr.address] = self.qb_instr.proto_index
@@ -315,10 +320,6 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
         self.qb_func = qb_func
         self.program = program
 
-        # private attributes
-        self._type = None
-        self._name = None
-
         # [TODO] Init all the properties and free the memory of qb_prog/qb_func
 
     @property
@@ -370,51 +371,35 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
                 pass  # Sometimes there can be a chunk that is not part of any function
         return children
 
-    @property
+    @cached_property
     def type(self) -> FunctionType:
         """The type of the function (as defined by IDA)"""
-        if self._type is not None:
-            return self._type
 
         f_type = self.qb_func.type
         if f_type == qbinexport.types.FunctionType.NORMAL:
-            self._type = FunctionType.normal
+            return FunctionType.normal
         elif f_type == qbinexport.types.FunctionType.IMPORTED:
-            self._type = FunctionType.imported
+            return FunctionType.imported
         elif f_type == qbinexport.types.FunctionType.LIBRARY:
-            self._type = FunctionType.library
+            return FunctionType.library
         elif f_type == qbinexport.types.FunctionType.THUNK:
-            self._type = FunctionType.thunk
+            return FunctionType.thunk
         elif f_type == qbinexport.types.FunctionType.EXTERN:
-            self._type = FunctionType.extern
+            return FunctionType.extern
         elif f_type == qbinexport.types.FunctionType.INVALID:
-            self._type = FunctionType.invalid
+            return FunctionType.invalid
         else:
             raise NotImplementedError(f"Function type {f_type} not implemented")
-
-        return self._type
-
-    @type.setter
-    def type(self, value: FunctionType) -> None:
-        self._type = value
-
-    def is_import(self) -> bool:
-        """True if the function is imported"""
-        # Should we consider also FunctionType.thunk?
-        if self.type in (FunctionType.imported, FunctionType.extern):
-            return True
-        return False
 
     @property
     def name(self) -> str:
         """The name of the function"""
-        if self._name is None:
-            self._name = self.qb_func.name
-        return self._name
+        return self.qb_func.name
 
-    @name.setter
-    def name(self, value: str) -> None:
-        self._name = value
+    def is_import(self) -> bool:
+        """True if the function is imported"""
+        # Should we consider also FunctionType.thunk?
+        return self.type in (FunctionType.imported, FunctionType.extern)
 
 
 class ProgramBackendQBinExport(AbstractProgramBackend):
@@ -426,6 +411,7 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
         self.qb_prog = qbinexport.Program(export_path, exec_path)
 
         self._callgraph = networkx.DiGraph()
+        self._fun_names = {}  # {fun_name : fun_address}
 
         for addr, func in self.qb_prog.items():
             # Pass a self (weak) reference for performance
@@ -433,6 +419,7 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
             if addr in program:
                 logging.error("Address collision for 0x%x" % addr)
             program[addr] = f
+            self._fun_names[f.name] = addr
 
             self._callgraph.add_node(addr)
             for c_addr in f.children:
@@ -479,3 +466,10 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
     def callgraph(self) -> networkx.DiGraph:
         """The callgraph of the program"""
         return self._callgraph
+
+    @property
+    def fun_names(self) -> dict[str, int]:
+        """
+        Returns a dictionary with function name as key and the function address as value
+        """
+        return self._fun_names
