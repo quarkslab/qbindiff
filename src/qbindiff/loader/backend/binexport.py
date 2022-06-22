@@ -1,9 +1,13 @@
-import logging, networkx, capstone
+from __future__ import annotations
+import logging
+import capstone
+import weakref
+import binexport
 from struct import pack
-from collections import defaultdict
-from functools import cache
-from typing import Union, Optional, Any
+from collections.abc import Iterator
+from functools import cached_property
 from capstone import CS_OP_IMM, CS_GRP_JUMP
+from typing import Any, TypeAlias
 
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
@@ -12,60 +16,24 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
-from qbindiff.loader.backend.binexport2_pb2 import BinExport2
-from qbindiff.loader import (
-    Program,
-    Function,
-    BasicBlock,
-    Instruction,
-    Operand,
-    Data,
-    Structure,
-)
+from qbindiff.loader import Program, Function, Data, Structure
 from qbindiff.loader.types import (
     LoaderType,
     FunctionType,
-    OperandType,
     ReferenceType,
     ReferenceTarget,
 )
 from qbindiff.types import Addr
 
-
-# === General purpose binexport functions ===
-def _get_instruction_address(pb, inst_idx):
-    inst = pb.instruction[inst_idx]
-    if inst.HasField("address"):
-        return inst.address
-    else:
-        return _backtrack_instruction_address(pb, inst_idx)
+# Type aliases
+beFunction: TypeAlias = binexport.function.FunctionBinExport
+beBasicBlock: TypeAlias = binexport.basic_block.BasicBlockBinExport
+beInstruction: TypeAlias = binexport.instruction.InstructionBinExport
+capstoneOperand: TypeAlias = Any  # Relaxed typing
 
 
-def _backtrack_instruction_address(pb, idx):
-    tmp_sz = 0
-    tmp_idx = idx
-    if tmp_idx == 0:
-        return pb.instruction[tmp_idx].address
-    while True:
-        tmp_idx -= 1
-        tmp_sz += len(pb.instruction[tmp_idx].raw_bytes)
-        if pb.instruction[tmp_idx].HasField("address"):
-            break
-    return pb.instruction[tmp_idx].address + tmp_sz
-
-
-def _get_basic_block_addr(pb, bb_idx):
-    inst = pb.basic_block[bb_idx].instruction_index[0].begin_index
-    return _get_instruction_address(pb, inst)
-
-
-def _instruction_index_range(rng):
-    return range(
-        rng.begin_index, (rng.end_index if rng.end_index else rng.begin_index + 1)
-    )
-
-
-def _get_capstone_disassembler(binexport_arch: str, mode: Optional[int] = 0):
+# === General purpose utils functions ===
+def _get_capstone_disassembler(binexport_arch: str, mode: int = 0):
     def capstone_context(arch, mode):
         context = capstone.Cs(arch, mode)
         context.detail = True
@@ -119,355 +87,143 @@ def is_same_mnemonic(mnemonic1: str, mnemonic2: str) -> bool:
     return False
 
 
-# ===========================================
+# =======================================
 
 
-class ProgramBackendBinExport(AbstractProgramBackend):
-    def __init__(
-        self, program: Program, file: str, enable_cortexm: Optional[bool] = False
-    ):
-        super(ProgramBackendBinExport, self).__init__()
+class OperandBackendBinExport(AbstractOperandBackend):
+    def __init__(self, cs_instruction: capstone.CsInsn, cs_operand: capstoneOperand):
+        super(OperandBackendBinExport, self).__init__()
 
-        self._enable_cortexm = enable_cortexm
+        self.cs_instr = cs_instruction
+        self.cs_operand = cs_operand
 
-        self._pb = BinExport2()
-        with open(file, "rb") as f:
-            self.proto.ParseFromString(f.read())
-        self._mask = (
-            0xFFFFFFFF if self.architecture.endswith("32") else 0xFFFFFFFFFFFFFFFF
-        )
-        self._fun_names = {}
-        self._fun_addr = set()
-        self._callgraph = networkx.DiGraph()
-
-        # Make the data refs map {instruction index -> address referred}
-        data_refs = defaultdict(list)
-        for entry in self.proto.data_reference[::-1]:
-            data_refs[entry.instruction_index].append(entry.address)
-
-        count_f = 0
-        coll = 0
-        # Load all the functions
-        for i, pb_fun in enumerate(self.proto.flow_graph):
-            f = Function(LoaderType.binexport, self, data_refs=data_refs, pb_fun=pb_fun)
-            if f.addr in program:
-                logging.error("Address collision for 0x%x" % f.addr)
-                coll += 1
-            program[f.addr] = f
-            count_f += 1
-
-        count_imp = 0
-        # Load the callgraph
-        cg = self.proto.call_graph
-        for node in cg.vertex:
-            self._callgraph.add_node(node.address)
-            if node.address not in program and node.type == cg.Vertex.IMPORTED:
-                program[node.address] = Function(
-                    LoaderType.binexport,
-                    self,
-                    is_import=True,
-                    addr=node.address,
-                )
-                count_imp += 1
-            if node.address not in program:
-                logging.error(
-                    "Missing function address: 0x%x (%d)" % (node.address, node.type)
-                )
-                continue
-
-            program[node.address].type = self.normalize_function_type(node.type)
-            if node.demangled_name:
-                program[node.address].name = node.demangled_name
-            elif node.mangled_name:
-                program[node.address].name = node.mangled_name
-
-        for edge in cg.edge:
-            src = cg.vertex[edge.source_vertex_index].address
-            dst = cg.vertex[edge.target_vertex_index].address
-            self._callgraph.add_edge(src, dst)
-            program[src].children.add(dst)
-            program[dst].parents.add(src)
-
-        # Create a map of function names for quick lookup later on
-        for f in program.values():
-            self._fun_names[f.name] = f
-            self._fun_addr.add(f.addr)
-
-        logging.debug(
-            "total all:%d, imported:%d collision:%d (total:%d)"
-            % (count_f, count_imp, coll, (count_f + count_imp + coll))
-        )
+    def __str__(self) -> str:
+        op = self.cs_operand
+        if self.type == capstone.CS_OP_REG:
+            return self.cs_instr.reg_name(op.reg)
+        elif self.type == capstone.CS_OP_IMM:
+            return to_x(op.imm)
+        elif self.type == capstone.CS_OP_MEM:
+            op_str = ""
+            if op.mem.segment != 0:
+                op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
+            if op.mem.base != 0:
+                op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
+            if op.mem.index != 0:
+                op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
+            if (disp := op.mem.disp) != 0:
+                if disp > 0:
+                    op_str += "+"
+                else:
+                    op_str += "-"
+                    disp = -disp
+                op_str += f"0x{disp:x}"
+            op_str += "]"
+            return op_str
+        else:
+            raise NotImplementedError(f"Unrecognized capstone type {self.type}")
 
     @property
-    def cortexm(self) -> bool:
-        return self._enable_cortexm
-
-    def addr_mask(self, value):
-        return value & self._mask
-
-    @property
-    def proto(self):
-        return self._pb
-
-    @property
-    def name(self):
-        return self.proto.meta_information.executable_name
-
-    @property
-    def structures(self) -> list[Structure]:
+    def immutable_value(self) -> int | None:
         """
-        Returns the list of structures defined in program.
-        WARNING: Not supported by BinExport
+        Returns the immutable value (not addresses) used by the operand.
+        If there is no immutable value then returns None.
         """
 
+        if self.is_immutable():
+            return self.cs_operand.value.imm
+        return None
+
+    @property
+    def type(self) -> int:
+        """Returns the capstone operand type"""
+        return self.cs_operand.type
+
+    def is_immutable(self) -> bool:
+        """Returns whether the operand is an immutable (not considering addresses)"""
+
+        # Ignore jumps since the target is an immutable
+        return self.cs_operand.type == CS_OP_IMM and not self.cs_instr.group(
+            CS_GRP_JUMP
+        )
+
+
+class InstructionBackendBinExport(AbstractInstructionBackend):
+    def __init__(self, cs_instruction: capstone.CsInsn):
+        super(InstructionBackendBinExport, self).__init__()
+
+        self.cs_instr = cs_instruction
+
+    @property
+    def addr(self):
+        return self.cs_instr.addr
+
+    @property
+    def mnemonic(self):
+        return self.cs_instr.mnemonic
+
+    @property
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
+        """
+        Returns all the references towards the instruction
+        BinExport only exports data references' address so no data type nor value.
+        """
+        return {}  # Not supported
+
+    @property
+    def operands(self) -> Iterator[OperandBackendBinExport]:
+        """Returns an iterator over backend operand objects"""
+        if self.cs_instr is None:
+            return iter([])
+        return (
+            OperandBackendBinExport(self.cs_instr, o) for o in self.cs_instr.operands
+        )
+
+    @property
+    def groups(self) -> list[int]:
         return []  # Not supported
 
     @property
-    def architecture(self):
-        return self.proto.meta_information.architecture_name
-
-    def __repr_(self):
-        return "<Program:%s>" % self.name
+    def id(self) -> int:
+        """Return the capstone instruction ID"""
+        return self.cs_instr.id
 
     @property
-    def callgraph(self) -> networkx.DiGraph:
-        return self._callgraph
-
-    def get_function(self, name: str) -> Function:
-        """Returns the qbindiff Function object associated with the function `name`"""
-        if name in self._fun_names:
-            return self._fun_names[name]
-        return None
-
-    def has_function(self, key: Union[str, Addr]) -> bool:
-        """
-        Returns True if the function exists, False otherwise.
-        The parameter `key` can either be the function name or the function address.
-        """
-        match key:
-            case str(name):
-                return name in self._fun_names
-            case int(addr):
-                return addr in self._fun_addr
-
-    def normalize_function_type(
-        self, f_type: BinExport2.CallGraph.Vertex.Type
-    ) -> FunctionType:
-        """Convert a BinExport function type to a FunctionType"""
-
-        if f_type == BinExport2.CallGraph.Vertex.NORMAL:
-            return FunctionType.normal
-        if f_type == BinExport2.CallGraph.Vertex.LIBRARY:
-            return FunctionType.library
-        if f_type == BinExport2.CallGraph.Vertex.IMPORTED:
-            return FunctionType.imported
-        if f_type == BinExport2.CallGraph.Vertex.THUNK:
-            return FunctionType.thunk
-        if f_type == BinExport2.CallGraph.Vertex.INVALID:
-            return FunctionType.invalid
-        raise NotImplementedError(f"Function type {f_type} not implemented")
-
-
-class FunctionBackendBinExport(AbstractFunctionBackend):
-    def __init__(
-        self,
-        function: Function,
-        be_program: ProgramBackendBinExport,
-        data_refs: defaultdict[int, list[Addr]] = None,
-        pb_fun: BinExport2.FlowGraph = None,
-        is_import: bool = False,
-        addr: Addr = None,
-    ):
-        super(FunctionBackendBinExport, self).__init__()
-
-        # Private attributes
-        self._addr = addr  # Optional address
-        self._parents = set()
-        self._children = set()
-        self._graph = networkx.DiGraph()
-        self._basic_blocks_addr = set()
-        self._type = None  # Set by the Program constructor
-        self._name = None  # Set by the Program constructor (mangled name)
-
-        if is_import:
-            if self._addr is None:
-                logging.error("Missing function address for imported function")
-            return
-
-        assert (
-            data_refs is not None and pb_fun is not None
-        ), "data_refs and pb_fun must be provided"
-
-        self._addr = _get_basic_block_addr(
-            be_program.proto, pb_fun.entry_basic_block_index
-        )
-
-        # Load the basic blocks
-        bb_i2a = {}  # Map {basic block index -> basic block address}
-        bb_count = 0
-        for bb_idx in pb_fun.basic_block_index:
-            bb_count += 1
-            basic_block = BasicBlock(
-                LoaderType.binexport,
-                be_program,
-                self,
-                be_program.proto.basic_block[bb_idx],
-                data_refs,
-            )
-
-            if basic_block.addr in function:
-                logging.error(
-                    "0x%x basic block address (0x%x) already in(idx:%d)"
-                    % (self.addr, basic_block.addr, bb_idx)
-                )
-
-            function[basic_block.addr] = basic_block
-            bb_i2a[bb_idx] = basic_block.addr
-            self._graph.add_node(basic_block.addr)
-            self._basic_blocks_addr.add(basic_block.addr)
-
-        if bb_count != len(function):
-            logging.error(
-                "Wrong basic block number %x, bb:%d, self:%d"
-                % (self.addr, len(pb_fun.basic_block_index), len(function))
-            )
-
-        # Load the edges between blocks
-        for edge in pb_fun.edge:
-            # Source will always be in a basic block
-            bb_src = bb_i2a[edge.source_basic_block_index]
-
-            # Target might be a different function and not a basic block.
-            # e.g. in case of a jmp to another function (or a `bl` in ARM)
-            if edge.target_basic_block_index not in bb_i2a:
-                continue
-
-            bb_dst = bb_i2a[edge.target_basic_block_index]
-            self._graph.add_edge(bb_src, bb_dst)
+    def comment(self):
+        return ""  # Not supported
 
     @property
-    def addr(self) -> Addr:
-        """The address of the function"""
-        return self._addr
-
-    @property
-    def graph(self) -> networkx.DiGraph:
-        return self._graph
-
-    @property
-    def parents(self) -> set[Addr]:
-        """Set of function parents in the call graph"""
-        return self._parents
-
-    @property
-    def children(self) -> set[Addr]:
-        """Set of function children in the call graph"""
-        return self._children
-
-    @property
-    def name(self):
-        return self._name if self._name else "sub_%X" % self.addr
-
-    @name.setter
-    def name(self, name: str):
-        self._name = name
-
-    @property
-    def type(self) -> FunctionType:
-        return self._type
-
-    @type.setter
-    def type(self, value: FunctionType):
-        self._type = value
-
-    def has_basic_block(self, addr: Addr) -> bool:
-        """Returns True if the basic block with address `addr` exists, False otherwise."""
-        return addr in self._basic_blocks_addr
+    def bytes(self) -> bytes:
+        """Returns the bytes representation of the instruction"""
+        return bytes(self.cs_instr.bytes)
 
 
 class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
     def __init__(
-        self,
-        basic_block: BasicBlock,
-        be_program: ProgramBackendBinExport,
-        be_function: FunctionBackendBinExport,
-        pb_basic_block: BinExport2.BasicBlock,
-        data_refs: defaultdict[int, list[Addr]],
+        self, program: weakref.ref[ProgramBackendBinExport], be_block: beBasicBlock
     ):
         super(BasicBlockBackendBinExport, self).__init__()
 
-        # Private attributes
-        self._addr = None
-
-        bb_asm = b""
-        instr_count = 0
-
-        # Ranges are in fact the true basic blocks but BinExport for some reason likes
-        # to merge multiple basic blocks into one.
-        # For example: BB_1 -- unconditional_jmp --> BB_2
-        # might be merged into a single basic block
-        for rng in pb_basic_block.instruction_index:
-            for idx in _instruction_index_range(rng):
-                pb_inst = be_program.proto.instruction[idx]
-                inst_addr = _get_instruction_address(be_program.proto, idx)
-
-                # The first instruction determines the basic block address
-                # Save the first instruction to guess the instruction set
-                if self._addr is None:
-                    self._addr = inst_addr
-                    first_instr = be_program.proto.instruction[idx]
-
-                bb_asm += pb_inst.raw_bytes
-                instr_count += 1
-
-        instructions = self._disassemble(
-            be_program,
-            bb_asm,
-            be_program.proto.mnemonic[first_instr.mnemonic_index].name,
-            len(first_instr.raw_bytes),
-        )
-        if len(instructions) != instr_count:
-            logging.error(
-                f"Mismatch between the disassembly of capstone and IDA for the basic block at address 0x{self.addr:x}"
-            )
-            exit(1)
-
-        i = 0
-        # Iterate once again to build the Instruction
-        for rng in pb_basic_block.instruction_index:
-            for idx in _instruction_index_range(rng):
-                pb_inst = be_program.proto.instruction[idx]
-                inst_addr = _get_instruction_address(be_program.proto, idx)
-
-                basic_block.append(
-                    Instruction(
-                        LoaderType.binexport,
-                        be_program,
-                        be_function,
-                        inst_addr,
-                        idx,
-                        data_refs,
-                        instructions[i],
-                    )
-                )
-                i += 1
+        self._program = program
+        self.be_block = be_block
 
     def _disassemble(
-        self,
-        be_program: ProgramBackendBinExport,
-        bb_asm: bytes,
-        correct_mnemonic: str,
-        correct_size: int,
-    ):
+        self, bb_asm: bytes, correct_mnemonic: str, correct_size: int
+    ) -> list[capstone.CsInsn]:
         """
         Disassemble the basic block using capstone trying to guess the instruction set
-        when unable to determine it from binexport
+        when unable to determine it from binexport.
+
+        :param bb_asm: basic block raw bytes
+        :param correct_mnemonic: The correct mnemonic of the first instruction of the
+                                 basic block
+        :param correct_size: The right size of the first instruction of the basic block
         """
 
         instructions = []
         mnemonic = None
         size = None
-        arch = be_program.proto.meta_information.architecture_name
+        arch = self.program.architecture_name
         capstone_mode = 0
         arm_mode = 0
 
@@ -509,138 +265,145 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         return instructions
 
     @property
+    def program(self) -> ProgramBackendBinExport:
+        """Wrapper on weak reference on ProgramBackendBinExport"""
+        return self._program()
+
+    @property
     def addr(self) -> Addr:
-        return self._addr
-
-
-class InstructionBackendBinExport(AbstractInstructionBackend):
-    def __init__(
-        self,
-        be_program: ProgramBackendBinExport,
-        be_function: FunctionBackendBinExport,
-        addr: Addr,
-        i_idx: int,
-        data_refs: defaultdict[int, list[Addr]],
-        cs_instr: capstone.CsInsn,
-    ):
-        super(InstructionBackendBinExport, self).__init__()
-
-        # Private attributes
-        self._addr = addr
-        self._be_program = be_program
-        self._be_function = be_function
-        self._instruction = be_program.proto.instruction[i_idx]
-        self.data_refs = data_refs[i_idx]
-        self.comment_index = be_program.proto.instruction[i_idx].comment_index
-        self.cs_instr = cs_instr
+        return self.be_block.addr
 
     @property
-    def addr(self):
-        return self._addr
+    def instructions(self) -> Iterator[InstructionBackendBinExport]:
+        """Returns an iterator over backend instruction objects"""
 
-    @property
-    def mnemonic(self):
-        return self._be_program.proto.mnemonic[self._instruction.mnemonic_index].name
-
-    @property
-    @cache
-    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
-        """
-        Returns all the references towards the instruction
-        BinExport only exports data references' address so no data type nor value.
-        """
-        return {
-            ReferenceType.DATA: [
-                Data(DataType.UNKNOWN, addr, None) for addr in self.data_refs
-            ]
-        }
-
-    @property
-    @cache
-    def operands(self):
-        return [
-            Operand(LoaderType.binexport, self.cs_instr, o)
-            for o in self.cs_instr.operands
-        ]
-
-    @property
-    def groups(self) -> list[int]:
-        return []  # not supported
-
-    @property
-    def id(self) -> int:
-        """Return the capstone instruction ID"""
-        return self.cs_instr.id
-
-    @property
-    def comment(self):
-        proto = self._be_program.proto  # Alias
-        str_comment = ""
-
-        for comment_idx in self.comment_index:
-            if proto.comment[comment_idx].HasField("string_table_index"):
-                string_idx = proto.comment[comment_idx].string_table_index
-
-                if len(str_comment) > 0:
-                    str_comment += "\n"  # Separator between comments
-                str_comment += proto.string_table[string_idx]
-
-        return str_comment
-
-    @property
-    def bytes(self) -> bytes:
-        """Returns the bytes representation of the instruction"""
-        return self._instruction.raw_bytes
-
-
-class OperandBackendBinexport(AbstractOperandBackend):
-    def __init__(self, cs_instruction, cs_operand):
-        super(OperandBackendBinexport, self).__init__()
-
-        self.cs_instr = cs_instruction
-        self.cs_operand = cs_operand
-
-    def __str__(self) -> str:
-        op = self.cs_operand
-        if self.type == capstone.CS_OP_REG:
-            return self.cs_instr.reg_name(op.reg)
-        elif self.type == capstone.CS_OP_IMM:
-            return to_x(op.imm)
-        elif self.type == capstone.CS_OP_MEM:
-            op_str = ""
-            if op.mem.segment != 0:
-                op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
-            if op.mem.base != 0:
-                op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
-            if op.mem.index != 0:
-                op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
-            if op.mem.disp != 0:
-                op_str += f"+0x{op.mem.disp:x}"
-            op_str += "]"
-            return op_str
-        else:
-            raise NotImplementedError(f"Unrecognized capstone type {self.type}")
-
-    @property
-    def immutable_value(self) -> int | None:
-        """
-        Returns the immutable value (not addresses) used by the operand.
-        If there is no immutable value then returns None.
-        """
-
-        if self.is_immutable():
-            return self.cs_operand.value.imm
-        return None
-
-    @property
-    def type(self) -> int:
-        """Returns the capstone operand type"""
-        return self.cs_operand.type
-
-    def is_immutable(self) -> bool:
-        """Returns whether the operand is an immutable (not considering addresses)"""
-
-        # Ignore jumps since the target is an immutable
-        return self.cs_operand.type == CS_OP_IMM and not self.cs_instr.group(
-            CS_GRP_JUMP
+        # Generates the first instruction and use it to guess the context for capstone
+        first_instr = next(iter(self.be_block.values()))
+        capstone_instructions = self._disassemble(
+            self.be_block.bytes, first_instr.mnemonic, len(first_instr.bytes)
         )
+
+        # Then iterate over the instructions
+        return (InstructionBackendBinExport(instr) for instr in capstone_instructions)
+
+
+class FunctionBackendBinExport(AbstractFunctionBackend):
+    def __init__(
+        self, program: weakref.ref[ProgramBackendBinExport], be_func: beFunction
+    ):
+        super(FunctionBackendBinExport, self).__init__()
+
+        self.be_func = be_func
+        self._program = program
+
+    @property
+    def basic_blocks(self) -> Iterator[BasicBlockBackendBinExport]:
+        """Returns an iterator over backend basic blocks objects"""
+
+        # Stop the exploration if it's an imported function
+        if self.is_import():
+            return iter([])
+
+        return (
+            BasicBlockBackendBinExport(self._program, bb)
+            for addr, bb in self.be_func.blocks.items()
+        )
+
+    @property
+    def addr(self) -> Addr:
+        """The address of the function"""
+        return self.be_func.addr
+
+    @property
+    def graph(self) -> "networkx.DiGraph":
+        """The Control Flow Graph of the function"""
+        return self.be_func.graph
+
+    @property
+    def parents(self) -> set[Addr]:
+        """Set of function parents in the call graph"""
+        return {func.addr for func in self.be_func.parents}
+
+    @property
+    def children(self) -> set[Addr]:
+        """Set of function children in the call graph"""
+        return {func.addr for func in self.be_func.children}
+
+    @cached_property
+    def type(self) -> FunctionType:
+        """The type of the function (as defined by IDA)"""
+
+        f_type = self.be_func.type
+        if f_type == binexport.types.FunctionType.NORMAL:
+            return FunctionType.normal
+        elif f_type == binexport.types.FunctionType.LIBRARY:
+            return FunctionType.library
+        elif f_type == binexport.types.FunctionType.IMPORTED:
+            return FunctionType.imported
+        elif f_type == binexport.types.FunctionType.THUNK:
+            return FunctionType.thunk
+        elif f_type == binexport.types.FunctionType.INVALID:
+            return FunctionType.invalid
+        else:
+            raise NotImplementedError(f"Function type {f_type} not implemented")
+
+    @property
+    def name(self):
+        return self.be_func.name
+
+    def is_import(self) -> bool:
+        """True if the function is imported"""
+        # Should we consider also FunctionType.thunk?
+        return self.type in (FunctionType.imported, FunctionType.extern)
+
+    def unload_blocks(self) -> None:
+        """Unload basic blocks from memory"""
+        del self.be_func.blocks
+
+
+class ProgramBackendBinExport(AbstractProgramBackend):
+    def __init__(self, program: Program, file: str, *, enable_cortexm: bool = False):
+        super(ProgramBackendBinExport, self).__init__()
+
+        self._enable_cortexm = enable_cortexm
+
+        self.be_prog = binexport.ProgramBinExport(file)
+        self.architecture_name = self.be_prog.architecture
+        self._fun_names = {}  # {fun_name : fun_address}
+
+        # Load all the functions
+        for addr, func in self.be_prog.items():
+            f = Function(LoaderType.binexport, weakref.ref(self), func)
+            program[f.addr] = f
+            self._fun_names[f.name] = f.addr
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__}:{self.name}>"
+
+    @property
+    def cortexm(self) -> bool:
+        return self._enable_cortexm
+
+    @property
+    def name(self):
+        return self.be_prog.name
+
+    @property
+    def structures(self) -> list[Structure]:
+        """
+        Returns the list of structures defined in program.
+        WARNING: Not supported by BinExport
+        """
+
+        return []  # Not supported
+
+    @property
+    def callgraph(self) -> "networkx.DiGraph":
+        return self.be_prog.callgraph
+
+    @property
+    def fun_names(self) -> dict[str, int]:
+        """
+        Returns a dictionary with function name as key and the function address as value
+        """
+        return self._fun_names
