@@ -157,21 +157,12 @@ class AbstractFunctionBackend(metaclass=ABCMeta):
         """The type of the function (as defined by IDA)"""
         raise NotImplementedError()
 
-    @type.setter
-    @abstractmethod
-    def type(self, value: FunctionType) -> None:
-        raise NotImplementedError()
-
     @property
     @abstractmethod
     def name(self) -> str:
         """The name of the function"""
         raise NotImplementedError()
 
-    @name.setter
-    @abstractmethod
-    def name(self, value: str) -> None:
-        raise NotImplementedError()
 
 
 class AbstractProgramBackend(metaclass=ABCMeta):
