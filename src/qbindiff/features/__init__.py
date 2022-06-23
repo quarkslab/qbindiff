@@ -37,31 +37,15 @@ FEATURES = (
     GroupsCategory,
     Address,
     DatName,
+    StrRef,
     # OperandFeatureExtractor
     Constant,
 )
 
 DEFAULT_FEATURES = (
-    # FunctionFeatureExtractor
-    BBlockNb,
-    MeanInsNB,
-    GraphMeanDegree,
-    GraphDensity,
-    GraphNbComponents,
-    GraphDiameter,
-    GraphTransitivity,
-    ChildNb,
-    ParentNb,
-    RelativeNb,
-    LibName,
-    DatName,
-    # BasicBlockFeatureExtractor
-    # InstructionFeatureExtractor
-    MnemonicSimple,
-    MnemonicTyped,
-    GroupsCategory,
+    WeisfeilerLehman,
+    FuncName,
     Address,
     DatName,
-    # OperandFeatureExtractor
     Constant,
 )
