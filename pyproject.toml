@@ -1,3 +1,13 @@
 [build-system]
-requires = ["setuptools"]
+requires = [
+    "setuptools",
+    "cython",
+    "packaging",
+
+    # use oldest-supported-numpy which provides the oldest numpy version with
+    # wheels on PyPI
+    #
+    # see: https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
+    "oldest-supported-numpy",
+]
 build-backend = "setuptools.build_meta"
