@@ -153,9 +153,19 @@ class Matcher:
         return [self._confidence[idx1, idx2] for idx1, idx2 in zip(*self.mapping)]
 
     def process(self, sparsity_ratio: Ratio = 0.75, compute_squares: bool = True):
+        logging.debug(f"Computing sparse similarity matrix (ratio {sparsity_ratio})")
         self._compute_sparse_sim_matrix(sparsity_ratio)
+        logging.debug(
+            f"Sparse similarity matrix computed, shape: {self.sparse_sim_matrix.shape}"
+            f", nnz elements: {self.sparse_sim_matrix.nnz}"
+        )
         if compute_squares:
+            logging.debug("Computing squares matrix")
             self._compute_squares_matrix()
+            logging.debug(
+                f"Squares matrix computed, shape: {self.squares_matrix.shape}"
+                f", nnz elements: {self.squares_matrix.nnz}"
+            )
 
     def compute(
         self, tradeoff: Ratio = 0.75, epsilon: Positive = 0.5, maxiter: int = 1000
