@@ -20,7 +20,7 @@ variables:
 
 stages:
   - lint
-  - test
+  #- test
 
 before_script:
   - python --version  # For debugging
