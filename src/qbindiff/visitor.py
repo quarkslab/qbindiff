@@ -1,3 +1,4 @@
+import tqdm
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from typing import Any, Callable
@@ -11,6 +12,7 @@ from qbindiff.features.extractor import (
     InstructionFeatureExtractor,
     OperandFeatureExtractor,
 )
+from qbindiff.utils import is_debug
 from qbindiff.types import Graph
 
 
@@ -40,7 +42,9 @@ class Visitor(metaclass=ABCMeta):
         :return: A dict in which keys are key_fun(item, i) and values are the FeatureCollector
         """
         obj_features = {}
-        for i, item in enumerate(graph.items()):
+        for i, item in tqdm.tqdm(
+            enumerate(graph.items()), total=len(graph), disable=not is_debug()
+        ):
             _, node = item
             collector = FeatureCollector()
             self.visit_item(graph, node, collector)
