@@ -9,7 +9,7 @@ from qbindiff.features.graph import (
     GraphTransitivity,
     GraphCommunities,
 )
-from qbindiff.features.artefact import Address, DatName, Constant, FuncName
+from qbindiff.features.artefact import Address, DatName, Constant, FuncName, StrRef
 from qbindiff.features.topology import ChildNb, ParentNb, RelativeNb, LibName, ImpName
 from qbindiff.features.wlgk import WeisfeilerLehman
 

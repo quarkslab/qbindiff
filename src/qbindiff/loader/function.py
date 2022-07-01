@@ -1,3 +1,4 @@
+from __future__ import annotations
 import networkx, gc, sys
 from collections.abc import Mapping
 from typing import Set
@@ -11,16 +12,33 @@ class Function(Mapping[Addr, BasicBlock]):
     """
     Representation of a binary function.
     This class is a dict of basic block addreses to the basic block.
+    It lazily loads all the basic blocks when iterating through them or even accessing
+    one of them and it unloads all of them after the iteration has ended.
+
+    To keep a reference to the basic blocks the `with` statement can be used, for example:
+    ```
+    # func: Function
+    with func:  # Loading all the basic blocks
+        for bb_addr, bb in func.items():  # Blocks are already loaded
+            pass
+        # The blocks are still loaded
+        for bb_addr, bb in func.items():
+            pass
+    # here the blocks have been unloaded
+    ```
     """
 
-    def __init__(self, loader, *args, **kwargs):
+    def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
         super(Function, self).__init__()
 
         # The basic blocks are lazily loaded
         self._basic_blocks = None
+        self._enable_unloading = True
 
         self._backend = None
-        if loader == LoaderType.binexport:
+        if loader is None and (backend := kwargs.get("backend")) is not None:
+            self._backend = backend  # Load directly from instanciated backend
+        elif loader == LoaderType.binexport:
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
@@ -44,8 +62,23 @@ class Function(Mapping[Addr, BasicBlock]):
 
         self._backend = FunctionBackendQBinExport(*args, **kwargs)
 
+    @staticmethod
+    def from_backend(backend: AbstractFunctionBackend) -> Function:
+        """Load the BasicBlock from an instanciated basic block backend object"""
+        return Function(None, backend=backend)
+
     def __hash__(self):
         return hash(self.addr)
+
+    def __enter__(self):
+        """Preload basic blocks and don't deallocate them until __exit__ is called"""
+        self._enable_unloading = False
+        self._preload()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Deallocate all the basic blocks"""
+        self._enable_unloading = True
+        self._unload()
 
     def __getitem__(self, key: Addr) -> BasicBlock:
         if self._basic_blocks is not None:
@@ -59,11 +92,11 @@ class Function(Mapping[Addr, BasicBlock]):
     def __iter__(self):
         """Iterate over basic blocks, not addresses"""
         if self._basic_blocks is not None:
-            return self._basic_blocks.values()
-
-        self._preload()
-        yield from self._basic_blocks.values()
-        self._unload()
+            yield from self._basic_blocks.values()
+        else:
+            self._preload()
+            yield from self._basic_blocks.values()
+            self._unload()
 
     def __len__(self):
         if self._basic_blocks is not None:
@@ -76,11 +109,11 @@ class Function(Mapping[Addr, BasicBlock]):
 
     def items(self):
         if self._basic_blocks is not None:
-            return self._basic_blocks.items()
-
-        self._preload()
-        yield from self._basic_blocks.items()
-        self._unload()
+            yield from self._basic_blocks.items()
+        else:
+            self._preload()
+            yield from self._basic_blocks.items()
+            self._unload()
 
     def _preload(self) -> None:
         """Load in memory all the basic blocks"""
@@ -90,8 +123,9 @@ class Function(Mapping[Addr, BasicBlock]):
 
     def _unload(self) -> None:
         """Unload from memory all the basic blocks"""
-        self._basic_blocks = None
-        self._backend.unload_blocks()
+        if self._enable_unloading:
+            self._basic_blocks = None
+            self._backend.unload_blocks()
 
     @property
     def edges(self):

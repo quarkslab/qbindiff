@@ -12,7 +12,7 @@ class Instruction:
     Defines an Instruction object that wrap the backend using under the scene.
     """
 
-    def __init__(self, loader: LoaderType | None, *args, **kwargs):
+    def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
         self._backend = None
         if loader is None and (backend := kwargs.get("backend")) is not None:
             self._backend = backend  # Load directly from instanciated backend

@@ -1,9 +1,11 @@
+from scipy.sparse import lil_array
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Union, Any, Optional
+from typing import Any
 
+from qbindiff.features.manager import FeatureKeyManager
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
-from qbindiff.types import Positive
+from qbindiff.types import Positive, SparseVector
 
 
 class FeatureCollector:
@@ -13,15 +15,17 @@ class FeatureCollector:
     """
 
     def __init__(self):
-        self._features: dict[str, Union[float, dict[str, float]]] = {}
+        self._features: dict[str, float | dict[str, float]] = {}
 
     def add_feature(self, key: str, value: float) -> None:
+        FeatureKeyManager.add(key)
         self._features.setdefault(key, 0)
         self._features[key] += value
 
     def add_dict_feature(self, key: str, value: dict[str, float]) -> None:
         self._features.setdefault(key, defaultdict(float))
         for k, v in value.items():
+            FeatureKeyManager.add(key, k)
             self._features[key][k] += v
 
     def full_keys(self) -> dict[str, set[str]]:
@@ -37,40 +41,31 @@ class FeatureCollector:
                 keys[main_key].update(feature.keys())
         return keys
 
-    def to_vector(
-        self, key_order: dict[str, Iterable[str]], empty_default: Optional[Any] = None
-    ) -> list[float]:
+    def to_sparse_vector(self, dtype: type, main_key_list: list[str]) -> SparseVector:
         """
-        Transform the collection to a feature vector. If the parameter `empty_default`
-        is specified then if the feature vector is the zero vector the `empty_default`
-        is returned
+        Transform the collection to a sparse feature vector.
 
-        :param key_order: The order in which the keys are accessed
-        :param empty_default: Default value to be returned in case the feature vector
-                              is a zero vector, if None then the zero vector is returned
+        :param dtype: dtype of the sparse vector
+        :param main_key_list: A list of main keys that act like a filter: only those
+                              keys are considered when building the vector.
         """
 
-        vector = []
-        is_zero = True
-        for main_key, subkey_list in key_order.items():
-            if subkey_list:
-                feature = self._features.get(main_key, {})
-                for subkey in subkey_list:
-                    val = feature.get(subkey, 0)
-                    if val != 0:
-                        is_zero = False
-                    vector.append(val)
-            else:
-                value = self._features.get(main_key, 0)
-                if not value:  # It might be a empty dict or a list, ...
-                    vector.append(0)
-                else:
-                    vector.append(value)
-                    is_zero = False
+        manager = FeatureKeyManager
+        size = manager.get_cum_size(main_key_list)
+        vector = lil_array((1, size), dtype=dtype)
+        offset = 0
+        for main_key in sorted(main_key_list):  # Sort them to keep consistency
+            if main_key not in self._features:
+                offset += manager.get_size(main_key)
+                continue
 
-        if is_zero and empty_default is not None:
-            return empty_default
-        return vector
+            if isinstance(self._features[main_key], dict):  # with subkeys
+                for subkey, value in self._features[main_key].items():
+                    vector[0, offset + manager.get(main_key, subkey)] = value
+            else:  # without subkeys
+                vector[0, offset] = self._features[main_key]
+            offset += manager.get_size(main_key)
+        return vector.tocsr()
 
 
 class FeatureExtractor:

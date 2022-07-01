@@ -1,5 +1,6 @@
+from __future__ import annotations
 import networkx
-from typing import Callable, Union, Any, Optional
+from typing import Callable, Any
 from collections.abc import Iterator
 
 from qbindiff.abstract import GenericGraph
@@ -15,19 +16,11 @@ class Program(dict, GenericGraph):
     values are Function object.
     """
 
-    def __init__(
-        self,
-        file_path: Optional[str] = None,
-        loader: Optional[LoaderType] = LoaderType.binexport,
-        exec_path: Optional[str] = None,
-        **kwargs
-    ):
+    def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
         super(Program, self).__init__()
         self._backend = None
-        self._file_path = file_path
-        self._exec_path = exec_path
 
-        if file_path is None:  # Inside IDA just call Program()
+        if loader == LoaderType.ida:
             from qbindiff.loader.backend.ida import ProgramBackendIDA
 
             self._backend = ProgramBackendIDA(self, **kwargs)
@@ -35,23 +28,21 @@ class Program(dict, GenericGraph):
         elif loader == LoaderType.binexport:
             from qbindiff.loader.backend.binexport import ProgramBackendBinExport
 
-            self._backend = ProgramBackendBinExport(self, file_path, **kwargs)
+            self._backend = ProgramBackendBinExport(*args, **kwargs)
 
         elif loader == LoaderType.qbinexport:
             from qbindiff.loader.backend.qbinexport import ProgramBackendQBinExport
 
-            self._backend = ProgramBackendQBinExport(
-                self, file_path, exec_path, **kwargs
-            )
+            self._backend = ProgramBackendQBinExport(*args, **kwargs)
 
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
+
         self._filter = lambda x: True
+        self._load_functions()
 
     @staticmethod
-    def from_binexport(
-        file_path: str, enable_cortexm: Optional[bool] = False
-    ) -> "Program":
+    def from_binexport(file_path: str, enable_cortexm: bool = False) -> Program:
         """
         Load the Program using the binexport backend
 
@@ -60,10 +51,10 @@ class Program(dict, GenericGraph):
                                disassembling with capstone
         :return: Program instance
         """
-        return Program(file_path, LoaderType.binexport, enable_cortexm)
+        return Program(LoaderType.binexport, file_path, enable_cortexm)
 
     @staticmethod
-    def from_qbinexport(file_path: str, exec_path: str) -> "Program":
+    def from_qbinexport(file_path: str, exec_path: str) -> Program:
         """
         Load the Program using the QBinExport backend.
 
@@ -71,7 +62,7 @@ class Program(dict, GenericGraph):
         :param exec_path: Path of the raw binary
         :return: Program instance
         """
-        return Program(file_path, LoaderType.binexport)
+        return Program(LoaderType.qbinexport, file_path, exec_path=exec_path)
 
     @staticmethod
     def from_ida() -> "Program":
@@ -79,10 +70,27 @@ class Program(dict, GenericGraph):
         Load the program using the idapython API
         :return: None
         """
-        return Program()
+        return Program(LoaderType.ida)
 
     def __repr__(self):
         return "<Program:%s>" % self.name
+
+    def __iter__(self):
+        """
+        Override the built-in __iter__ to iterate all functions
+        located in the program.
+
+        :return: Iterator of all functions (sorted by address)
+        """
+        for addr in sorted(self.keys()):
+            f = self[addr]
+            if self._filter(f):  # yield function only if filter agree to keep it
+                yield f
+
+    def _load_functions(self) -> None:
+        """Load the functions from the backend"""
+        for function in map(Function.from_backend, self._backend.functions):
+            self[function.addr] = function
 
     def items(self) -> Iterator[tuple[Any, Any]]:
         """Return an iterator over the items. Each item is {node_label: node}"""
@@ -129,14 +137,9 @@ class Program(dict, GenericGraph):
         return self._backend.structures
 
     @property
-    def file_path(self):
-        """Returns the file path"""
-        return self._file_path
-
-    @property
-    def exec_path(self):
-        """Returns the executable path"""
-        return self._exec_path
+    def exec_path(self) -> str | None:
+        """Returns the executable path if it has been specified"""
+        return self._backend.exec_path
 
     def set_function_filter(self, func: Callable[[Function], bool]) -> None:
         """
@@ -149,18 +152,6 @@ class Program(dict, GenericGraph):
         :return: None
         """
         self._filter = func
-
-    def __iter__(self):
-        """
-        Override the built-in __iter__ to iterate all functions
-        located in the program.
-
-        :return: Iterator of all functions (sorted by address)
-        """
-        for addr in sorted(self.keys()):
-            f = self[addr]
-            if self._filter(f):  # yield function only if filter agree to keep it
-                yield f
 
     @property
     def callgraph(self) -> networkx.DiGraph:

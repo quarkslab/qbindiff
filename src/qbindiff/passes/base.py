@@ -1,12 +1,17 @@
+import logging
+import tqdm
 import numpy as np
-import scipy.spatial
+from scipy.sparse import lil_matrix
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
-from typing import Any, Optional, Iterable
+from typing import Any, Iterable
 
 from qbindiff.loader import Program
-from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
 from qbindiff.visitor import ProgramVisitor
+from qbindiff.features.manager import FeatureKeyManager
+from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
+from qbindiff.passes.metrics import pairwise_distances
+from qbindiff.utils import is_debug
 from qbindiff.types import SimMatrix
 
 
@@ -42,7 +47,7 @@ class FeaturePass(GenericPass):
         return self._distances.get(key, self._default_distance)
 
     def register_extractor(
-        self, extractor: FeatureExtractor, distance: Optional[str] = None
+        self, extractor: FeatureExtractor, distance: str | None = None
     ) -> None:
         """
         Register a feature extractor optionally specifying a distance to use.
@@ -55,44 +60,31 @@ class FeaturePass(GenericPass):
     def _create_feature_matrix(
         self,
         features: dict[Any, FeatureCollector],
-        features_keys: dict[str, Iterable[str]],
+        features_main_keys: list[str],
         node_to_index: dict[Any, int],
-        dim: int,
+        shape: tuple[int, int],
         dtype: type,
     ):
         """
-        Utility function to generate the feature matrix.
-        It returns a tuple with (feature_matrix, mapping, nonempty_set) where
-          feature_matrix: is the actual feature matrix, each row corresponds to a
-                          node and each column to a feature
-          mapping: a dict representing the mapping between the nodes index in the
-                   adjacency matrix and in the similarity matrix.
-                   {adj_index : sim_index}
-          nonempty_set: set with all the node index (index in the adjacency matrix)
-                        that have been added to the feature matrix (aka nodes with
-                        non empty feature vector)
+        Utility function to generate the sparse feature matrix.
+        It returns the sparse feature matrix where each row corresponds to a node and
+        each column to a feature
 
         :param features: Dict of features {node : feature_collector}
-        :param features_keys: List of all the features keys
+        :param features_main_keys: List of all the features main keys
         :param node_to_index: Dict representing the mapping between nodes to indexes in
                               the similarity matrix. {node : sim_index}
-        :param dim: Size of the feature matrix
+        :param shape: The shape of the sparse feature matrix
         :param dtype: dtype of the feature matrix
         """
 
-        feature_matrix = np.zeros((0, dim), dtype=dtype)
-        mapping = {}
-        nonempty_set = set()
-        i = 0
-        for node_label, feature in features.items():
-            node_index = node_to_index[node_label]
-            vec = feature.to_vector(features_keys, False)
-            if vec:
-                mapping[node_index] = i
-                feature_matrix = np.vstack((feature_matrix, vec))
-                nonempty_set.add(node_index)
-                i += 1
-        return (feature_matrix, mapping, nonempty_set)
+        feature_matrix = lil_matrix(shape, dtype=dtype)
+        for node_label, feature in tqdm.tqdm(
+            features.items(), total=len(features), disable=not is_debug()
+        ):
+            vec = feature.to_sparse_vector(dtype, features_main_keys)
+            feature_matrix[node_to_index[node_label]] = vec
+        return feature_matrix.tocsr()
 
     def _compute_sim_matrix(
         self,
@@ -101,10 +93,10 @@ class FeaturePass(GenericPass):
         secondary_features: dict[Any, FeatureCollector],
         primary_mapping: dict[Any, int],
         secondary_mapping: dict[Any, int],
-        features_keys: dict[str, list[str]],
+        features_main_keys: list[str],
         distance: str,
         dtype: type,
-        weights: Optional[Iterable[float]] = None,
+        weights: Iterable[float] | None = None,
     ):
         """
         Utility function that generate a similarity matrix given two collections of
@@ -119,66 +111,64 @@ class FeaturePass(GenericPass):
                                 similarity matrix
         :param secondary_mapping: A mapping between function labels and indexes in the
                                   similarity matrix
-        :param features_keys: All the features keys to consider
+        :param features_main_keys: List of all the features main keys to consider
         :param distance: The distance to use
         :param dtype: dtype of the similarity matrix
         :param weights: Optional weights
         """
 
         # Find the dimension of the feature matrix
-        dim = 0
-        for main_key, subkeys in features_keys.items():
-            if subkeys:
-                dim += len(subkeys)
-            else:
-                dim += 1
+        dim = FeatureKeyManager.get_cum_size(features_main_keys)
 
-        # Build the feature matrices
-        (
-            primary_feature_matrix,  # the feature matrix
-            temp_map_primary,  # temporary mappings between the nodes index in the adjacency matrix and in the similarity matrix
-            nonempty_rows,  # non empty rows that will be kept after the distance is calculated
-        ) = self._create_feature_matrix(
-            primary_features, features_keys, primary_mapping, dim, dtype
+        # Build the sparse feature matrices
+        logging.debug(f"Building primary feature matrix of size {(shape[0], dim)}")
+        primary_feature_matrix = self._create_feature_matrix(
+            primary_features,
+            features_main_keys,
+            primary_mapping,
+            (shape[0], dim),
+            dtype,
         )
-        (
-            secondary_feature_matrix,
-            temp_map_secondary,
-            nonempty_cols,
-        ) = self._create_feature_matrix(
-            secondary_features, features_keys, secondary_mapping, dim, dtype
+        logging.debug(
+            "Sparse primary feature matrix computed, "
+            f"nnz element: {primary_feature_matrix.nnz}"
         )
+        logging.debug(f"Building secondary feature matrix of size {(shape[1], dim)}")
+        secondary_feature_matrix = self._create_feature_matrix(
+            secondary_features,
+            features_main_keys,
+            secondary_mapping,
+            (shape[1], dim),
+            dtype,
+        )
+        logging.debug(
+            "Sparse secondary feature matrix computed, "
+            f"nnz element: {secondary_feature_matrix.nnz}"
+        )
+        logging.debug(f"Calculating distance {distance}")
 
         # Generate the partial similarity matrix (only non empty rows and cols)
         if weights:
-            tmp_sim_matrix = scipy.spatial.distance.cdist(
+            sim_matrix = pairwise_distances(
                 primary_feature_matrix,
                 secondary_feature_matrix,
-                distance,
-                w=weights,
+                metric=distance,
+                n_jobs=16,
+                # ~ w=weights,
             ).astype(dtype)
         else:
-            tmp_sim_matrix = scipy.spatial.distance.cdist(
-                primary_feature_matrix, secondary_feature_matrix, distance
+            sim_matrix = pairwise_distances(
+                primary_feature_matrix,
+                secondary_feature_matrix,
+                metric=distance,
+                n_jobs=16,
             ).astype(dtype)
 
+        logging.debug("Distance calculated")
         # Normalize
-        if len(tmp_sim_matrix) > 0 and tmp_sim_matrix.max() != 0:
-            tmp_sim_matrix /= tmp_sim_matrix.max()
-        tmp_sim_matrix[:] = 1 - tmp_sim_matrix
-
-        # Fill the entire similarity matrix
-        sim_matrix = np.zeros(shape, dtype=dtype)
-        for idx in nonempty_rows:  # Rows insertion
-            sim_matrix[idx, : tmp_sim_matrix.shape[1]] = tmp_sim_matrix[
-                temp_map_primary[idx]
-            ]
-        # Cols permutation
-        cols_dim = sim_matrix.shape[1]
-        mapping = np.full(cols_dim, cols_dim - 1, dtype=int)
-        for idx in nonempty_cols:
-            mapping[idx] = temp_map_secondary[idx]
-        sim_matrix[:] = sim_matrix[:, mapping]
+        if len(sim_matrix) > 0 and sim_matrix.max() != 0:
+            sim_matrix /= sim_matrix.max()
+        sim_matrix[:] = 1 - sim_matrix
 
         return sim_matrix
 
@@ -189,7 +179,7 @@ class FeaturePass(GenericPass):
         secondary: Program,
         primary_mapping: dict[Any, int],
         secondary_mapping: dict[Any, int],
-        fill: Optional[bool] = False,
+        fill: bool = False,
     ) -> None:
         """
         Generate the similarity matrix by calculating the distance between the feature
@@ -239,47 +229,59 @@ class FeaturePass(GenericPass):
                     if subkey_list:
                         features_keys[main_key].update(subkey_list)
 
-        # Build the similarity matrices separately for each main feature
-        all_sim_matrix = []
-        simple_feature_keys = defaultdict(dict)  # {distance: {main_key: (), ...}, ...}
+        # Build the similarity matrices separately for each main feature.
+        # The linear combination is perfomed online to save precious memory.
+        result_matrix = np.zeros_like(sim_matrix)
+        simple_feature_keys = defaultdict(list)  # {distance: [main_key, ...], ...}
         norm_coeff = 0
         for main_key, subkeys in features_keys.items():
             if subkeys:
                 # Compute the similarity matrix for the current feature
+                logging.debug(f"Computing similarity matrix for the feature {main_key}")
                 tmp_sim_matrix = self._compute_sim_matrix(
                     sim_matrix.shape,
                     primary_features,
                     secondary_features,
                     primary_mapping,
                     secondary_mapping,
-                    {main_key: subkeys},
+                    [main_key],
                     self.distance(main_key),
                     sim_matrix.dtype,
                 )
-                all_sim_matrix.append(f_weights[main_key] * tmp_sim_matrix)
+                result_matrix += f_weights[main_key] * tmp_sim_matrix
+                del tmp_sim_matrix  # Free the memory
                 norm_coeff += f_weights[main_key]
             else:
                 # It is a simple feature (no subkeys)
-                simple_feature_keys[self.distance(main_key)][main_key] = ()
+                simple_feature_keys[self.distance(main_key)].append(main_key)
         # Add the simple features similarity
-        for distance, simple_feature_keys in simple_feature_keys.items():
-            weights = tuple(f_weights[key] for key in simple_feature_keys)
+        for distance, features in simple_feature_keys.items():
+            logging.debug(
+                "Computing similarity matrix for the simple features "
+                f"{features} using the distance {distance}"
+            )
+            weights = tuple(f_weights[key] for key in features)
             tmp_sim_matrix = self._compute_sim_matrix(
                 sim_matrix.shape,
                 primary_features,
                 secondary_features,
                 primary_mapping,
                 secondary_mapping,
-                simple_feature_keys,
+                features,
                 distance,
                 sim_matrix.dtype,
                 weights=weights,
             )
             norm_weight = sum(weights)
-            all_sim_matrix.append(norm_weight * tmp_sim_matrix)
+            result_matrix += norm_weight * tmp_sim_matrix
+            del tmp_sim_matrix  # Free the memory
             norm_coeff += norm_weight
+        # Normalize
+        result_matrix /= norm_coeff
 
-        # Build the whole similarity matrix by combining the previous ones
-        res = sum(all_sim_matrix) / norm_coeff
-
-        sim_matrix[res.nonzero()] = res[res.nonzero()]
+        # Overwrite the real similarity matrix
+        for idx in map(lambda l: primary_mapping[l], ignore_primary):
+            result_matrix[idx] = sim_matrix[idx]
+        for idx in map(lambda l: secondary_mapping[l], ignore_secondary):
+            result_matrix[:, idx] = sim_matrix[:, idx]
+        sim_matrix[:] = result_matrix

@@ -182,7 +182,12 @@ The following distances are available {DISTANCES}
     is_flag=True,
     help="Enable the usage of the cortex-m extension when disassembling",
 )
-@click.option("-v", "--verbose", count=True, help="Activate debugging messages. Can be supplied multiple times to increase verbosity")
+@click.option(
+    "-v",
+    "--verbose",
+    count=True,
+    help="Activate debugging messages. Can be supplied multiple times to increase verbosity",
+)
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
@@ -249,14 +254,14 @@ def main(
             )
             exit(1)
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(primary, loader, exec_primary)
+        primary = Program(loader, primary, exec_primary)
         logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(secondary, loader, exec_secondary)
+        secondary = Program(loader, secondary, exec_secondary)
     else:
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(primary, loader, enable_cortexm=enable_cortexm)
+        primary = Program(loader, primary, enable_cortexm=enable_cortexm)
         logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(secondary, loader, enable_cortexm=enable_cortexm)
+        secondary = Program(loader, secondary, enable_cortexm=enable_cortexm)
 
     qbindiff = QBinDiff(
         primary,
