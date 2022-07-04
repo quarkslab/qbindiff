@@ -36,7 +36,9 @@ before_script:
   - "cd lapjv && python setup.py install && cd .."
   
   # Install extra dependencies
-  - pip install 'protobuf>=3,<4'
+  - git config --global http."https://gitlab.qb/".sslCAInfo $GLOBAL_QB_CA
+  - "git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.qb/rmori/python-binexport.git"
+  - "cd python-binexport && pip install . && cd .."
 
   # Build qbindiff
   - pip install .

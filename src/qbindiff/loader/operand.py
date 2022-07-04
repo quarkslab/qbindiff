@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from qbindiff.loader.backend import AbstractOperandBackend
 from qbindiff.loader.types import LoaderType
 
 
@@ -6,9 +9,11 @@ class Operand:
     Represent an operand object which hide the underlying backend implementation
     """
 
-    def __init__(self, loader, *args, **kwargs):
+    def __init__(self, loader: LoaderType | None, *args, **kwargs):
         self._backend = None
-        if loader == LoaderType.binexport:
+        if loader is None and (backend := kwargs.get("backend")) is not None:
+            self._backend = backend  # Load directly from instanciated backend
+        elif loader == LoaderType.binexport:
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
@@ -43,6 +48,11 @@ class Operand:
         from qbindiff.loader.backend.qbinexport import OperandBackendQBinExport
 
         self._backend = OperandBackendQBinExport(*args, **kwargs)
+
+    @staticmethod
+    def from_backend(backend: AbstractOperandBackend) -> Operand:
+        """Load the Operand from an instanciated operand backend object"""
+        return Operand(None, backend=backend)
 
     @property
     def type(self) -> int:

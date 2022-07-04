@@ -84,7 +84,9 @@ class BOWLSH(LSH):
         """
         Generate the hyperplanes for the LSH.
         Each hyperplane is identified by its normal vector v from R^2000: v * x = 0
-        the dimension 2000 should be sufficient to characterize the basic asm blocks
+        the dimension 2000 should be sufficient to characterize the basic asm blocks.
+        Warning: this method will leak memory as the hyperplanes will never be
+        deallocated.
         """
 
         hyperplanes = []

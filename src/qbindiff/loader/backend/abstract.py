@@ -1,9 +1,8 @@
 import networkx
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
-from typing import Any
 
-from qbindiff.loader import Operand, Data, Structure
+from qbindiff.loader import Structure
 from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 
@@ -65,8 +64,8 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def operands(self) -> list[Operand]:
-        """Returns the list of operands as Operand object"""
+    def operands(self) -> Iterator[AbstractOperandBackend]:
+        """Returns an iterator over backend operand objects"""
         raise NotImplementedError()
 
     @property
@@ -109,12 +108,24 @@ class AbstractBasicBlockBackend(metaclass=ABCMeta):
         """The address of the basic block"""
         raise NotImplementedError()
 
+    @property
+    @abstractmethod
+    def instructions(self) -> Iterator[AbstractInstructionBackend]:
+        """Returns an iterator over backend instruction objects"""
+        raise NotImplementedError()
+
 
 class AbstractFunctionBackend(metaclass=ABCMeta):
     """
     This is an abstract class and should not be used as is.
     It represent a generic backend loader for a Function
     """
+
+    @property
+    @abstractmethod
+    def basic_blocks(self) -> Iterator[AbstractBasicBlockBackend]:
+        """Returns an iterator over backend basic blocks objects"""
+        raise NotImplementedError()
 
     @property
     @abstractmethod
@@ -146,21 +157,15 @@ class AbstractFunctionBackend(metaclass=ABCMeta):
         """The type of the function (as defined by IDA)"""
         raise NotImplementedError()
 
-    @type.setter
-    @abstractmethod
-    def type(self, value: FunctionType) -> None:
-        raise NotImplementedError()
-
     @property
     @abstractmethod
     def name(self) -> str:
         """The name of the function"""
         raise NotImplementedError()
 
-    @name.setter
-    @abstractmethod
-    def name(self, value: str) -> None:
-        raise NotImplementedError()
+    def unload_blocks(self) -> None:
+        """Unload basic blocks from memory"""
+        pass
 
 
 class AbstractProgramBackend(metaclass=ABCMeta):
@@ -185,4 +190,12 @@ class AbstractProgramBackend(metaclass=ABCMeta):
     @abstractmethod
     def callgraph(self) -> networkx.DiGraph:
         """The callgraph of the program"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def fun_names(self) -> dict[str, Addr]:
+        """
+        Returns a dictionary with function name as key and the function address as value
+        """
         raise NotImplementedError()

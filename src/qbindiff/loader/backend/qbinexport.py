@@ -1,18 +1,12 @@
-import qbinexport, networkx
+from __future__ import annotations
+import qbinexport, networkx, logging, weakref
 from struct import pack
-from functools import cache
+from functools import cached_property
 from capstone import CS_OP_IMM, CS_GRP_JUMP
+from collections.abc import Iterator
 from typing import Any, TypeAlias
 
-from qbindiff.loader import (
-    Program,
-    Function,
-    BasicBlock,
-    Instruction,
-    Operand,
-    Data,
-    Structure,
-)
+from qbindiff.loader import Program, Function, Data, Structure
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
     AbstractFunctionBackend,
@@ -37,7 +31,6 @@ qbFunction: TypeAlias = qbinexport.function.Function
 qbBlock: TypeAlias = qbinexport.block.Block
 qbInstruction: TypeAlias = qbinexport.instruction.Instruction
 qbOperand: TypeAlias = qbinexport.instruction.Operand
-capstoneInstruction: TypeAlias = "capstone.CsInsn"
 capstoneOperand: TypeAlias = Any  # Relaxed typing
 capstoneValue: TypeAlias = Any  # Relaxed typing
 
@@ -118,9 +111,7 @@ def to_x(s):
 class OperandBackendQBinExport(AbstractOperandBackend):
     """Backend loader of a Operand using QBinExport"""
 
-    def __init__(
-        self, cs_instruction: capstoneInstruction, cs_operand: capstoneOperand
-    ):
+    def __init__(self, cs_instruction: "capstone.CsInsn", cs_operand: capstoneOperand):
         super(OperandBackendQBinExport, self).__init__()
 
         self.cs_instr = cs_instruction
@@ -140,8 +131,13 @@ class OperandBackendQBinExport(AbstractOperandBackend):
                 op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
             if op.mem.index != 0:
                 op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
-            if op.mem.disp != 0:
-                op_str += f"+0x{op.mem.disp:x}"
+            if (disp := op.mem.disp) != 0:
+                if disp > 0:
+                    op_str += "+"
+                else:
+                    op_str += "-"
+                    disp = -disp
+                op_str += f"0x{disp:x}"
             op_str += "]"
             return op_str
         else:
@@ -175,14 +171,29 @@ class OperandBackendQBinExport(AbstractOperandBackend):
 class InstructionBackendQBinExport(AbstractInstructionBackend):
     """Backend loader of a Instruction using QBinExport"""
 
-    def __init__(self, qb_instruction: qbInstruction, structures: list[Structure]):
+    def __init__(
+        self,
+        program: weakref.ref[ProgramBackendQBinExport],
+        qb_instruction: qbInstruction,
+    ):
         super(InstructionBackendQBinExport, self).__init__()
 
+        self.program = program
         self.qb_instr = qb_instruction
         self.cs_instr = qb_instruction.cs_inst
-        # Hoping that there won't be two struct with the same name
-        self.structures = {struct.name: struct for struct in structures}
-        self._operands = None
+        if self.cs_instr is None:
+            logging.error(
+                f"Capstone could not disassemble instruction at 0x{self.qb_instr.address:x} {self.qb_instr}"
+            )
+
+    def __del__(self):
+        """Clean qbinexport internal state to deallocate memory"""
+
+        # Clear the reference to capstone object
+        self.qb_instr._cs_instr = None
+        # Unload cached instruction
+        block = self.qb_instr.parent
+        block._raw_dict[self.qb_instr.address] = self.qb_instr.proto_index
 
     def _cast_references(
         self, references: list[qbinexport.types.ReferenceTarget]
@@ -196,12 +207,14 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
                     data_type = convert_data_type(ref.type)
                     ret_ref.append(Data(data_type, ref.address, ref.value))
                 case qbinexport.structure.Structure(name=name):
-                    ret_ref.append(self.structures[name])
+                    ret_ref.append(self.program().get_structure(name))
                 case qbinexport.structure.StructureMember(
                     structure=qbe_struct, name=name
                 ):
                     ret_ref.append(
-                        self.structures[qbe_struct.name].member_by_name(name)
+                        self.program()
+                        .get_structure(qbe_struct.name)
+                        .member_by_name(name)
                     )
                 case qbinexport.Instruction():  # Not implemented for now
                     logging.warning("Skipping instruction reference")
@@ -210,15 +223,14 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
     @property
     def addr(self) -> Addr:
         """The address of the instruction"""
-        return self.cs_instr.address
+        return self.qb_instr.address
 
     @property
     def mnemonic(self) -> str:
         """Returns the instruction mnemonic as a string"""
-        return self.cs_instr.mnemonic
+        return self.qb_instr.mnemonic
 
-    @property
-    @cache
+    @cached_property
     def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
         """Returns all the references towards the instruction"""
 
@@ -228,14 +240,13 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         return ref
 
     @property
-    def operands(self) -> list[Operand]:
-        """Returns the list of operands as Operand object"""
-        if not self._operands:
-            self._operands = []
-            for o in self.cs_instr.operands:
-                self._operands.append(Operand(LoaderType.qbinexport, self.cs_instr, o))
-
-        return self._operands
+    def operands(self) -> Iterator[OperandBackendQBinExport]:
+        """Returns an iterator over backend operand objects"""
+        if self.cs_instr is None:
+            return iter([])
+        return (
+            OperandBackendQBinExport(self.cs_instr, o) for o in self.cs_instr.operands
+        )
 
     @property
     def groups(self) -> list[int]:
@@ -248,6 +259,8 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
     @property
     def id(self) -> int:
         """Return the capstone instruction ID"""
+        if self.cs_instr is None:
+            return 1999  # Custom defined value representing a "unknown" instruction
         return self.cs_instr.id
 
     @property
@@ -265,51 +278,62 @@ class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
     """Backend loader of a BasicBlock using QBinExport"""
 
     def __init__(
-        self, basic_block: BasicBlock, qb_block: qbBlock, structures: list[Structure]
+        self, program: weakref.ref[ProgramBackendQBinExport], qb_block: qbBlock
     ):
         super(BasicBlockBackendQBinExport, self).__init__()
+
+        self.qb_block = qb_block
+        self.program = program
 
         # Private attributes
         self._addr = qb_block.start
 
-        for instr in qb_block.instructions:
-            basic_block.append(Instruction(LoaderType.qbinexport, instr, structures))
+    def __del__(self):
+        """Clean qbinexport internal state by unloading from memory the Block object"""
+
+        chunk = self.qb_block.parent
+        chunk._raw_dict[self.qb_block.start] = self.qb_block.proto_index
 
     @property
     def addr(self) -> Addr:
         """The address of the basic block"""
         return self._addr
 
+    @property
+    def instructions(self) -> Iterator[InstructionBackendQBinExport]:
+        """Returns an iterator over backend instruction objects"""
+        return (
+            InstructionBackendQBinExport(self.program, instr)
+            for instr in self.qb_block.instructions
+        )
+
 
 class FunctionBackendQBinExport(AbstractFunctionBackend):
     """Backend loader of a Function using QBinExport"""
 
     def __init__(
-        self, function: Function, qb_func: qbFunction, structures: list[Structure]
+        self, program: weakref.ref[ProgramBackendQBinExport], qb_func: qbFunction
     ):
         super(FunctionBackendQBinExport, self).__init__()
 
         self.qb_prog = qb_func.program
         self.qb_func = qb_func
-
-        # private attributes
-        self._type = None
-        self._name = None
+        self.program = program
 
         # [TODO] Init all the properties and free the memory of qb_prog/qb_func
 
+    @property
+    def basic_blocks(self) -> Iterator[BasicBlockBackendQBinExport]:
+        """Returns an iterator over backend basic blocks objects"""
+
         # Stop the exploration if it's an imported function
         if self.is_import():
-            return
+            return iter([])
 
-        bblocks = {
-            addr: self.qb_func.get_block(addr) for addr in self.qb_func.graph.nodes
-        }
-        for addr, block in bblocks.items():
-            b = BasicBlock(LoaderType.qbinexport, block, structures)
-            if addr in function:
-                logging.error("Address collision for 0x%x" % addr)
-            function[addr] = b
+        return (
+            BasicBlockBackendQBinExport(self.program, self.qb_func.get_block(addr))
+            for addr in self.qb_func.graph.nodes
+        )
 
     @property
     def addr(self) -> Addr:
@@ -321,8 +345,7 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
         """The Control Flow Graph of the function"""
         return self.qb_func.graph
 
-    @property
-    @cache
+    @cached_property
     def parents(self) -> set[Addr]:
         """Set of function parents in the call graph"""
 
@@ -335,8 +358,7 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
                 pass  # Sometimes there can be a chunk that is not part of any function
         return parents
 
-    @property
-    @cache
+    @cached_property
     def children(self) -> set[Addr]:
         """Set of function children in the call graph"""
 
@@ -349,51 +371,35 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
                 pass  # Sometimes there can be a chunk that is not part of any function
         return children
 
-    @property
+    @cached_property
     def type(self) -> FunctionType:
         """The type of the function (as defined by IDA)"""
-        if self._type is not None:
-            return self._type
 
         f_type = self.qb_func.type
         if f_type == qbinexport.types.FunctionType.NORMAL:
-            self._type = FunctionType.normal
+            return FunctionType.normal
         elif f_type == qbinexport.types.FunctionType.IMPORTED:
-            self._type = FunctionType.imported
+            return FunctionType.imported
         elif f_type == qbinexport.types.FunctionType.LIBRARY:
-            self._type = FunctionType.library
+            return FunctionType.library
         elif f_type == qbinexport.types.FunctionType.THUNK:
-            self._type = FunctionType.thunk
+            return FunctionType.thunk
         elif f_type == qbinexport.types.FunctionType.EXTERN:
-            self._type = FunctionType.extern
+            return FunctionType.extern
         elif f_type == qbinexport.types.FunctionType.INVALID:
-            self._type = FunctionType.invalid
+            return FunctionType.invalid
         else:
             raise NotImplementedError(f"Function type {f_type} not implemented")
-
-        return self._type
-
-    @type.setter
-    def type(self, value: FunctionType) -> None:
-        self._type = value
-
-    def is_import(self) -> bool:
-        """True if the function is imported"""
-        # Should we consider also FunctionType.thunk?
-        if self.type in (FunctionType.imported, FunctionType.extern):
-            return True
-        return False
 
     @property
     def name(self) -> str:
         """The name of the function"""
-        if self._name is None:
-            self._name = self.qb_func.name
-        return self._name
+        return self.qb_func.name
 
-    @name.setter
-    def name(self, value: str) -> None:
-        self._name = value
+    def is_import(self) -> bool:
+        """True if the function is imported"""
+        # Should we consider also FunctionType.thunk?
+        return self.type in (FunctionType.imported, FunctionType.extern)
 
 
 class ProgramBackendQBinExport(AbstractProgramBackend):
@@ -405,12 +411,15 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
         self.qb_prog = qbinexport.Program(export_path, exec_path)
 
         self._callgraph = networkx.DiGraph()
+        self._fun_names = {}  # {fun_name : fun_address}
 
         for addr, func in self.qb_prog.items():
-            f = Function(LoaderType.qbinexport, func, self.structures)
+            # Pass a self (weak) reference for performance
+            f = Function(LoaderType.qbinexport, weakref.ref(self), func)
             if addr in program:
                 logging.error("Address collision for 0x%x" % addr)
             program[addr] = f
+            self._fun_names[f.name] = addr
 
             self._callgraph.add_node(addr)
             for c_addr in f.children:
@@ -422,8 +431,7 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
     def name(self):
         return self.qb_prog.executable.exec_file.name
 
-    @property
-    @cache
+    @cached_property
     def structures(self) -> list[Structure]:
         """Returns the list of structures defined in program"""
 
@@ -443,7 +451,25 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
             struct_list.append(struct)
         return struct_list
 
+    @cached_property
+    def structures_by_name(self) -> dict[str, Structure]:
+        """Returns the dictionary {name: structure}"""
+
+        # Hoping that there won't be two struct with the same name
+        return {struct.name: struct for struct in self.structures}
+
+    def get_structure(self, name: str) -> Structure:
+        """Returns structure identified by the name"""
+        return self.structures_by_name[name]
+
     @property
     def callgraph(self) -> networkx.DiGraph:
         """The callgraph of the program"""
         return self._callgraph
+
+    @property
+    def fun_names(self) -> dict[str, int]:
+        """
+        Returns a dictionary with function name as key and the function address as value
+        """
+        return self._fun_names
