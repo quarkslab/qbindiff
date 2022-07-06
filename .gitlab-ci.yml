@@ -50,7 +50,7 @@ lint:
     - black --check src/
     - black --check bin/qbindiff
 
-test:
-  stage: test
-  script:
-    - python tests/test.py -v
+#test:
+#  stage: test
+#  script:
+#    - python tests/test.py -v

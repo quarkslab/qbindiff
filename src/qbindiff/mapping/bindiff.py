@@ -3,11 +3,11 @@ import hashlib
 import datetime
 from collections.abc import Generator
 from collections import defaultdict
-from functools import cache
+from functools import cached_property
 
 from qbindiff.loader import Program, Function, BasicBlock
 from qbindiff.mapping.mapping import Mapping
-from qbindiff.types import Addr
+from qbindiff.types import Addr, Match
 
 
 class BinDiffFormat:
@@ -24,6 +24,16 @@ class BinDiffFormat:
         self.primary = primary
         self.secondary = secondary
         self.mapping = mapping
+
+        # Properties loaded at run time
+        self._primary_instructions = 0
+        self._primary_basic_blocks = 0
+        self._primary_functions = 0
+        self._primary_lib_functions = 0
+        self._secondary_instructions = 0
+        self._secondary_basic_blocks = 0
+        self._secondary_functions = 0
+        self._secondary_lib_functions = 0
 
         self.init_database()
 
@@ -81,7 +91,7 @@ class BinDiffFormat:
         conn.execute(
             """
             CREATE TABLE function (
-                id INT,
+                id INTEGER PRIMARY KEY,
                 address1 BIGINT,
                 name1 TEXT,
                 address2 BIGINT,
@@ -96,7 +106,6 @@ class BinDiffFormat:
                 edges INTEGER,
                 instructions INTEGER,
                 UNIQUE(address1, address2),
-                PRIMARY KEY(id),
                 FOREIGN KEY(algorithm) REFERENCES functionalgorithm(id)
             )
             """
@@ -142,8 +151,7 @@ class BinDiffFormat:
 
         self.db.commit()
 
-    @property
-    @cache
+    @cached_property
     def primes(self) -> list[int]:
         """Generates the primes up to 1'000'000 using the segmented sieve algorithm"""
         n = 1000000
@@ -181,12 +189,18 @@ class BinDiffFormat:
 
         return primes
 
-    def _prime_product(self, basic_block: BasicBlock) -> int:
-        """Calculate the prime product value of the basic block"""
+    def _prime_product(self, basic_block: BasicBlock) -> tuple[int, int]:
+        """
+        Calculate the prime product value of the basic block.
+        The function will return a tuple where the first element is the prime product
+        and the second is the number of instructions
+        """
         tot = 1
+        count = 0
         for instruction in basic_block:
+            count += 1
             tot *= self.primes[instruction.id]
-        return tot
+        return (tot, count)
 
     def _basic_block_match(
         self, primary_func: Function, secondary_func: Function
@@ -196,9 +210,15 @@ class BinDiffFormat:
         primary_hash = defaultdict(list)  # {prime product -> addrs}
         secondary_hash = defaultdict(list)  # {prime product -> addrs}
         for bb_addr, basic_block in primary_func.items():
-            primary_hash[self._prime_product(basic_block)].append(bb_addr)
+            self._primary_basic_blocks += 1
+            pp, instr_tot = self._prime_product(basic_block)
+            self._primary_instructions += instr_tot
+            primary_hash[pp].append(bb_addr)
         for bb_addr, basic_block in secondary_func.items():
-            secondary_hash[self._prime_product(basic_block)].append(bb_addr)
+            self._secondary_basic_blocks += 1
+            pp, instr_tot = self._prime_product(basic_block)
+            self._secondary_instructions += instr_tot
+            secondary_hash[pp].append(bb_addr)
 
         matches = primary_hash.keys() & secondary_hash.keys()
         for h in matches:
@@ -224,42 +244,101 @@ class BinDiffFormat:
 
         conn = self.db.cursor()
 
-        params = defaultdict(lambda: None)
-        params["filename"] = program.name
+        params = {"filename": program.name, "hash": None}
         if program.exec_path:
             with open(program.exec_path, "rb") as f:
                 params["hash"] = hashlib.sha256(f.read()).hexdigest()
 
-        import_func = 0
-        library_func = 0
-        tot_func = 0
-        tot_bb = 0
-        tot_instr = 0
-        for addr, func in program.items():
-            if func.is_import():
-                import_func += 1
-            else:
-                tot_func += 1
-            if func.is_library():
-                library_func += 1
-
-            for bb_addr, bb in func.items():
-                tot_bb += 1
-                for instr in bb:
-                    tot_instr += 1
-        params["functions"] = tot_func
-        params["libfunctions"] = import_func
-        params["basicblocks"] = tot_bb
-        params["instructions"] = tot_instr
-
         conn.execute(
             """
             INSERT INTO file
-                (filename, exefilename, hash, functions, libfunctions, basicblocks, instructions)
+                (filename, exefilename, hash)
             VALUES
-                (:filename, :filename, :hash, :functions, :libfunctions, :basicblocks, :instructions)
+                (:filename, :filename, :hash)
             """,
             params,
+        )
+
+    def save_match(self, match: Match) -> None:
+        """Save in the BinDiff file the specified match (aka a pair of function)"""
+
+        conn = self.db.cursor()
+
+        # Function
+
+        params = {
+            "address1": match.primary.addr,
+            "address2": match.secondary.addr,
+            "name1": match.primary.name,
+            "name2": match.secondary.name,
+            "similarity": float(match.similarity),
+            "confidence": float(match.confidence),
+        }
+        conn.execute(
+            """
+            INSERT INTO function
+                (address1, address2, name1, name2, similarity, confidence, basicblocks)
+            VALUES
+                (:address1, :address2, :name1, :name2, :similarity, :confidence, 0)
+            """,
+            params,
+        )
+
+        # Basic Block & Instruction
+
+        same_bb_count = 0
+        bb_matches = self._basic_block_match(match.primary, match.secondary)
+        for addr1, addr2 in bb_matches:
+            same_bb_count += 1
+            params = {
+                "function_address1": match.primary.addr,
+                "function_address2": match.secondary.addr,
+                "address1": addr1,
+                "address2": addr2,
+                "algorithm": "1",
+            }
+
+            conn.execute(
+                """
+                INSERT INTO basicblock
+                    (functionid, address1, address2, algorithm)
+                VALUES
+                    ((SELECT id FROM function WHERE address1=:function_address1 AND address2=:function_address2), :address1, :address2, :algorithm)
+                """,
+                params,
+            )
+
+            basicblock_id = conn.lastrowid
+            for instr_addr1, instr_addr2 in self._instruction_match(
+                match.primary[addr1], match.secondary[addr2]
+            ):
+                params = {
+                    "address1": instr_addr1,
+                    "address2": instr_addr2,
+                    "basicblockid": basicblock_id,
+                }
+                conn.execute(
+                    """
+                    INSERT INTO instruction
+                        (basicblockid, address1, address2)
+                    VALUES
+                        (:basicblockid, :address1, :address2)
+                    """,
+                    params,
+                )
+
+        # Set number of equal basic blocks
+        conn.execute(
+            """
+            UPDATE function
+            SET basicblocks = :basicblocks
+            WHERE id = (SELECT id FROM function WHERE address1=:function_address1 AND address2=:function_address2)
+            """,
+            {
+                "basicblocks": same_bb_count,
+                "function_address1": match.primary.addr,
+                "function_address2": match.secondary.addr,
+            },
         )
 
     def save(self):
@@ -287,90 +366,46 @@ class BinDiffFormat:
             params,
         )
 
-        # Functions
-
-        idx = 1
-        for match in self.mapping:
-            params = {
-                "id": idx,
-                "address1": match.primary.addr,
-                "address2": match.secondary.addr,
-                "name1": match.primary.name,
-                "name2": match.secondary.name,
-                "similarity": float(match.similarity),
-                "confidence": float(match.confidence),
-            }
-
-            conn.execute(
-                """
-                INSERT INTO function
-                    (id, address1, address2, name1, name2, similarity, confidence, basicblocks)
-                VALUES
-                    (:id, :address1, :address2, :name1, :name2, :similarity, :confidence, 0)
-                """,
-                params,
-            )
-
-            idx += 1
-
-        self.db.commit()
-
-        # Basic Block & Instruction
+        # Functions & Basic Block & Instruction
 
         for match in self.mapping:
-            same_bb_count = 0
-            bb_matches = self._basic_block_match(match.primary, match.secondary)
-            for addr1, addr2 in bb_matches:
-                same_bb_count += 1
-                params = {
-                    "function_address1": match.primary.addr,
-                    "function_address2": match.secondary.addr,
-                    "address1": addr1,
-                    "address2": addr2,
-                    "algorithm": "1",
-                }
+            if match.primary.is_import():
+                self._primary_lib_functions += 1
+            else:
+                self._primary_functions += 1
+            if match.secondary.is_import():
+                self._secondary_lib_functions += 1
+            else:
+                self._secondary_functions += 1
 
-                conn.execute(
-                    """
-                    INSERT INTO basicblock
-                        (functionid, address1, address2, algorithm)
-                    VALUES
-                        ((SELECT id FROM function WHERE address1=:function_address1 AND address2=:function_address2), :address1, :address2, :algorithm)
-                    """,
-                    params,
-                )
+            with match.primary, match.secondary:  # Do not unload basic blocks
+                self.save_match(match)
+            self.db.commit()
 
-                basicblock_id = conn.lastrowid
-                for instr_addr1, instr_addr2 in self._instruction_match(
-                    match.primary[addr1], match.secondary[addr2]
-                ):
-                    params = {
-                        "address1": instr_addr1,
-                        "address2": instr_addr2,
-                        "basicblockid": basicblock_id,
-                    }
-                    conn.execute(
-                        """
-                        INSERT INTO instruction
-                            (basicblockid, address1, address2)
-                        VALUES
-                            (:basicblockid, :address1, :address2)
-                        """,
-                        params,
-                    )
-
-            # Set number of equal basic blocks
-            conn.execute(
-                """
-                UPDATE function
-                SET basicblocks = :basicblocks
-                WHERE id = (SELECT id FROM function WHERE address1=:function_address1 AND address2=:function_address2)
-                """,
-                {
-                    "basicblocks": same_bb_count,
-                    "function_address1": match.primary.addr,
-                    "function_address2": match.secondary.addr,
-                },
-            )
-
+        conn.execute(
+            """
+            UPDATE file
+            SET functions = :functions, libfunctions = :libfunctions, basicblocks = :basicblocks, instructions = :instructions
+            WHERE id = 1
+            """,
+            {
+                "functions": self._primary_functions,
+                "libfunctions": self._primary_lib_functions,
+                "basicblocks": self._primary_basic_blocks,
+                "instructions": self._primary_instructions,
+            },
+        )
+        conn.execute(
+            """
+            UPDATE file
+            SET functions = :functions, libfunctions = :libfunctions, basicblocks = :basicblocks, instructions = :instructions
+            WHERE id = 2
+            """,
+            {
+                "functions": self._secondary_functions,
+                "libfunctions": self._secondary_lib_functions,
+                "basicblocks": self._secondary_basic_blocks,
+                "instructions": self._secondary_instructions,
+            },
+        )
         self.db.commit()

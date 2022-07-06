@@ -13,7 +13,7 @@ class BasicBlock(Iterable[Instruction]):
     Representation of a binary basic block. This class is an Iterable of Instruction.
     """
 
-    def __init__(self, loader, *args, **kwargs):
+    def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
         super(BasicBlock, self).__init__()
 
         self._backend = None

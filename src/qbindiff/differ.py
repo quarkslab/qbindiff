@@ -1,4 +1,4 @@
-# third-party imports
+import logging
 import numpy as np
 from datasketch import MinHash
 from networkx import DiGraph
@@ -103,6 +103,7 @@ class Differ:
         :param confidence: The confidence score for each match
         """
 
+        logging.debug("Wrapping raw diffing output in a Mapping object")
         primary_idx, secondary_idx = mapping
         get_node_primary = lambda idx: self.primary.get_node(self.primary_i2n[idx])
         get_node_secondary = lambda idx: self.secondary.get_node(

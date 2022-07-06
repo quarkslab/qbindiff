@@ -107,17 +107,45 @@ class BeliefMWM:
 
     def update_factor_g_messages(self):
         """Update all the messages from factor g to node"""
+
+        # Use the csc (compressed sparse column) format for efficiency
+        msg_n2g_csc = self.msg_n2g.tocsc()
+        self.msg_g2n = self.msg_g2n.tocsc()
+
         for k in range(self._shape[1]):
-            col = self.msg_n2g[:, k]
-            self.update_factor_msg(col.data)
-            self.msg_g2n[:, k] = col
+            # All the messages share the same sparse matrix structure, i.e. they all
+            # have the same indptr and the same indices arrays
+            # This lets us perform some optimizations
+            begin = msg_n2g_csc.indptr[k]
+            end = msg_n2g_csc.indptr[k + 1]
+            col = msg_n2g_csc.data[begin:end]
+            self.update_factor_msg(col)
+            self.msg_g2n.data[begin:end] = col
+
+            # Non optimized version
+            # ~ col = self.msg_n2g[:, k]
+            # ~ self.update_factor_msg(col.data)
+            # ~ self.msg_g2n[:, k] = col
+
+        # Restore the csr (compressed sparse row) format
+        self.msg_g2n = self.msg_g2n.tocsr()
 
     def update_factor_f_messages(self):
         """Update all the messages from factor f to node"""
         for k in range(self._shape[0]):
-            row = self.msg_n2f[k]
-            self.update_factor_msg(row.data)
-            self.msg_f2n[k] = row
+            # All the messages share the same sparse matrix structure, i.e. they all
+            # have the same indptr and the same indices arrays
+            # This lets us perform some optimizations
+            begin = self.msg_n2f.indptr[k]
+            end = self.msg_n2f.indptr[k + 1]
+            row = self.msg_n2f.data[begin:end]
+            self.update_factor_msg(row)
+            self.msg_f2n.data[begin:end] = row
+
+            # Non optimized version
+            # ~ row = self.msg_n2f[k]
+            # ~ self.update_factor_msg(row.data)
+            # ~ self.msg_f2n[k] = row
 
     def round_messages(self):
         self.matches_mask[:] = self.marginals.data > 0

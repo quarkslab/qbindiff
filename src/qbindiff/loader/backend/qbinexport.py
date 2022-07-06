@@ -6,7 +6,7 @@ from capstone import CS_OP_IMM, CS_GRP_JUMP
 from collections.abc import Iterator
 from typing import Any, TypeAlias
 
-from qbindiff.loader import Program, Function, Data, Structure
+from qbindiff.loader import Data, Structure
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
     AbstractFunctionBackend,
@@ -16,7 +16,6 @@ from qbindiff.loader.backend import (
 )
 from qbindiff.loader.types import (
     FunctionType,
-    LoaderType,
     DataType,
     StructureType,
     ReferenceType,
@@ -405,27 +404,36 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
 class ProgramBackendQBinExport(AbstractProgramBackend):
     """Backend loader of a Program using QBinExport"""
 
-    def __init__(self, program: Program, export_path: str, exec_path: str):
+    def __init__(self, export_path: str, exec_path: str):
         super(ProgramBackendQBinExport, self).__init__()
 
         self.qb_prog = qbinexport.Program(export_path, exec_path)
+        self._exec_path = exec_path
 
         self._callgraph = networkx.DiGraph()
         self._fun_names = {}  # {fun_name : fun_address}
 
+    @property
+    def functions(self) -> Iterator[FunctionBackendQBinExport]:
+        """Returns an iterator over backend function objects"""
+
+        functions = {}
         for addr, func in self.qb_prog.items():
             # Pass a self (weak) reference for performance
-            f = Function(LoaderType.qbinexport, weakref.ref(self), func)
-            if addr in program:
+            f = FunctionBackendQBinExport(weakref.ref(self), func)
+            if addr in functions:
                 logging.error("Address collision for 0x%x" % addr)
-            program[addr] = f
+            functions[addr] = f
             self._fun_names[f.name] = addr
 
+            # Load the callgraph
             self._callgraph.add_node(addr)
             for c_addr in f.children:
                 self._callgraph.add_edge(addr, c_addr)
             for p_addr in f.parents:
                 self._callgraph.add_edge(p_addr, addr)
+
+        return iter(functions.values())
 
     @property
     def name(self):
@@ -473,3 +481,8 @@ class ProgramBackendQBinExport(AbstractProgramBackend):
         Returns a dictionary with function name as key and the function address as value
         """
         return self._fun_names
+
+    @property
+    def exec_path(self) -> str:
+        """Returns the executable path"""
+        return self._exec_path

@@ -16,13 +16,8 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
-from qbindiff.loader import Program, Function, Data, Structure
-from qbindiff.loader.types import (
-    LoaderType,
-    FunctionType,
-    ReferenceType,
-    ReferenceTarget,
-)
+from qbindiff.loader import Data, Structure
+from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 
 # Type aliases
@@ -358,7 +353,7 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
 
 
 class ProgramBackendBinExport(AbstractProgramBackend):
-    def __init__(self, program: Program, file: str, *, enable_cortexm: bool = False):
+    def __init__(self, file: str, *, enable_cortexm: bool = False):
         super(ProgramBackendBinExport, self).__init__()
 
         self._enable_cortexm = enable_cortexm
@@ -367,14 +362,20 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         self.architecture_name = self.be_prog.architecture
         self._fun_names = {}  # {fun_name : fun_address}
 
-        # Load all the functions
-        for addr, func in self.be_prog.items():
-            f = Function(LoaderType.binexport, weakref.ref(self), func)
-            program[f.addr] = f
-            self._fun_names[f.name] = f.addr
-
     def __repr__(self) -> str:
         return f"<{type(self).__name__}:{self.name}>"
+
+    @property
+    def functions(self) -> Iterator[FunctionBackendBinExport]:
+        """Returns an iterator over backend function objects"""
+
+        functions = []
+        for addr, func in self.be_prog.items():
+            f = FunctionBackendBinExport(weakref.ref(self), func)
+            functions.append(f)
+            self._fun_names[f.name] = f.addr
+
+        return iter(functions)
 
     @property
     def cortexm(self) -> bool:

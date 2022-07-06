@@ -176,6 +176,12 @@ class AbstractProgramBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
+    def functions(self) -> Iterator[AbstractFunctionBackend]:
+        """Returns an iterator over backend function objects"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
     def name(self) -> str:
         """The name of the program"""
         raise NotImplementedError()
@@ -199,3 +205,11 @@ class AbstractProgramBackend(metaclass=ABCMeta):
         Returns a dictionary with function name as key and the function address as value
         """
         raise NotImplementedError()
+
+    @property
+    def exec_path(self) -> str | None:
+        """
+        Returns the executable path if it has been specified.
+        By default it returns None
+        """
+        return None

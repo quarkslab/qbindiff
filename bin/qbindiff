@@ -23,7 +23,12 @@ def configure_logging(verbose: int):
     np.warnings.filterwarnings("ignore")
 
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG if verbose >= 1 else logging.INFO)
+    if verbose >= 2:
+        logger.setLevel(logging.DEBUG)
+    elif verbose == 1:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
 
 
 def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
@@ -118,7 +123,7 @@ The following distances are available {DISTANCES}
     "--sparsity-ratio",
     type=float,
     default=DEFAULT_SPARSITY_RATIO,
-    help="Ratio of least probable matches to ignore. Between 0.0 to 1.0 [default: %.02f]"
+    help="Ratio of least probable matches to ignore. Between 0.0 (nothing is ignored) to 1.0 (only perfect matches are considered) [default: %.02f]"
     % DEFAULT_SPARSITY_RATIO,
 )
 @click.option(
@@ -177,7 +182,12 @@ The following distances are available {DISTANCES}
     is_flag=True,
     help="Enable the usage of the cortex-m extension when disassembling",
 )
-@click.option("-v", "--verbose", count=True, help="Activate debugging messages")
+@click.option(
+    "-v",
+    "--verbose",
+    count=True,
+    help="Activate debugging messages. Can be supplied multiple times to increase verbosity",
+)
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
@@ -244,14 +254,14 @@ def main(
             )
             exit(1)
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(primary, loader, exec_primary)
+        primary = Program(loader, primary, exec_primary)
         logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(secondary, loader, exec_secondary)
+        secondary = Program(loader, secondary, exec_secondary)
     else:
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(primary, loader, enable_cortexm=enable_cortexm)
+        primary = Program(loader, primary, enable_cortexm=enable_cortexm)
         logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(secondary, loader, enable_cortexm=enable_cortexm)
+        secondary = Program(loader, secondary, enable_cortexm=enable_cortexm)
 
     qbindiff = QBinDiff(
         primary,

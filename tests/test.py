@@ -75,14 +75,14 @@ class BinaryTest(unittest.TestCase):
     def basic_test(self, unit: Unit):
         if unit.loader == LoaderType.qbinexport:
             p = qbindiff.Program(
-                self.path(unit.primary), unit.loader, self.path(unit.primary_exe)
+                unit.loader, self.path(unit.primary), self.path(unit.primary_exe)
             )
             s = qbindiff.Program(
-                self.path(unit.secondary), unit.loader, self.path(unit.secondary_exe)
+                unit.loader, self.path(unit.secondary), self.path(unit.secondary_exe)
             )
         else:
-            p = qbindiff.Program(self.path(unit.primary), unit.loader)
-            s = qbindiff.Program(self.path(unit.secondary), unit.loader)
+            p = qbindiff.Program(unit.loader, self.path(unit.primary))
+            s = qbindiff.Program(unit.loader, self.path(unit.secondary))
         differ = qbindiff.QBinDiff(
             p, s, sparsity_ratio=0.75, tradeoff=0.75, epsilon=0.5, distance="canberra"
         )
