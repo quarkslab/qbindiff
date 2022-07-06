@@ -14,13 +14,17 @@ class Program(dict, GenericGraph):
     Program class that shadows the underlying program backend used.
     It inherits from dict which keys are function addresses and
     values are Function object.
+    The node label is the function address, the node itself is the Function object
     """
 
     def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
         super(Program, self).__init__()
         self._backend = None
 
-        if loader == LoaderType.ida:
+        if loader is None and (backend := kwargs.get("backend")) is not None:
+            self._backend = backend  # Load directly from instanciated backend
+
+        elif loader == LoaderType.ida:
             from qbindiff.loader.backend.ida import ProgramBackendIDA
 
             self._backend = ProgramBackendIDA(self, **kwargs)
@@ -71,6 +75,11 @@ class Program(dict, GenericGraph):
         :return: None
         """
         return Program(LoaderType.ida)
+
+    @staticmethod
+    def from_backend(backend: AbstractProgramBackend) -> Program:
+        """Load the Program from an instanciated program backend object"""
+        return Program(None, backend=backend)
 
     def __repr__(self):
         return "<Program:%s>" % self.name
