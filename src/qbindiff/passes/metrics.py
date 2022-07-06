@@ -38,9 +38,24 @@ from scipy.sparse import issparse, csr_matrix
 from qbindiff.passes.fast_metrics import sparse_canberra
 
 
-def canberra_distances(X, Y):
+def _validate_vector(u, dtype=None):
+    u = np.asarray(u, dtype=dtype)
+    if u.ndim == 1:
+        return u
+    raise ValueError("Input vector should be 1-D.")
+
+
+def _validate_weights(w, dtype=np.double):
+    w = _validate_vector(w, dtype=dtype)
+    if np.any(w < 0):
+        raise ValueError("Input weights should be all non-negative")
+    return w
+
+
+def canberra_distances(X, Y, w=None):
     """
-    Compute the canberra distances between the vectors in X and Y.
+    Compute the canberra distances between the vectors in X and Y using the optional
+    array of weights w.
 
     Parameters
     ----------
@@ -49,6 +64,9 @@ def canberra_distances(X, Y):
 
     Y : array-like of shape (n_samples_Y, n_features)
         An array where each row is a sample and each column is a feature.
+
+    w : array-like of size n_features. The weights for each value in `X` and `V`.
+        Default is None, which gives each value a weight of 1.0
 
     Returns
     -------
@@ -70,10 +88,17 @@ def canberra_distances(X, Y):
         X.sum_duplicates()  # this also sorts indices in-place
         Y.sum_duplicates()
         D = np.zeros((X.shape[0], Y.shape[0]))
-        sparse_canberra(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D)
+
+        if w is not None:
+            w = _validate_weights(w)
+            if w.size != X.shape[1]:
+                ValueError("Weights size mismatch")
+        sparse_canberra(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, w)
         return D
 
-    return distance.cdist(X, Y, "canberra")
+    if w is None:
+        return distance.cdist(X, Y, "canberra")
+    ValueError("Cannot assign weights with non-sparse matrices")
 
 
 CUSTOM_DISTANCES = {
