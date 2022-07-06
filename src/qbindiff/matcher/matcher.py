@@ -59,7 +59,7 @@ class Matcher:
         self.sparse_sim_matrix = None
         self.squares_matrix = None
 
-    def _compute_sparse_sim_matrix(self, sparsity_ratio: Ratio):
+    def _compute_sparse_sim_matrix(self, sparsity_ratio: Ratio, sparse_row: bool):
         """Generate the sparse similarity matrix given the sparsity_ratio"""
         ratio = round(sparsity_ratio * self.sim_matrix.size)
 
@@ -71,16 +71,30 @@ class Matcher:
             self.sparse_sim_matrix = self.sim_matrix >= threshold
             return
 
-        threshold = np.partition(self.sim_matrix, ratio - 1, axis=None)[ratio]
-        # We never want to match nodes with a similarity score of 0, even if that's the
-        # right threshold
-        if threshold == 0:
-            threshold += 1e-8
-        mask = self.sim_matrix >= threshold
-        csr_data = self.sim_matrix[mask]
+        if sparse_row:
+            ratio = round(sparsity_ratio * self.sim_matrix.shape[1])
+            mask = []
+            for i in range(self.sim_matrix.shape[0]):
+                threshold = np.partition(self.sim_matrix[i], ratio - 1)[ratio]
+                # We never want to match nodes with a similarity score of 0, even if
+                # it is the right threshold
+                if threshold == 0:
+                    threshold += 1e-8
+                mask.append(self.sim_matrix[i] >= threshold)
 
-        self.sparse_sim_matrix = csr_matrix(mask, dtype=self.sim_matrix.dtype)
-        self.sparse_sim_matrix.data[:] = csr_data
+            self.sparse_sim_matrix = csr_matrix(mask, dtype=self.sim_matrix.dtype)
+            self.sparse_sim_matrix.data[:] = self.sim_matrix[mask]
+        else:
+            threshold = np.partition(self.sim_matrix, ratio - 1, axis=None)[ratio]
+            # We never want to match nodes with a similarity score of 0, even if it is
+            # the right threshold
+            if threshold == 0:
+                threshold += 1e-8
+            mask = self.sim_matrix >= threshold
+            csr_data = self.sim_matrix[mask]
+
+            self.sparse_sim_matrix = csr_matrix(mask, dtype=self.sim_matrix.dtype)
+            self.sparse_sim_matrix.data[:] = csr_data
 
     def _compute_squares_matrix(self):
         """
@@ -152,9 +166,28 @@ class Matcher:
         """Returns the confidence score for each match in the nodes mapping"""
         return [self._confidence[idx1, idx2] for idx1, idx2 in zip(*self.mapping)]
 
-    def process(self, sparsity_ratio: Ratio = 0.75, compute_squares: bool = True):
-        logging.debug(f"Computing sparse similarity matrix (ratio {sparsity_ratio})")
-        self._compute_sparse_sim_matrix(sparsity_ratio)
+    def process(
+        self,
+        sparsity_ratio: Ratio = 0.75,
+        sparse_row: bool = False,
+        compute_squares: bool = True,
+    ):
+        """
+        Initialize the matching algorithm
+
+        :param sparsity_ratio: The ratio between null element over the entire similarity
+                               matrix
+        :param sparse_row: When building the sparse similarity matrix we can either
+                           filter out the elements by considering all the entries in the
+                           similarity matrix (sparse_row == False) or by considering
+                           each vector separately (sparse_row == True)
+        :param compute_squares: Whether to compute the squares matrix
+        """
+
+        logging.debug(
+            f"Computing sparse similarity matrix (ratio {sparsity_ratio} sparse_row {sparse_row})"
+        )
+        self._compute_sparse_sim_matrix(sparsity_ratio, sparse_row)
         logging.debug(
             f"Sparse similarity matrix computed, shape: {self.sparse_sim_matrix.shape}"
             f", nnz elements: {self.sparse_sim_matrix.nnz}"
