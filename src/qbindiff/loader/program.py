@@ -14,13 +14,17 @@ class Program(dict, GenericGraph):
     Program class that shadows the underlying program backend used.
     It inherits from dict which keys are function addresses and
     values are Function object.
+    The node label is the function address, the node itself is the Function object
     """
 
     def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
         super(Program, self).__init__()
         self._backend = None
 
-        if loader == LoaderType.ida:
+        if loader is None and (backend := kwargs.get("backend")) is not None:
+            self._backend = backend  # Load directly from instanciated backend
+
+        elif loader == LoaderType.ida:
             from qbindiff.loader.backend.ida import ProgramBackendIDA
 
             self._backend = ProgramBackendIDA(self, **kwargs)
@@ -72,6 +76,11 @@ class Program(dict, GenericGraph):
         """
         return Program(LoaderType.ida)
 
+    @staticmethod
+    def from_backend(backend: AbstractProgramBackend) -> Program:
+        """Load the Program from an instanciated program backend object"""
+        return Program(None, backend=backend)
+
     def __repr__(self):
         return "<Program:%s>" % self.name
 
@@ -83,9 +92,8 @@ class Program(dict, GenericGraph):
         :return: Iterator of all functions (sorted by address)
         """
         for addr in sorted(self.keys()):
-            f = self[addr]
-            if self._filter(f):  # yield function only if filter agree to keep it
-                yield f
+            if self._filter(addr):  # yield function only if filter agree to keep it
+                yield self[addr]
 
     def _load_functions(self) -> None:
         """Load the functions from the backend"""
@@ -95,9 +103,8 @@ class Program(dict, GenericGraph):
     def items(self) -> Iterator[tuple[Any, Any]]:
         """Return an iterator over the items. Each item is {node_label: node}"""
         for addr in self.keys():
-            f = self[addr]
-            if self._filter(f):  # yield function only if filter agree to keep it
-                yield (addr, f)
+            if self._filter(addr):  # yield function only if filter agree to keep it
+                yield (addr, self[addr])
 
     def get_node(self, node_label: Any):
         """Returns the node identified by the `node_label`"""
@@ -107,7 +114,7 @@ class Program(dict, GenericGraph):
     def node_labels(self) -> Iterator[Any]:
         """Return an iterator over the node labels"""
         for addr in self.keys():
-            if self._filter(self[addr]):
+            if self._filter(addr):
                 yield addr
 
     @property
@@ -141,15 +148,16 @@ class Program(dict, GenericGraph):
         """Returns the executable path if it has been specified"""
         return self._backend.exec_path
 
-    def set_function_filter(self, func: Callable[[Function], bool]) -> None:
+    def set_function_filter(self, func: Callable[[Addr], bool]) -> None:
         """
         Filter out some functions, to ignore them in later processing.
 
-        .. warning: The filter only apply for __iter__ function and callgraph property.
+        .. warning: The filter only apply for __iter__, items functions and callgraph
+                    property.
                     Accessing functions through the dictionary does not apply the filter
 
-        :param func: function take an Function object and returns whether or not to keep it
-        :return: None
+        :param func: function take the function address (the node label) and returns
+                     whether or not to keep it.
         """
         self._filter = func
 

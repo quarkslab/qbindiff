@@ -64,7 +64,7 @@ class Function(Mapping[Addr, BasicBlock]):
 
     @staticmethod
     def from_backend(backend: AbstractFunctionBackend) -> Function:
-        """Load the BasicBlock from an instanciated basic block backend object"""
+        """Load the Function from an instanciated function backend object"""
         return Function(None, backend=backend)
 
     def __hash__(self):

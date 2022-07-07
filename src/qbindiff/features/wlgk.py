@@ -4,7 +4,11 @@ from collections import defaultdict, Counter
 from abc import ABCMeta, abstractmethod
 from typing import Optional
 
-from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
+from qbindiff.features.extractor import (
+    FunctionFeatureExtractor,
+    FeatureCollector,
+    FeatureOption,
+)
 from qbindiff.loader import Program, Function, BasicBlock
 
 
@@ -97,14 +101,30 @@ class BOWLSH(LSH):
 
 
 class WeisfeilerLehman(FunctionFeatureExtractor):
-    """Weisfeiler-Lehman Graph Kernel"""
+    """Weisfeiler-Lehman Graph Kernel. Options: ['max_passes': int]"""
 
     key = "wlgk"
 
-    def __init__(self, *args, lsh: type[LSH] = None, **kwargs):
-        """Extract a feature vector by using a custom defined node labeling scheme."""
+    options = {
+        "max_passes": FeatureOption(
+            "max_passes", "Set a limit to the number of iterations", int
+        )
+    }
+
+    def __init__(
+        self, *args, lsh: type[LSH] | None = None, max_passes: int = -1, **kwargs
+    ):
+        """
+        Extract a feature vector by using a custom defined node labeling scheme.
+
+        :param lsh: The Local Sensitive Hashing function to use. Must inherit from LSH.
+                    If None is specified then BOWLSH is used
+        :param max_passes: The maximum number of iterations allowed.
+                           If it is set to -1 then no limit is specified.
+        """
         super(WeisfeilerLehman, self).__init__(*args, **kwargs)
 
+        self.max_passes = max_passes
         if lsh is None:
             self.lsh = BOWLSH
         else:
@@ -130,7 +150,11 @@ class WeisfeilerLehman(FunctionFeatureExtractor):
 
         vec = [l() for l in labels]
         prev_counter = 0
-        for step in range(len(labels)):
+        if self.max_passes == -1:
+            iterations = len(labels)
+        else:
+            iterations = min(self.max_passes, len(labels))
+        for step in range(iterations):
             # Recalculate labels at each step
             newLabels = []
             for node, label in enumerate(labels):

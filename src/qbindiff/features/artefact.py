@@ -1,4 +1,5 @@
 import re
+import random
 from collections import defaultdict
 from typing import Optional, Any, Pattern
 
@@ -120,5 +121,12 @@ class FuncName(FunctionFeatureExtractor):
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
         if self.is_excluded(function):
-            return
-        collector.add_dict_feature(self.key, {function.name: 1})
+            # We cannot properly exclude the name since a zero feature vector will
+            # have a distance of zero (hence similarity of 1) with any other zero
+            # feature vector. Hence add a good enough random number to reduce the
+            # chance of a collision
+            collector.add_dict_feature(
+                self.key, {function.name + str(random.randrange(1000000000)): 1}
+            )
+        else:
+            collector.add_dict_feature(self.key, {function.name: 1})

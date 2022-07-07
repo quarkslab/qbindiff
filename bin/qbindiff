@@ -3,6 +3,7 @@
 import logging
 import os
 from pathlib import Path
+from collections import defaultdict
 
 # Third-party imports
 import click
@@ -105,6 +106,14 @@ The following distances are available {DISTANCES}
     help=help_features,
 )
 @click.option(
+    "-fopt",
+    "--feature-option",
+    type=(str, str, str),
+    multiple=True,
+    metavar="<feature> <option> <value>",
+    help="Specify a feature option. To get a list of options accepted by a feature look into the description of the feature",
+)
+@click.option(
     "-n",
     "--normalize",
     is_flag=True,
@@ -125,6 +134,12 @@ The following distances are available {DISTANCES}
     default=DEFAULT_SPARSITY_RATIO,
     help="Ratio of least probable matches to ignore. Between 0.0 (nothing is ignored) to 1.0 (only perfect matches are considered) [default: %.02f]"
     % DEFAULT_SPARSITY_RATIO,
+)
+@click.option(
+    "-sr",
+    "--sparse-row",
+    is_flag=True,
+    help="Whether to build the sparse similarity matrix considering its entirety or processing it row per row",
 )
 @click.option(
     "-t",
@@ -193,9 +208,11 @@ The following distances are available {DISTANCES}
 def main(
     loader,
     features,
+    feature_option,
     normalize,
     distance,
     sparsity_ratio,
+    sparse_row,
     tradeoff,
     epsilon,
     maxiter,
@@ -239,6 +256,11 @@ def main(
     if not output:
         logging.warning("[-] You have not specified an output file")
 
+    # Group options to pass to the feature extractors
+    feature_option_dict = defaultdict(dict)
+    for option in feature_option:
+        feature_option_dict[option[0]][option[1]] = option[2]
+
     loader = LOADERS[loader]
 
     # Check that the executables have been provided
@@ -272,6 +294,7 @@ def main(
         distance=distance,
         maxiter=maxiter,
         normalize=normalize,
+        sparse_row=sparse_row,
     )
 
     if not features:
@@ -296,8 +319,13 @@ def main(
         if feature not in FEATURES_KEYS:
             logging.warning(f"Feature '{feature}' not recognized - ignored.")
             continue
+        extractor_class = FEATURES_KEYS[feature]
+        feature_opts = {
+            k: extractor_class.options[k].parser(v)
+            for k, v in feature_option_dict[feature].items()
+        }
         qbindiff.register_feature_extractor(
-            FEATURES_KEYS[feature], float(weight), distance=distance
+            extractor_class, float(weight), distance=distance, **feature_opts
         )
 
     logging.info("[+] Initializing NAP")

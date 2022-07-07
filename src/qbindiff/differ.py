@@ -31,6 +31,8 @@ class Differ:
     :param epsilon: perturbation parameter to enforce convergence and speed up computation.
                     The greatest the fastest, but least accurate
     :param maxiter: maximum number of message passing iterations
+    :param sparse_row: Whether to build the sparse similarity matrix considering its
+                       entirety or processing it row per row
     """
 
     DTYPE = np.float32
@@ -44,6 +46,7 @@ class Differ:
         epsilon: Positive = 0.5,
         maxiter: int = 1000,
         normalize: bool = False,
+        sparse_row: bool = False,
     ):
 
         # NAP parameters
@@ -51,6 +54,7 @@ class Differ:
         self.tradeoff = tradeoff
         self.epsilon = epsilon
         self.maxiter = maxiter
+        self.sparse_row = sparse_row
 
         self.primary = primary
         self.secondary = secondary
@@ -171,6 +175,8 @@ class Differ:
         Register a new pre-pass that will operate on the similarity matrix.
         The passes will be called in the same order as they are registered and each one
         of them will operate on the output of the previous one.
+        WARNING: a prepass should assign values to the full row or the full column, it
+        should never assign single entries in the matrix
         """
         self._pre_passes.append((pass_func, extra_args))
 
@@ -240,7 +246,7 @@ class Differ:
         matcher = Matcher(
             self.sim_matrix, self.primary_adj_matrix, self.secondary_adj_matrix
         )
-        matcher.process(self.sparsity_ratio)
+        matcher.process(self.sparsity_ratio, self.sparse_row)
 
         yield from matcher.compute(self.tradeoff, self.epsilon, self.maxiter)
 

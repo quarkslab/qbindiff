@@ -1,7 +1,8 @@
+from dataclasses import dataclass
 from scipy.sparse import lil_array
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 from qbindiff.features.manager import FeatureKeyManager
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
@@ -68,6 +69,16 @@ class FeatureCollector:
         return vector.tocsr()
 
 
+T = TypeVar("T")
+
+
+@dataclass
+class FeatureOption:
+    name: str
+    description: str
+    parser: Callable[[str], T]
+
+
 class FeatureExtractor:
     """
     Abstract class that represent a feature extractor which sole contraints are to
@@ -75,6 +86,7 @@ class FeatureExtractor:
     """
 
     key = ""
+    options = {}  # Dict {name : option}, each option is a instance of FeatureOption
 
     def __init__(self, weight: Positive = 1.0):
         self._weight = weight
