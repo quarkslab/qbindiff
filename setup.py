@@ -95,6 +95,7 @@ setup(
         "networkx",
         "capstone",
         "datasketch",
+        "sklearn",
     ],
     scripts=["bin/qbindiff"],
     extras_require={
