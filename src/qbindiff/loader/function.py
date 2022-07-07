@@ -42,8 +42,8 @@ class Function(Mapping[Addr, BasicBlock]):
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
-        elif loader == LoaderType.qbinexport:
-            self.load_qbinexport(*args, **kwargs)
+        elif loader == LoaderType.quokka:
+            self.load_quokka(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
@@ -57,10 +57,10 @@ class Function(Mapping[Addr, BasicBlock]):
 
         self._backend = FunctionBackendIDA(self, addr)
 
-    def load_qbinexport(self, *args, **kwargs):
-        from qbindiff.loader.backend.qbinexport import FunctionBackendQBinExport
+    def load_quokka(self, *args, **kwargs):
+        from qbindiff.loader.backend.quokka import FunctionBackendQuokka
 
-        self._backend = FunctionBackendQBinExport(*args, **kwargs)
+        self._backend = FunctionBackendQuokka(*args, **kwargs)
 
     @staticmethod
     def from_backend(backend: AbstractFunctionBackend) -> Function:

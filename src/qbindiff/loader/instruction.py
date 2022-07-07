@@ -20,8 +20,8 @@ class Instruction:
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
-        elif loader == LoaderType.qbinexport:
-            self.load_qbinexport(*args, **kwargs)
+        elif loader == LoaderType.quokka:
+            self.load_quokka(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
@@ -45,11 +45,11 @@ class Instruction:
 
         self._backend = InstructionBackendIDA(addr)
 
-    def load_qbinexport(self, *args, **kwargs) -> None:
-        """Load the Instruction using the QBinExport backend"""
-        from qbindiff.loader.backend.qbinexport import InstructionBackendQBinExport
+    def load_quokka(self, *args, **kwargs) -> None:
+        """Load the Instruction using the Quokka backend"""
+        from qbindiff.loader.backend.quokka import InstructionBackendQuokka
 
-        self._backend = InstructionBackendQBinExport(*args, **kwargs)
+        self._backend = InstructionBackendQuokka(*args, **kwargs)
 
     @staticmethod
     def from_backend(backend: AbstractInstructionBackend) -> Instruction:

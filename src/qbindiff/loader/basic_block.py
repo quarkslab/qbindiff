@@ -23,8 +23,8 @@ class BasicBlock(Iterable[Instruction]):
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
-        elif loader == LoaderType.qbinexport:
-            self.load_qbinexport(*args, **kwargs)
+        elif loader == LoaderType.quokka:
+            self.load_quokka(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
@@ -36,10 +36,10 @@ class BasicBlock(Iterable[Instruction]):
     def load_ida(self, addr):
         raise NotImplementedError("Ida backend loader is not yet fully implemented")
 
-    def load_qbinexport(self, *args, **kwargs):
-        from qbindiff.loader.backend.qbinexport import BasicBlockBackendQBinExport
+    def load_quokka(self, *args, **kwargs):
+        from qbindiff.loader.backend.quokka import BasicBlockBackendQuokka
 
-        self._backend = BasicBlockBackendQBinExport(*args, **kwargs)
+        self._backend = BasicBlockBackendQuokka(*args, **kwargs)
 
     @staticmethod
     def from_backend(backend: AbstractBasicBlockBackend) -> BasicBlock:

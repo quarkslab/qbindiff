@@ -34,10 +34,10 @@ class Program(dict, GenericGraph):
 
             self._backend = ProgramBackendBinExport(*args, **kwargs)
 
-        elif loader == LoaderType.qbinexport:
-            from qbindiff.loader.backend.qbinexport import ProgramBackendQBinExport
+        elif loader == LoaderType.quokka:
+            from qbindiff.loader.backend.quokka import ProgramBackendQuokka
 
-            self._backend = ProgramBackendQBinExport(*args, **kwargs)
+            self._backend = ProgramBackendQuokka(*args, **kwargs)
 
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
@@ -58,15 +58,15 @@ class Program(dict, GenericGraph):
         return Program(LoaderType.binexport, file_path, enable_cortexm)
 
     @staticmethod
-    def from_qbinexport(file_path: str, exec_path: str) -> Program:
+    def from_quokka(file_path: str, exec_path: str) -> Program:
         """
-        Load the Program using the QBinExport backend.
+        Load the Program using the Quokka backend.
 
         :param file_path: File path to the binexport file
         :param exec_path: Path of the raw binary
         :return: Program instance
         """
-        return Program(LoaderType.qbinexport, file_path, exec_path=exec_path)
+        return Program(LoaderType.quokka, file_path, exec_path=exec_path)
 
     @staticmethod
     def from_ida() -> "Program":

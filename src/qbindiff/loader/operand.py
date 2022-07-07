@@ -17,8 +17,8 @@ class Operand:
             self.load_binexport(*args, **kwargs)
         elif loader == LoaderType.ida:
             self.load_ida(*args, **kwargs)
-        elif loader == LoaderType.qbinexport:
-            self.load_qbinexport(*args, **kwargs)
+        elif loader == LoaderType.quokka:
+            self.load_quokka(*args, **kwargs)
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
@@ -43,11 +43,11 @@ class Operand:
 
         self._backend = OperandBackendIDA(op_t, ea)
 
-    def load_qbinexport(self, *args, **kwargs) -> None:
-        """Load the operand using the qbinexport backend"""
-        from qbindiff.loader.backend.qbinexport import OperandBackendQBinExport
+    def load_quokka(self, *args, **kwargs) -> None:
+        """Load the operand using the quokka backend"""
+        from qbindiff.loader.backend.quokka import OperandBackendQuokka
 
-        self._backend = OperandBackendQBinExport(*args, **kwargs)
+        self._backend = OperandBackendQuokka(*args, **kwargs)
 
     @staticmethod
     def from_backend(backend: AbstractOperandBackend) -> Operand:

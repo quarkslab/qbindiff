@@ -170,14 +170,14 @@ The following distances are available {DISTANCES}
     "--executable1",
     "exec_primary",
     type=Path,
-    help="Path to the primary raw executable. Must be provided if using qbinexport loader",
+    help="Path to the primary raw executable. Must be provided if using quokka loader",
 )
 @click.option(
     "-e2",
     "--executable2",
     "exec_secondary",
     type=Path,
-    help="Path to the secondary raw executable. Must be provided if using qbinexport loader",
+    help="Path to the secondary raw executable. Must be provided if using quokka loader",
 )
 @click.option(
     "-o",
@@ -264,7 +264,7 @@ def main(
     loader = LOADERS[loader]
 
     # Check that the executables have been provided
-    if loader == LoaderType.qbinexport:
+    if loader == LoaderType.quokka:
         if not (
             exec_primary
             and exec_secondary
@@ -272,7 +272,7 @@ def main(
             and os.path.exists(exec_secondary)
         ):
             logging.error(
-                "When using the qbinexport loader you have to provide the raw binaries"
+                "When using the quokka loader you have to provide the raw binaries"
             )
             exit(1)
         logging.info(f"[+] Loading primary: {primary.name}")
