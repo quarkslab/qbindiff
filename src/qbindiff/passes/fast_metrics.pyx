@@ -42,10 +42,11 @@ cnp.import_array()
 
 def sparse_canberra(floating[::1] X_data, int[:] X_indices, int[:] X_indptr,
                     floating[::1] Y_data, int[:] Y_indices, int[:] Y_indptr,
-                    double[:, ::1] D):
+                    double[:, ::1] D, double[:] w):
     """Pairwise canberra distances for CSR matrices"""
     cdef cnp.npy_intp px, py, i, j, ix, iy
     cdef double d = 0.0
+    cdef double tmp;
 
     cdef int m = D.shape[0]
     cdef int n = D.shape[1]
@@ -81,19 +82,39 @@ def sparse_canberra(floating[::1] X_data, int[:] X_indices, int[:] X_indptr,
                 iy = Y_indices[j]
 
                 if ix == iy:
-                    d = d + fabs(X_data[i] - Y_data[j]) / (fabs(X_data[i]) + fabs(Y_data[j]))
+                    tmp = fabs(X_data[i] - Y_data[j]) / (fabs(X_data[i]) + fabs(Y_data[j]))
+                    if w is None:
+                        d = d + tmp
+                    else:
+                        d = d + w[ix] * tmp
                     i = i + 1
                     j = j + 1
                 elif ix < iy:
-                    d = d + 1
+                    if w is None:
+                        d = d + 1
+                    else:
+                        d = d + w[ix]
                     i = i + 1
                 else:
-                    d = d + 1
+                    if w is None:
+                        d = d + 1
+                    else:
+                        d = d + w[iy]
                     j = j + 1
 
             if i == X_indptr_end:
-                d = d + Y_indptr_end - j
+                if w is None:
+                    d = d + Y_indptr_end - j
+                else:
+                    while j < Y_indptr_end:
+                        d = d + w[Y_indices[j]]
+                        j = j + 1
             else:
-                d = d + X_indptr_end - i
+                if w is None:
+                    d = d + X_indptr_end - i
+                else:
+                    while i < X_indptr_end:
+                        d = d + w[X_indices[i]]
+                        i = i + 1
 
             D[px, py] = d

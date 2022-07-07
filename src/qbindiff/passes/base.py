@@ -153,8 +153,8 @@ class FeaturePass(GenericPass):
                 primary_feature_matrix,
                 secondary_feature_matrix,
                 metric=distance,
+                w=weights,
                 n_jobs=16,
-                # ~ w=weights,
             ).astype(dtype)
         else:
             sim_matrix = pairwise_distances(
