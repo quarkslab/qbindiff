@@ -151,7 +151,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
 
     @property
     def addr(self):
-        return self.cs_instr.addr
+        return self.cs_instr.address
 
     @property
     def mnemonic(self):
