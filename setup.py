@@ -100,7 +100,7 @@ setup(
     scripts=["bin/qbindiff"],
     extras_require={
         "binexport": ["python-binexport"],
-        "qbinexport": ["qbinexport"],
+        "quokka": ["quokka"],
         "full": ["python-louvain"],
     },
 )
