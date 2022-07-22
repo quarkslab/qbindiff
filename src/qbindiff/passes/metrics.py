@@ -35,7 +35,7 @@ import sklearn.metrics
 from scipy.spatial import distance
 from scipy.sparse import issparse, csr_matrix
 
-from qbindiff.passes.fast_metrics import sparse_canberra
+from qbindiff.passes.fast_metrics import sparse_canberra, sparse_strong_jaccard
 
 
 def _validate_vector(u, dtype=None):
@@ -101,8 +101,72 @@ def canberra_distances(X, Y, w=None):
     ValueError("Cannot assign weights with non-sparse matrices")
 
 
+def jaccard_strong(X, Y, w=None):
+    """
+    Compute a variation of the jaccard distances between the vectors in X and Y using
+    the optional array of weights w.
+
+    The distance function between two vector `u` and `v` is the following:
+
+    $\sum_{i}\frac{f(u_i, v_i)}{ | \{ i | u_i \neq 0 \lor v_i \neq 0 \} | }$
+    where the function `f` is defined like this:
+        $f(x, y) -> 0 if x = 0 \lor y = 0$
+        $f(x, y) -> 1 - \frac{|x - y|}{|x| + |y|} else$
+
+    If the optional weights are specified the formula becomes:
+    $\sum_{i}\frac{w_i * f(u_i, v_i)}{ | \{ i | u_i \neq 0 \lor v_i \neq 0 \} | }$
+
+    Parameters
+    ----------
+    X : array-like of shape (n_samples_X, n_features)
+        An array where each row is a sample and each column is a feature.
+
+    Y : array-like of shape (n_samples_Y, n_features)
+        An array where each row is a sample and each column is a feature.
+
+    w : array-like of size n_features. The weights for each value in `X` and `V`.
+        Default is None, which gives each value a weight of 1.0
+
+    Returns
+    -------
+    D : ndarray of shape (n_samples_X, n_samples_Y)
+        D contains the pairwise strong jaccard distances.
+
+    Notes
+    -----
+    When X and/or Y are CSR sparse matrices and they are not already
+    in canonical format, this function modifies them in-place to
+    make them canonical.
+    """
+
+    X, Y = sklearn.metrics.pairwise.check_pairwise_arrays(X, Y)
+
+    if issparse(X) or issparse(Y):
+        X = csr_matrix(X, copy=False)
+        Y = csr_matrix(Y, copy=False)
+        X.sum_duplicates()  # this also sorts indices in-place
+        Y.sum_duplicates()
+        D = np.zeros((X.shape[0], Y.shape[0]))
+
+        if w is not None:
+            w = _validate_weights(w)
+            if w.size != X.shape[1]:
+                ValueError("Weights size mismatch")
+        sparse_strong_jaccard(
+            X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, w
+        )
+        return D
+
+    if w is None:
+        return sparse_strong_jaccard(
+            X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, None
+        )
+    ValueError("Cannot assign weights with non-sparse matrices")
+
+
 CUSTOM_DISTANCES = {
     "canberra": canberra_distances,
+    "jaccard-strong": jaccard_strong,
 }
 
 
