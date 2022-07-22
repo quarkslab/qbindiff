@@ -68,7 +68,10 @@ class FeaturePass(GenericPass):
         """
         Utility function to generate the sparse feature matrix.
         It returns the sparse feature matrix where each row corresponds to a node and
-        each column to a feature
+        each column to a feature.
+        If a node has no features it is converted to a zero vector.
+        The mapping node_to_index will be used to map each node label to an index in the
+        feature matrix.
 
         :param features: Dict of features {node : feature_collector}
         :param features_main_keys: List of all the features main keys
@@ -101,6 +104,9 @@ class FeaturePass(GenericPass):
         """
         Utility function that generate a similarity matrix given two collections of
         features only considering a subset of the features (specified by feature_keys).
+        WARNING: Please note that it will calculate the distance even between nodes
+        that have no features. The results should be subsequently discarded as they are
+        not representative of the similarity between the two nodes.
 
         It returns the whole similarity matrix of the given shape.
 
