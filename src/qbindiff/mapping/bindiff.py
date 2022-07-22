@@ -353,7 +353,7 @@ class BinDiffFormat:
 
         params = {
             "version": self.version,
-            "created": datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S"),
+            "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "similarity": self.mapping.normalized_similarity,
         }
         conn.execute(

@@ -101,7 +101,7 @@ class BOWLSH(LSH):
 
 
 class WeisfeilerLehman(FunctionFeatureExtractor):
-    """Weisfeiler-Lehman Graph Kernel. Options: ['max_passes': int]"""
+    """Weisfeiler-Lehman Graph Kernel. It's strongly suggested to use the cosine distance with this feature. Options: ['max_passes': int]"""
 
     key = "wlgk"
 

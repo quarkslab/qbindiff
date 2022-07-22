@@ -1,5 +1,5 @@
 from __future__ import annotations
-import qbinexport, networkx, logging, weakref
+import quokka, networkx, logging, weakref
 from struct import pack
 from functools import cached_property
 from capstone import CS_OP_IMM, CS_GRP_JUMP
@@ -25,11 +25,11 @@ from qbindiff.types import Addr
 
 
 # Aliases
-qbProgram: TypeAlias = qbinexport.Program
-qbFunction: TypeAlias = qbinexport.function.Function
-qbBlock: TypeAlias = qbinexport.block.Block
-qbInstruction: TypeAlias = qbinexport.instruction.Instruction
-qbOperand: TypeAlias = qbinexport.instruction.Operand
+qbProgram: TypeAlias = quokka.Program
+qbFunction: TypeAlias = quokka.function.Function
+qbBlock: TypeAlias = quokka.block.Block
+qbInstruction: TypeAlias = quokka.instruction.Instruction
+qbOperand: TypeAlias = quokka.instruction.Operand
 capstoneOperand: TypeAlias = Any  # Relaxed typing
 capstoneValue: TypeAlias = Any  # Relaxed typing
 
@@ -37,52 +37,52 @@ capstoneValue: TypeAlias = Any  # Relaxed typing
 # ===== General purpose utils functions =====
 
 
-def convert_data_type(qbe_data_type: qbinexport.types.DataType) -> DataType:
-    """Convert a qbinexport DataType to qbindiff DataType"""
+def convert_data_type(qbe_data_type: quokka.types.DataType) -> DataType:
+    """Convert a quokka DataType to qbindiff DataType"""
 
-    if qbe_data_type == qbinexport.types.DataType.ASCII:
+    if qbe_data_type == quokka.types.DataType.ASCII:
         return DataType.ASCII
-    elif qbe_data_type == qbinexport.types.DataType.BYTE:
+    elif qbe_data_type == quokka.types.DataType.BYTE:
         return DataType.BYTE
-    elif qbe_data_type == qbinexport.types.DataType.WORD:
+    elif qbe_data_type == quokka.types.DataType.WORD:
         return DataType.WORD
-    elif qbe_data_type == qbinexport.types.DataType.DOUBLE_WORD:
+    elif qbe_data_type == quokka.types.DataType.DOUBLE_WORD:
         return DataType.DOUBLE_WORD
-    elif qbe_data_type == qbinexport.types.DataType.QUAD_WORD:
+    elif qbe_data_type == quokka.types.DataType.QUAD_WORD:
         return DataType.QUAD_WORD
-    elif qbe_data_type == qbinexport.types.DataType.OCTO_WORD:
+    elif qbe_data_type == quokka.types.DataType.OCTO_WORD:
         return DataType.OCTO_WORD
-    elif qbe_data_type == qbinexport.types.DataType.FLOAT:
+    elif qbe_data_type == quokka.types.DataType.FLOAT:
         return DataType.FLOAT
-    elif qbe_data_type == qbinexport.types.DataType.DOUBLE:
+    elif qbe_data_type == quokka.types.DataType.DOUBLE:
         return DataType.DOUBLE
     else:
         return DataType.UNKNOWN
 
 
 def convert_struct_type(
-    qbe_struct_type: qbinexport.types.StructureType,
+    qbe_struct_type: quokka.types.StructureType,
 ) -> StructureType:
-    """Convert a qbinexport StructureType to qbindiff StructureType"""
+    """Convert a quokka StructureType to qbindiff StructureType"""
 
-    if qbe_struct_type == qbinexport.types.StructureType.ENUM:
+    if qbe_struct_type == quokka.types.StructureType.ENUM:
         return StructureType.ENUM
-    elif qbe_struct_type == qbinexport.types.StructureType.STRUCT:
+    elif qbe_struct_type == quokka.types.StructureType.STRUCT:
         return StructureType.STRUCT
-    elif qbe_struct_type == qbinexport.types.StructureType.UNION:
+    elif qbe_struct_type == quokka.types.StructureType.UNION:
         return StructureType.UNION
     else:
         return StructureType.UNKNOWN
 
 
-def convert_ref_type(qbe_ref_type: qbinexport.types.ReferenceType) -> ReferenceType:
-    """Convert a qbinexport ReferenceType to qbindiff ReferenceType"""
+def convert_ref_type(qbe_ref_type: quokka.types.ReferenceType) -> ReferenceType:
+    """Convert a quokka ReferenceType to qbindiff ReferenceType"""
 
-    if qbe_ref_type == qbinexport.types.ReferenceType.DATA:
+    if qbe_ref_type == quokka.types.ReferenceType.DATA:
         return ReferenceType.DATA
-    elif qbe_ref_type == qbinexport.types.ReferenceType.ENUM:
+    elif qbe_ref_type == quokka.types.ReferenceType.ENUM:
         return ReferenceType.ENUM
-    elif qbe_ref_type == qbinexport.types.ReferenceType.STRUC:
+    elif qbe_ref_type == quokka.types.ReferenceType.STRUC:
         return ReferenceType.STRUC
     else:
         return StructureType.UNKNOWN
@@ -107,11 +107,11 @@ def to_x(s):
 # ===========================================
 
 
-class OperandBackendQBinExport(AbstractOperandBackend):
-    """Backend loader of a Operand using QBinExport"""
+class OperandBackendQuokka(AbstractOperandBackend):
+    """Backend loader of a Operand using Quokka"""
 
     def __init__(self, cs_instruction: "capstone.CsInsn", cs_operand: capstoneOperand):
-        super(OperandBackendQBinExport, self).__init__()
+        super(OperandBackendQuokka, self).__init__()
 
         self.cs_instr = cs_instruction
         self.cs_operand = cs_operand
@@ -167,15 +167,15 @@ class OperandBackendQBinExport(AbstractOperandBackend):
         )
 
 
-class InstructionBackendQBinExport(AbstractInstructionBackend):
-    """Backend loader of a Instruction using QBinExport"""
+class InstructionBackendQuokka(AbstractInstructionBackend):
+    """Backend loader of a Instruction using Quokka"""
 
     def __init__(
         self,
-        program: weakref.ref[ProgramBackendQBinExport],
+        program: weakref.ref[ProgramBackendQuokka],
         qb_instruction: qbInstruction,
     ):
-        super(InstructionBackendQBinExport, self).__init__()
+        super(InstructionBackendQuokka, self).__init__()
 
         self.program = program
         self.qb_instr = qb_instruction
@@ -186,7 +186,7 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
             )
 
     def __del__(self):
-        """Clean qbinexport internal state to deallocate memory"""
+        """Clean quokka internal state to deallocate memory"""
 
         # Clear the reference to capstone object
         self.qb_instr._cs_instr = None
@@ -195,27 +195,25 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         block._raw_dict[self.qb_instr.address] = self.qb_instr.proto_index
 
     def _cast_references(
-        self, references: list[qbinexport.types.ReferenceTarget]
+        self, references: list[quokka.types.ReferenceTarget]
     ) -> list[ReferenceTarget]:
-        """Cast the qbinexport references to qbindiff reference types"""
+        """Cast the quokka references to qbindiff reference types"""
 
         ret_ref = []
         for ref in references:
             match ref:
-                case qbinexport.data.Data():
+                case quokka.data.Data():
                     data_type = convert_data_type(ref.type)
                     ret_ref.append(Data(data_type, ref.address, ref.value))
-                case qbinexport.structure.Structure(name=name):
+                case quokka.structure.Structure(name=name):
                     ret_ref.append(self.program().get_structure(name))
-                case qbinexport.structure.StructureMember(
-                    structure=qbe_struct, name=name
-                ):
+                case quokka.structure.StructureMember(structure=qbe_struct, name=name):
                     ret_ref.append(
                         self.program()
                         .get_structure(qbe_struct.name)
                         .member_by_name(name)
                     )
-                case qbinexport.Instruction():  # Not implemented for now
+                case quokka.Instruction():  # Not implemented for now
                     logging.warning("Skipping instruction reference")
         return ret_ref
 
@@ -239,13 +237,11 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         return ref
 
     @property
-    def operands(self) -> Iterator[OperandBackendQBinExport]:
+    def operands(self) -> Iterator[OperandBackendQuokka]:
         """Returns an iterator over backend operand objects"""
         if self.cs_instr is None:
             return iter([])
-        return (
-            OperandBackendQBinExport(self.cs_instr, o) for o in self.cs_instr.operands
-        )
+        return (OperandBackendQuokka(self.cs_instr, o) for o in self.cs_instr.operands)
 
     @property
     def groups(self) -> list[int]:
@@ -273,13 +269,11 @@ class InstructionBackendQBinExport(AbstractInstructionBackend):
         return self.qb_instr.bytes
 
 
-class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
-    """Backend loader of a BasicBlock using QBinExport"""
+class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
+    """Backend loader of a BasicBlock using Quokka"""
 
-    def __init__(
-        self, program: weakref.ref[ProgramBackendQBinExport], qb_block: qbBlock
-    ):
-        super(BasicBlockBackendQBinExport, self).__init__()
+    def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_block: qbBlock):
+        super(BasicBlockBackendQuokka, self).__init__()
 
         self.qb_block = qb_block
         self.program = program
@@ -288,7 +282,7 @@ class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
         self._addr = qb_block.start
 
     def __del__(self):
-        """Clean qbinexport internal state by unloading from memory the Block object"""
+        """Clean quokka internal state by unloading from memory the Block object"""
 
         chunk = self.qb_block.parent
         chunk._raw_dict[self.qb_block.start] = self.qb_block.proto_index
@@ -299,21 +293,19 @@ class BasicBlockBackendQBinExport(AbstractBasicBlockBackend):
         return self._addr
 
     @property
-    def instructions(self) -> Iterator[InstructionBackendQBinExport]:
+    def instructions(self) -> Iterator[InstructionBackendQuokka]:
         """Returns an iterator over backend instruction objects"""
         return (
-            InstructionBackendQBinExport(self.program, instr)
+            InstructionBackendQuokka(self.program, instr)
             for instr in self.qb_block.instructions
         )
 
 
-class FunctionBackendQBinExport(AbstractFunctionBackend):
-    """Backend loader of a Function using QBinExport"""
+class FunctionBackendQuokka(AbstractFunctionBackend):
+    """Backend loader of a Function using Quokka"""
 
-    def __init__(
-        self, program: weakref.ref[ProgramBackendQBinExport], qb_func: qbFunction
-    ):
-        super(FunctionBackendQBinExport, self).__init__()
+    def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_func: qbFunction):
+        super(FunctionBackendQuokka, self).__init__()
 
         self.qb_prog = qb_func.program
         self.qb_func = qb_func
@@ -322,7 +314,7 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
         # [TODO] Init all the properties and free the memory of qb_prog/qb_func
 
     @property
-    def basic_blocks(self) -> Iterator[BasicBlockBackendQBinExport]:
+    def basic_blocks(self) -> Iterator[BasicBlockBackendQuokka]:
         """Returns an iterator over backend basic blocks objects"""
 
         # Stop the exploration if it's an imported function
@@ -330,7 +322,7 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
             return iter([])
 
         return (
-            BasicBlockBackendQBinExport(self.program, self.qb_func.get_block(addr))
+            BasicBlockBackendQuokka(self.program, self.qb_func.get_block(addr))
             for addr in self.qb_func.graph.nodes
         )
 
@@ -375,17 +367,17 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
         """The type of the function (as defined by IDA)"""
 
         f_type = self.qb_func.type
-        if f_type == qbinexport.types.FunctionType.NORMAL:
+        if f_type == quokka.types.FunctionType.NORMAL:
             return FunctionType.normal
-        elif f_type == qbinexport.types.FunctionType.IMPORTED:
+        elif f_type == quokka.types.FunctionType.IMPORTED:
             return FunctionType.imported
-        elif f_type == qbinexport.types.FunctionType.LIBRARY:
+        elif f_type == quokka.types.FunctionType.LIBRARY:
             return FunctionType.library
-        elif f_type == qbinexport.types.FunctionType.THUNK:
+        elif f_type == quokka.types.FunctionType.THUNK:
             return FunctionType.thunk
-        elif f_type == qbinexport.types.FunctionType.EXTERN:
+        elif f_type == quokka.types.FunctionType.EXTERN:
             return FunctionType.extern
-        elif f_type == qbinexport.types.FunctionType.INVALID:
+        elif f_type == quokka.types.FunctionType.INVALID:
             return FunctionType.invalid
         else:
             raise NotImplementedError(f"Function type {f_type} not implemented")
@@ -401,26 +393,26 @@ class FunctionBackendQBinExport(AbstractFunctionBackend):
         return self.type in (FunctionType.imported, FunctionType.extern)
 
 
-class ProgramBackendQBinExport(AbstractProgramBackend):
-    """Backend loader of a Program using QBinExport"""
+class ProgramBackendQuokka(AbstractProgramBackend):
+    """Backend loader of a Program using Quokka"""
 
     def __init__(self, export_path: str, exec_path: str):
-        super(ProgramBackendQBinExport, self).__init__()
+        super(ProgramBackendQuokka, self).__init__()
 
-        self.qb_prog = qbinexport.Program(export_path, exec_path)
+        self.qb_prog = quokka.Program(export_path, exec_path)
         self._exec_path = exec_path
 
         self._callgraph = networkx.DiGraph()
         self._fun_names = {}  # {fun_name : fun_address}
 
     @property
-    def functions(self) -> Iterator[FunctionBackendQBinExport]:
+    def functions(self) -> Iterator[FunctionBackendQuokka]:
         """Returns an iterator over backend function objects"""
 
         functions = {}
         for addr, func in self.qb_prog.items():
             # Pass a self (weak) reference for performance
-            f = FunctionBackendQBinExport(weakref.ref(self), func)
+            f = FunctionBackendQuokka(weakref.ref(self), func)
             if addr in functions:
                 logging.error("Address collision for 0x%x" % addr)
             functions[addr] = f

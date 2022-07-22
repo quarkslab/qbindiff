@@ -11,7 +11,7 @@ class LoaderType(IntEnum):
     binexport = 1
     diaphora = 2
     ida = 3
-    qbinexport = 4
+    quokka = 4
 
 
 class OperandType(IntEnum):

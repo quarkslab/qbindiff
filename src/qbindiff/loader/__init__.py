@@ -9,5 +9,5 @@ from qbindiff.loader.types import LoaderType
 
 LOADERS = {
     "binexport": LoaderType.binexport,
-    "qbinexport": LoaderType.qbinexport,
+    "quokka": LoaderType.quokka,
 }

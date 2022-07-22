@@ -44,16 +44,16 @@ class BinaryTest(unittest.TestCase):
             ),
         ]
 
-        # Add QBinExport test cases
+        # Add Quokka test cases
         try:
-            import qbinexport
+            import quokka
 
             self.units.append(
                 Unit(
-                    "test-bin.QBinExport",
-                    "test-bin2.QBinExport",
-                    "test-bin-qbinexport.results",
-                    loader=LoaderType.qbinexport,
+                    "test-bin.quokka",
+                    "test-bin2.quokka",
+                    "test-bin-quokka.results",
+                    loader=LoaderType.quokka,
                     primary_exe="test-bin",
                     secondary_exe="test-bin2",
                 )
@@ -73,7 +73,7 @@ class BinaryTest(unittest.TestCase):
         return self.base_path / p
 
     def basic_test(self, unit: Unit):
-        if unit.loader == LoaderType.qbinexport:
+        if unit.loader == LoaderType.quokka:
             p = qbindiff.Program(
                 unit.loader, self.path(unit.primary), self.path(unit.primary_exe)
             )
