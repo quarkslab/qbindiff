@@ -42,7 +42,7 @@ Now that we have the binaries we need to disassemble them with IDA and export th
 ```{note}
 It is possible to use another disassembler (e.g. Ghidra or Binary Ninja) when exporting using BinExport.
 
-It is also possible to write your own custom qbindiff backend loader that loads the disassembly analysis from your third party tool of choice. See {ref}`custom_backend` for more information.
+It is also possible to write your own custom qbindiff backend loader that loads the disassembly analysis from your third party tool of choice. See {ref}`usage/custom_backend` for more information.
 ```
 
 The script [`analyze.py`](https://gitlab.qb/machine_learning/qbindiff/-/tree/master/doc/examples/persimmon/analyze.py) exports the binaries in `output` with Quokka.
@@ -69,7 +69,7 @@ qbindiff -l quokka -e1 ./output/5012647-ntoskrnl.exe -e2 ./output/5013941-ntoskr
          -ff bindiff -o ./result.BinDiff -vv
 ```
 
-The previous command use a set of options that can scare an user. Let's detail them. For a more extensive description of all the command line arguments see [here](howto/qbindiff).
+The previous command use a set of options that can scare an user. Let's detail them. For a more extensive description of all the command line arguments see [here](usage/qbindiff).
 
 - `-l` (for loader) specifies that we are using a Quokka backend
 - `-e1` is for the first sample **binary**

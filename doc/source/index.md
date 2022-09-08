@@ -18,9 +18,17 @@ installation
 ```{toctree}
 ---
 maxdepth: 2
-caption: How To Use It
+caption: Usage
 ---
-howto
+usage
+```
+
+```{toctree}
+---
+maxdepth: 2
+caption: QBinDiff diffing algorithm
+---
+algorithm
 ```
 
 ```{toctree}
