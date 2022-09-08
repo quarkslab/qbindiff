@@ -1,12 +1,13 @@
-#!/bin/env python
+#!/bin/env python3
 
 import os, subprocess
+import quokka
 from pathlib import Path
 
-IDA_PATH = Path("path_to_IDA")  # Set correct path
+IDA_PATH = Path("path_to_IDA")  # Set correct path if IDA is not already in PATH
 
 
 if __name__ == "__main__":
     cwd = Path(os.getcwd())
     for file in cwd.glob("output/*.exe"):
-        subprocess.run([IDA_PATH / "idat64", "-A", "-OQuokkaAuto:TRUE", file])
+        quokka.Program.from_binary(file)

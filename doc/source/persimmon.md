@@ -1,7 +1,14 @@
-# Description
+# PersimMon
+
+```{note}
+All the files that are nominated in this documentation can be found in the folder [`doc/examples/persimmon/`](https://gitlab.qb/machine_learning/qbindiff/-/tree/master/doc/examples/persimmon/)
+```
+
+## Description
 This tutorial shows how to perform an automated diffing of two versions of a specific binary retrieved from PersimMon and generate a report.
 
 ## Prerequisites
+
 The following requirements are needed for this tutorial:
 
 * An access to PersimMon (ping @gwaby)
@@ -9,12 +16,12 @@ The following requirements are needed for this tutorial:
 * A working version of a supported disassembler (IDA)
 
 ## Extract two binaries from PersimMon
-First, we need to extract the two binaries from PersimMon. We can use the python script [extract.py](extract.py) to do it.
+First, we need to extract the two binaries from PersimMon. We can use the python script [`extract.py`](https://gitlab.qb/machine_learning/qbindiff/-/tree/master/doc/examples/persimmon/extract.py) to do it.
 
-At the begin of the file we can configure some attributes:
+At the beginning of the file we can configure some attributes:
 
 ```python
-BASE_URL='http://kaki.persimmon.qb:8080/v0'
+BASE_URL = 'http://kaki.persimmon.qb:8080/v0'
 ARCH = 'x64'
 KB_TARGET = '5013941'
 BINARY = 'ntoskrnl.exe'
@@ -22,7 +29,7 @@ BINARY = 'ntoskrnl.exe'
 
 After having specified the right KB, arch and binary running the script will download the aforementioned binary (and pdb) with its previous version (relative to the previous KB).
 
-```commandline
+```bash
 python extract.py
 ```
 
@@ -35,22 +42,22 @@ Now that we have the binaries we need to disassemble them with IDA and export th
 ```{note}
 It is possible to use another disassembler (e.g. Ghidra or Binary Ninja) when exporting using BinExport.
 
-It is also possible to write your own custom qbindiff backend loader that loads the disassembly analysis from your third party tool of choice. See `custom_backend` for more information.
+It is also possible to write your own custom qbindiff backend loader that loads the disassembly analysis from your third party tool of choice. See {ref}`custom_backend` for more information.
 ```
 
-The script [analyze.py](analyze.py) exports the binaries in `output` with Quokka.
+The script [`analyze.py`](https://gitlab.qb/machine_learning/qbindiff/-/tree/master/doc/examples/persimmon/analyze.py) exports the binaries in `output` with Quokka.
 After that, we should have the `.quokka` exported files.
 
 ## Perform the diffing
 
 Now it's time to use QBinDiff to compute the real diff.
 
-You can either use it with the command line and generate a BinDiff file (aka sqlite database) or with the script [differ.py](differ.py) that will output the result to stdout.
+You can either use it with the command line and generate a BinDiff file (aka sqlite database) or with the script [`differ.py`](https://gitlab.qb/machine_learning/qbindiff/-/tree/master/doc/examples/persimmon/differ.py) that will output the result to stdout.
 The diffing result will be the same in both cases.
 
 ### Command Line
 
-```commandline
+```bash
 qbindiff -l quokka -e1 ./output/5012647-ntoskrnl.exe -e2 ./output/5013941-ntoskrnl.exe \
          ./output/5012647-ntoskrnl.quokka ./output/5013941-ntoskrnl.quokka \
          -f wlgk:cosine -fopt wlgk max_passes 1 \
@@ -62,7 +69,7 @@ qbindiff -l quokka -e1 ./output/5012647-ntoskrnl.exe -e2 ./output/5013941-ntoskr
          -ff bindiff -o ./result.BinDiff -vv
 ```
 
-The previous command use a set of options that can scare an user. Let's detail them.
+The previous command use a set of options that can scare an user. Let's detail them. For a more extensive description of all the command line arguments see [here](howto/qbindiff).
 
 - `-l` (for loader) specifies that we are using a Quokka backend
 - `-e1` is for the first sample **binary**
@@ -93,9 +100,9 @@ The less sparse the similarity matrix is the better accuracy we achieve but also
 Also note that after a certain threshold reducing the sparsity of the matrix **won't** yield better results.
 ```
 
-### Using [differ.py](differ.py)
+### Using [`differ.py`](https://gitlab.qb/machine_learning/qbindiff/-/tree/master/doc/examples/persimmon/differ.py)
 
-```commandline
+```bash
 python differ.py
 
 
