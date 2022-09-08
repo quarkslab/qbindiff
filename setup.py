@@ -105,6 +105,6 @@ setup(
         "binexport": ["python-binexport"],
         "quokka": ["quokka"],
         "full": ["python-louvain"],
-        "doc": ["sphinx", "sphinx-rtd-theme", "myst-parser"],
+        "doc": ["sphinx", "sphinx-rtd-theme", "myst-parser", "sphinx-design"],
     },
 )
