@@ -22,7 +22,7 @@ stages:
   - lint
   - build
 #  - test
-  - pages
+  - deploy
 
 
 before_script:
