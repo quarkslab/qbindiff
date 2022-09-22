@@ -103,7 +103,7 @@ setup(
     scripts=["bin/qbindiff"],
     extras_require={
         "binexport": ["python-binexport"],
-        "quokka": ["quokka"],
+        "quokka": ["quokka-project"],
         "full": ["python-louvain"],
         "doc": ["sphinx", "sphinx-rtd-theme", "myst-parser", "sphinx-design"],
     },
