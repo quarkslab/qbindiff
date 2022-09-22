@@ -18,30 +18,31 @@ variables:
 # If you want to also cache the installed packages, you have to install
 # them in a virtualenv and cache it as well.
 
-stages:
-  - lint
-  - test
-
 before_script:
   - python --version  # For debugging
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
   - pip list  # For debugging
-  
-  # Build lapjv enforcing AVX2
-  - pip install numpy
-  - "git clone https://github.com/src-d/lapjv"
-  - "sed -ie 's/march=native/mavx2/g' lapjv/setup.py"
-  - "cd lapjv && python setup.py install && cd .."
-  
-  # Install extra dependencies
-  - git config --global http."https://gitlab.qb/".sslCAInfo $GLOBAL_QB_CA
-  - "git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.qb/rmori/python-binexport.git"
-  - "cd python-binexport && pip install . && cd .."
 
-  # Build qbindiff
-  - pip install .
+  
+build:
+  stage: build
+  script:
+    # Build lapjv enforcing AVX2
+    - pip install numpy
+    - "git clone https://github.com/src-d/lapjv"
+    - "sed -ie 's/march=native/mavx2/g' lapjv/setup.py"
+    - "cd lapjv && python setup.py install && cd .."
+    
+    # Install extra dependencies
+    - git config --global http."https://gitlab.qb/".sslCAInfo $GLOBAL_QB_CA
+    - "git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.qb/rmori/python-binexport.git"
+    - "cd python-binexport && pip install . && cd .."
+    
+    # Build QBinDiff
+    - pip install .
+
 
 lint:
   stage: lint
@@ -49,6 +50,18 @@ lint:
     - pip install black
     - black --check src/
     - black --check bin/qbindiff
+
+pages:
+  stage: deploy
+  script:
+    - pip install .doc
+    - cd doc && python make.py html
+    - cp -r doc/build/html public
+  artifacts:
+    name: "pages"
+    paths: 
+      - public  # instruct GitLab to keep the public folder
+
 
 #test:
 #  stage: test
