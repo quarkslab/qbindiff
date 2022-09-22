@@ -52,6 +52,7 @@ def cythonize_extensions(extensions):
             "nonecheck": debug,
             "cdivision": True,
         },
+        annotate=debug,
     )
 
 
@@ -77,11 +78,13 @@ setup(
                 "qbindiff.passes.fast_metrics",
                 ["src/qbindiff/passes/fast_metrics.pyx"],
                 include_dirs=[np.get_include()],
+                extra_compile_args=["-fopenmp", "-O3"],
+                extra_link_args=["-fopenmp"],
             ),
             Extension(
                 "qbindiff.utils.openmp_helpers",
                 ["src/qbindiff/utils/openmp_helpers.pyx"],
-                extra_compile_args=["-fopenmp"],
+                extra_compile_args=["-fopenmp", "-O3"],
                 extra_link_args=["-fopenmp"],
             ),
         ]
@@ -100,7 +103,8 @@ setup(
     scripts=["bin/qbindiff"],
     extras_require={
         "binexport": ["python-binexport"],
-        "quokka": ["quokka"],
+        "quokka": ["quokka-project"],
         "full": ["python-louvain"],
+        "doc": ["sphinx", "sphinx-rtd-theme", "myst-parser", "sphinx-design"],
     },
 )

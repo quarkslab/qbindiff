@@ -41,6 +41,7 @@ class Differ:
         self,
         primary: Graph,
         secondary: Graph,
+        *,
         sparsity_ratio: Ratio = 0.75,
         tradeoff: Ratio = 0.75,
         epsilon: Positive = 0.5,
@@ -205,7 +206,7 @@ class Differ:
                 self.secondary,
                 self.primary_n2i,
                 self.secondary_n2i,
-                **extra_args
+                **extra_args,
             )
         for pass_func, extra_args in self._post_passes:
             pass_func(
@@ -214,7 +215,7 @@ class Differ:
                 self.secondary,
                 self.primary_n2i,
                 self.secondary_n2i,
-                **extra_args
+                **extra_args,
             )
 
     def process(self) -> None:
@@ -334,7 +335,7 @@ class QBinDiff(Differ):
         extractorClass: type[FeatureExtractor],
         weight: Optional[Positive] = 1.0,
         distance: Optional[str] = None,
-        **extra_args
+        **extra_args,
     ):
         """Register a feature extractor class"""
         extractor = extractorClass(weight, **extra_args)
