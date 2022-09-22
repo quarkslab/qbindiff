@@ -61,7 +61,7 @@ lint:
 pages:
   stage: deploy
   script:
-    - pip install .doc
+    - pip install .[doc]
     - cd doc && python make.py html
     - cp -r doc/build/html public
   artifacts:
