@@ -39,7 +39,7 @@ pygments_style = 'monokai'  # also monokai, friendly, colorful
 # ones.
 extensions = ['myst_parser', 'sphinx_design', 'sphinx.ext.autodoc']
 
-myst_enable_extensions = ["colon_fence"]
+myst_enable_extensions = ["colon_fence", "dollarmath"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
