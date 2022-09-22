@@ -28,12 +28,13 @@ pip install .
 To use a preconfigured backend you should install the relative python module
 
 ### Quokka
-In the near future it will be possible to install it with pip
+Quokka can be installed with pip
 ```bash
 pip install .[quokka]
 ```
 
-While waiting for that moment you can install quokka by following the instructions [here](https://gitlab.qb/achallande/quokka)
+For more information on how to compile and install Quokka see the official documentation
+[here](https://github.com/quarkslab/quokka)
 
 ### BinExport
 Follow the instructions [here](https://gitlab.qb/rmori/python-binexport)
