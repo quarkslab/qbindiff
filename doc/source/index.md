@@ -39,7 +39,7 @@ features
 maxdepth: 2
 caption: Examples/Tutorial
 ---
-persimmon
+tutorial
 ```
 
 # Indices and tables

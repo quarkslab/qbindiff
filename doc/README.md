@@ -25,4 +25,4 @@ python make.py html
 The output can be found in `build/html/`
 
 # Examples/Tutorial
- - [Persimmon](examples/persimmon/README.md)
+ - None for the time being
