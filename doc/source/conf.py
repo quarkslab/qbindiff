@@ -37,7 +37,12 @@ pygments_style = 'monokai'  # also monokai, friendly, colorful
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['myst_parser', 'sphinx_design', 'sphinx.ext.autodoc']
+extensions = [
+    'myst_parser',
+    'sphinx_design',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx'
+]
 
 myst_enable_extensions = ["colon_fence", "dollarmath"]
 
@@ -48,6 +53,16 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+}
+
+# ~ autodoc_type_aliases = {
+    # ~ 'Graph': 'qbindiff.abstract.GenericGraph',
+    # ~ 'qbindiff.types.Graph': 'qbindiff.abstract.GenericGraph',
+    # ~ 'qbindiff.Graph': 'qbindiff.abstract.GenericGraph',
+# ~ }
 
 
 # -- Options for HTML output -------------------------------------------------
