@@ -9,6 +9,20 @@ QBinDiff is an experimental diffing tool based on the **Network Alignement Quadr
 
 For an general introduction you can see the slides of the 23/09/2022 fridaycon [here](https://diffing.doc.qb/communications/2022-09-23_qbindiff_fridaycon/pres.pdf)
 
+For an in-depth description of the algorithm read **Elie Mengin**'s PhD thesis
+
+```{figure} _static/thesis.png
+---
+width: 200
+align: center
+alt: Technical Documentation
+target: _static/thesis.pdf
+class: with-border
+---
+[download thesis](_static/thesis.pdf)
+```
+
+
 ```{toctree}
 ---
 maxdepth: 2
@@ -30,8 +44,13 @@ usage
 maxdepth: 2
 caption: QBinDiff diffing algorithm
 ---
-algorithm
+how_it_works
+normalization
 features
+distances
+passes
+belief_propagation
+export
 ```
 
 ```{toctree}
