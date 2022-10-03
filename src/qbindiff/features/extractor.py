@@ -86,7 +86,7 @@ class FeatureExtractor:
     """
 
     key = ""
-    options = {}  # Dict {name : option}, each option is a instance of FeatureOption
+    options: dict[str, FeatureOption] = {}  # Dict {name : option}, each option is a instance of FeatureOption
 
     def __init__(self, weight: Positive = 1.0):
         self._weight = weight
