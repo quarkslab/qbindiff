@@ -57,24 +57,19 @@ def canberra_distances(X, Y, w=None):
     Compute the canberra distances between the vectors in X and Y using the optional
     array of weights w.
 
-    Parameters
-    ----------
-    X : array-like of shape (n_samples_X, n_features)
-        An array where each row is a sample and each column is a feature.
+    :param X: array-like of shape (n_samples_X, n_features)
+              An array where each row is a sample and each column is a feature.
 
-    Y : array-like of shape (n_samples_Y, n_features)
-        An array where each row is a sample and each column is a feature.
+    :param Y: array-like of shape (n_samples_Y, n_features)
+              An array where each row is a sample and each column is a feature.
 
-    w : array-like of size n_features. The weights for each value in `X` and `V`.
-        Default is None, which gives each value a weight of 1.0
+    :param w: array-like of size n_features.
+              The weights for each value in ``X`` and ``V``.
+              Default is None, which gives each value a weight of 1.0
 
-    Returns
-    -------
-    D : ndarray of shape (n_samples_X, n_samples_Y)
-        D contains the pairwise canberra distances.
+    :return D: ndarray of shape (n_samples_X, n_samples_Y)
+               D contains the pairwise canberra distances.
 
-    Notes
-    -----
     When X and/or Y are CSR sparse matrices and they are not already
     in canonical format, this function modifies them in-place to
     make them canonical.
@@ -102,38 +97,40 @@ def canberra_distances(X, Y, w=None):
 
 
 def jaccard_strong(X, Y, w=None):
-    """
+    r"""
     Compute a variation of the jaccard distances between the vectors in X and Y using
     the optional array of weights w.
 
-    The distance function between two vector `u` and `v` is the following:
+    The distance function between two vector ``u`` and ``v`` is the following:
 
-    $\sum_{i}\frac{f(u_i, v_i)}{ | \{ i | u_i \neq 0 \lor v_i \neq 0 \} | }$
-    where the function `f` is defined like this:
-        $f(x, y) -> 0 if x = 0 \lor y = 0$
-        $f(x, y) -> 1 - \frac{|x - y|}{|x| + |y|} else$
+    .. math::
+
+        \sum_{i}\frac{f(u_i, v_i)}{ | \{ i | u_i \neq 0 \lor v_i \neq 0 \} | }
+
+    where the function ``f`` is defined like this:
+
+    .. math::
+
+        f(x, y) = \begin{cases} 0 & \text{if } x = 0 \lor y = 0 \\ 1 - \frac{|x - y|}{|x| + |y|} & \text{otherwise.} \end{cases}
 
     If the optional weights are specified the formula becomes:
-    $\sum_{i}\frac{w_i * f(u_i, v_i)}{ | \{ i | u_i \neq 0 \lor v_i \neq 0 \} | }$
 
-    Parameters
-    ----------
-    X : array-like of shape (n_samples_X, n_features)
-        An array where each row is a sample and each column is a feature.
+    .. math::
 
-    Y : array-like of shape (n_samples_Y, n_features)
-        An array where each row is a sample and each column is a feature.
+        \sum_{i}\frac{w_i * f(u_i, v_i)}{ | \{ i | u_i \neq 0 \lor v_i \neq 0 \} | }
 
-    w : array-like of size n_features. The weights for each value in `X` and `V`.
-        Default is None, which gives each value a weight of 1.0
+    :param X: array-like of shape (n_samples_X, n_features)
+              An array where each row is a sample and each column is a feature.
 
-    Returns
-    -------
-    D : ndarray of shape (n_samples_X, n_samples_Y)
-        D contains the pairwise strong jaccard distances.
+    :param Y: array-like of shape (n_samples_Y, n_features)
+              An array where each row is a sample and each column is a feature.
 
-    Notes
-    -----
+    :param w: array-like of size n_features. The weights for each value in ``X`` and ``V``.
+              Default is None, which gives each value a weight of 1.0
+
+    :return D: ndarray of shape (n_samples_X, n_samples_Y)
+               D contains the pairwise strong jaccard distances.
+
     When X and/or Y are CSR sparse matrices and they are not already
     in canonical format, this function modifies them in-place to
     make them canonical.
@@ -183,17 +180,15 @@ def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
 
     https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise_distances.html
 
-    WARNING: if the metric is a callable then it must compute the distance between
+    **WARNING**: if the metric is a callable then it must compute the distance between
     two matrices, not between two vectors. This is done so that the metric can optimize
     the calculations with parallelism.
 
-    Parameters
-    ----------
-    X : ndarray of shape (n_samples_X, n_features). The first feature matrix.
+    :param X: ndarray of shape (n_samples_X, n_features). The first feature matrix.
 
-    Y : ndarray of shape (n_samples_Y, n_features), The second feature matrix.
+    :param Y: ndarray of shape (n_samples_Y, n_features), The second feature matrix.
 
-    metric : str or callable, default='euclidean'
+    :param metric: str or callable, default='euclidean'
         The metric to use when calculating distance between instances in a feature
         array. If metric is a string, it must be one of the supported metrics by
         scikit-learn.
@@ -201,21 +196,19 @@ def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
         feature matrix (or a submatrix if n_jobs > 1). The callable should take two
         matrices as input and return a the resulting distance matrix.
 
-    n_jobs : int, default=None
+    :param n_jobs: int, default=None
         The number of jobs to use for the computation. This works by breaking down
         the pairwise matrix into n_jobs even slices and computing them in parallel.
 
         ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
         ``-1`` means using all processors.
 
-    **kwargs : optional keyword parameters
+    :param \*\*kwargs: optional keyword parameters
         Any further parameters are passed directly to the scikit-learn implementation
         of pairwise_distances if a sklearn metric is used, otherwise they are passed
         to the callable metric specified.
 
-    Returns
-    -------
-    D : ndarray of shape (n_samples_X, n_samples_Y)
+    :return D: ndarray of shape (n_samples_X, n_samples_Y)
         A distance matrix D such that D_{i, j} is the distance between the ith array
         from X and the jth array from Y.
     """
