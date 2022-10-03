@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import qbindiff
 from qbindiff.features import WeisfeilerLehman, Constant, Address
 from qbindiff.loader import LoaderType
+from test_squares import SquaresTest
 
 BASE_TEST_PATH = Path("tests/data")
 
@@ -194,6 +195,7 @@ def suite():
     s.addTest(BinaryTest("test_binaries"))
     s.addTest(GraphSimTest("test_sim_graphs"))
     s.addTest(GraphTest("test_no_sim_graphs"))
+    s.addTest(SquaresTest("test"))
     return s
 
 
