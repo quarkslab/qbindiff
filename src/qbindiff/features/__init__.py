@@ -27,7 +27,6 @@ FEATURES = (
     ParentNb,
     RelativeNb,
     LibName,
-    DatName,
     WeisfeilerLehman,
     FuncName,
     # BasicBlockFeatureExtractor
