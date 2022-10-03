@@ -75,6 +75,14 @@ setup(
     ext_modules=cythonize_extensions(
         [
             Extension(
+                "qbindiff.matcher.squares",
+                ["src/qbindiff/matcher/squares.pyx"],
+                include_dirs=[np.get_include()],
+                language="c++",
+                extra_compile_args=["-fopenmp", "-O3"],
+                extra_link_args=["-fopenmp"],
+            ),
+            Extension(
                 "qbindiff.passes.fast_metrics",
                 ["src/qbindiff/passes/fast_metrics.pyx"],
                 include_dirs=[np.get_include()],

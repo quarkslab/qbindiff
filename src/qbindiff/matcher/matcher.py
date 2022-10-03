@@ -4,9 +4,10 @@ import logging
 # Third-party imports
 import numpy as np
 from lapjv import lapjv
-from scipy.sparse import csr_matrix, lil_matrix
+from scipy.sparse import csr_matrix, coo_matrix
 
 # Local imports
+from qbindiff.matcher.squares import find_squares
 from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefQAP
 from qbindiff.types import (
     Positive,
@@ -124,37 +125,43 @@ class Matcher:
         The time complexity is O(|sparse_sim_matrix| * average_graph_degree**2)
         """
 
-        squares = []
-        primary_children = []
-        for node in self.primary_adj_matrix:
-            primary_children.append([n for n, is_child in enumerate(node) if is_child])
-        secondary_children = []
-        for node in self.secondary_adj_matrix:
-            secondary_children.append(
-                [n for n, is_child in enumerate(node) if is_child]
-            )
-
-        for nodeA, nodeB, score in iter_csr_matrix(self.sparse_sim_matrix):
-            if len(primary_children[nodeA]) == 0 or len(secondary_children[nodeB]) == 0:
-                continue
-            for nodeC in secondary_children[nodeB]:
-                for nodeD in primary_children[nodeA]:
-                    if self.sparse_sim_matrix[nodeD, nodeC] > 0:
-                        squares.append((nodeA, nodeB, nodeC, nodeD))
+        squares = find_squares(
+            self.primary_adj_matrix, self.secondary_adj_matrix, self.sparse_sim_matrix
+        )
 
         size = self.sparse_sim_matrix.nnz
-        lil_squares_matrix = lil_matrix((size, size), dtype=np.uint8)
         # Give each similarity edge a unique number
         bipartite = self.sparse_sim_matrix.astype(np.uint32)
         bipartite.data[:] = np.arange(0, size, dtype=np.uint32)
 
+        get_edge = {}  # Fast lookup
+        C = bipartite.shape[1]
+        for i, j, v in iter_csr_matrix(bipartite):
+            get_edge[i * C + j] = v
+
         # Populate the sparse squares matrix
-        for nodeA, nodeB, nodeC, nodeD in squares:
-            e1 = bipartite[nodeA, nodeB]
-            e2 = bipartite[nodeD, nodeC]
-            lil_squares_matrix[e1, e2] = 1
-            lil_squares_matrix[e2, e1] = 1
-        self.squares_matrix = lil_squares_matrix.tocsr()
+        squares_2n = len(squares) * 2
+        rows = np.zeros(squares_2n, dtype=np.uint32)
+        cols = np.zeros(squares_2n, dtype=np.uint32)
+        for i, (nodeA, nodeB, nodeC, nodeD) in enumerate(squares):
+            e1 = get_edge[nodeA * C + nodeB]
+            e2 = get_edge[nodeD * C + nodeC]
+            rows[2 * i] = e1
+            rows[2 * i + 1] = e2
+            cols[2 * i] = e2
+            cols[2 * i + 1] = e1
+        data = np.ones(squares_2n, dtype=np.uint8)
+
+        # Build coo matrix and convert it to csr
+        coo_squares_matrix = coo_matrix(
+            (data, (rows, cols)), shape=(size, size), dtype=np.uint8
+        )
+        self.squares_matrix = coo_squares_matrix.tocsr()
+
+        # Sometimes a square is counted twice
+        # ex: (nodeA, nodeB, nodeC, nodeD) == (nodeC, nodeD, nodeA, nodeB)
+        # Set the data to ones to count all the squares only once
+        self.squares_matrix.data[:] = 1
 
     @property
     def mapping(self) -> RawMapping:
