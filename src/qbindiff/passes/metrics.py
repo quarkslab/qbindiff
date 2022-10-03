@@ -218,9 +218,8 @@ def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
             X, Y, metric, n_jobs, **kwargs
         )
     elif metric in CUSTOM_DISTANCES:
-        return sklearn.metrics.pairwise._parallel_pairwise(
-            X, Y, CUSTOM_DISTANCES[metric], n_jobs, **kwargs
-        )
+        # All the custom distances are guaranteed to make use of parallelism
+        return CUSTOM_DISTANCES[metric](X, Y, **kwargs)
     else:
         return sklearn.metrics.pairwise.pairwise_distances(
             X, Y, metric, n_jobs=n_jobs, **kwargs
