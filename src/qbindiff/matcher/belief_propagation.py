@@ -207,8 +207,12 @@ class BeliefMWM:
     def current_marginals(self) -> SparseMatrix:
         """Returns all the marginals in a sparse matrix"""
         curr_marginals = self.marginals.copy()
+        # The output of np.power might results in +inf, hence we need to clip those
+        # values. Here it is clipped to [0, 1e6] since 1e6/(1e6+1) ~ 0.999999
+        # Since those values are real probabilities it means that all the
+        # values > 99.9999% are the same.
         curr_marginals.data[:] = [
-            x / (1 + x) for x in np.power(math.e, curr_marginals.data)
+            x / (1 + x) for x in np.clip(np.power(math.e, curr_marginals.data), 0, 1e6)
         ]
         return curr_marginals
 
@@ -301,13 +305,15 @@ class BeliefQAP(BeliefMWM):
 
     def update_square_factor_messages(self):
         """
-        Update the messages m(h[ii`jj`] -> X[ii`])
+        Update the messages **m**\ (**h**\ [ii\`jj\`] -> **X**\ [ii\`])
+
         The formula is this one:
-          m(h[ii`jj`] -> X[ii`]) = clip(w[ii`jj`] + m(X[jj`] -> h[ii`jj`])) - clip(m(X[jj`] -> h[ii`jj`]))
-          where clip(x) = max(0, x)
+          **m**\ (**h**\ [ii\`jj\`] -> **X**\ [ii\`]) = clip(**w**\ [ii\`jj\`] + **m**\ (**X**\ [jj\`] -> **h**\ [ii\`jj\`])) - clip(**m**\ (**X**\ [jj\`] -> **h**\ [ii\`jj\`]))
+
+          where clip(**x**\ ) = max(0, **x**\ )
 
         The formula can be rewritten as:
-          m(h[ii`jj`] -> X[ii`]) = clip(w[ii`jj`] + clip(-m(X[jj`] -> h[ii`jj`])))
+          **m**\ (**h**\ [ii\`jj\`] -> **X**\ [ii\`]) = clip(**w**\ [ii\`jj\`] + clip(-**m**\ (**X**\ [jj\`] -> **h**\ [ii\`jj\`])))
         """
 
         # partial is the message from node to square factor m(X[ii`] -> h[ii`jj`])
