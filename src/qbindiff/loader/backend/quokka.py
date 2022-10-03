@@ -2,7 +2,7 @@ from __future__ import annotations
 import quokka, networkx, logging, weakref
 from struct import pack
 from functools import cached_property
-from capstone import CS_OP_IMM, CS_GRP_JUMP
+from capstone import CS_OP_REG, CS_OP_IMM, CS_OP_MEM, CS_GRP_JUMP
 from collections.abc import Iterator
 from typing import Any, TypeAlias
 
@@ -118,14 +118,17 @@ class OperandBackendQuokka(AbstractOperandBackend):
 
     def __str__(self) -> str:
         op = self.cs_operand
-        if self.type == capstone.CS_OP_REG:
+        if self.type == CS_OP_REG:
             return self.cs_instr.reg_name(op.reg)
-        elif self.type == capstone.CS_OP_IMM:
+        elif self.type == CS_OP_IMM:
             return to_x(op.imm)
-        elif self.type == capstone.CS_OP_MEM:
+        elif self.type == CS_OP_MEM:
             op_str = ""
-            if op.mem.segment != 0:
-                op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
+            try:
+                if op.mem.segment != 0:
+                    op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
+            except AttributeError:
+                pass  # Not all the architectures have segments
             if op.mem.base != 0:
                 op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
             if op.mem.index != 0:
