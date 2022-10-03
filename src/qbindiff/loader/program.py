@@ -12,8 +12,10 @@ from qbindiff.types import Addr
 class Program(dict, GenericGraph):
     """
     Program class that shadows the underlying program backend used.
+
     It inherits from dict which keys are function addresses and
     values are Function object.
+
     The node label is the function address, the node itself is the Function object
     """
 
@@ -72,6 +74,7 @@ class Program(dict, GenericGraph):
     def from_ida() -> "Program":
         """
         Load the program using the idapython API
+
         :return: None
         """
         return Program(LoaderType.ida)
@@ -134,6 +137,7 @@ class Program(dict, GenericGraph):
     def name(self) -> str:
         """
         Returns the name of the program as defined by the backend
+
         :return: program name
         """
         return self._backend.name
@@ -175,7 +179,9 @@ class Program(dict, GenericGraph):
         """
         Replace node `to_remove` with a follow-through edge from every parent of the
         node with the node `target`.
+
         Ex: { parents } -> (to_remove) -> (target)
+
         --> { parents } -> (target)
         """
 
@@ -190,6 +196,32 @@ class Program(dict, GenericGraph):
             self[p_addr].children.add(target)
             self[target].parents.add(p_addr)
             self._backend.callgraph.add_edge(p_addr, target)
+        for c_addr in list(func.children):
+            # Remove edges
+            func.children.remove(c_addr)
+            self[c_addr].parents.remove(to_remove)
+            self._backend.callgraph.remove_edge(to_remove, c_addr)
+        self._backend.callgraph.remove_node(to_remove)
+
+    def remove_function(self, to_remove: Addr) -> None:
+        """
+        Remove the node ``to_remove`` from the Call Graph of the program.
+
+        **WARNING**: The follow-through edges from the parents to the children are not
+        added
+
+        Ex: { parents } -> (to_remove) -> { children }
+
+        --> { parents }                   { children }
+        """
+
+        func = self[to_remove]
+        self.pop(to_remove)
+        for p_addr in list(func.parents):
+            # Remove edges
+            self[p_addr].children.remove(to_remove)
+            func.parents.remove(p_addr)
+            self._backend.callgraph.remove_edge(p_addr, to_remove)
         for c_addr in list(func.children):
             # Remove edges
             func.children.remove(c_addr)
