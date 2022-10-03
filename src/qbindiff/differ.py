@@ -1,4 +1,6 @@
+from __future__ import annotations
 import logging
+import tqdm
 import numpy as np
 from datasketch import MinHash
 from networkx import DiGraph
@@ -11,6 +13,7 @@ from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
 from qbindiff.passes import FeaturePass, ZeroPass
+from qbindiff.utils import is_debug
 from qbindiff.types import (
     RawMapping,
     Positive,
@@ -232,7 +235,9 @@ class Differ:
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is returned as a Mapping object.
         """
-        for _ in self.matching_iterator():
+        for _ in tqdm.tqdm(
+            self.matching_iterator(), total=self.maxiter, disable=not is_debug()
+        ):
             pass
         return self.mapping
 
