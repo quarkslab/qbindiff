@@ -11,21 +11,25 @@ from qbindiff.types import Addr
 class Function(Mapping[Addr, BasicBlock]):
     """
     Representation of a binary function.
+
     This class is a dict of basic block addreses to the basic block.
+
     It lazily loads all the basic blocks when iterating through them or even accessing
     one of them and it unloads all of them after the iteration has ended.
 
-    To keep a reference to the basic blocks the `with` statement can be used, for example:
-    ```
-    # func: Function
-    with func:  # Loading all the basic blocks
-        for bb_addr, bb in func.items():  # Blocks are already loaded
-            pass
-        # The blocks are still loaded
-        for bb_addr, bb in func.items():
-            pass
-    # here the blocks have been unloaded
-    ```
+    To keep a reference to the basic blocks the **with** statement can be used, for example:
+
+    .. code-block:: python
+        :linenos:
+
+        # func: Function
+        with func:  # Loading all the basic blocks
+            for bb_addr, bb in func.items():  # Blocks are already loaded
+                pass
+            # The blocks are still loaded
+            for bb_addr, bb in func.items():
+                pass
+        # here the blocks have been unloaded
     """
 
     def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
@@ -133,10 +137,7 @@ class Function(Mapping[Addr, BasicBlock]):
 
     @property
     def addr(self) -> Addr:
-        """
-        Address of the function
-        :return: addr
-        """
+        """Address of the function"""
         return self._backend.addr
 
     @property
@@ -144,6 +145,7 @@ class Function(Mapping[Addr, BasicBlock]):
         """
         Gives the networkx DiGraph of the function. This is used to perform networkx
         based algorithm.
+
         :return: directed graph of the function
         """
         return self._backend.graph
@@ -151,8 +153,9 @@ class Function(Mapping[Addr, BasicBlock]):
     @property
     def parents(self) -> Set[Addr]:
         """
-        Set of function parents in the call graph. Thus
-        functions that calls this function
+        Set of function parents in the call graph.
+        Thus functions that calls this function
+
         :return: caller functions
         """
         return self._backend.parents
@@ -160,8 +163,8 @@ class Function(Mapping[Addr, BasicBlock]):
     @property
     def children(self) -> Set[Addr]:
         """
-        Set of functions called by this function in the
-        call graph.
+        Set of functions called by this function in the call graph.
+
         :return: callee functions
         """
         return self._backend.children
@@ -170,6 +173,7 @@ class Function(Mapping[Addr, BasicBlock]):
     def type(self) -> FunctionType:
         """
         Returns the type of the instruction (as defined by IDA)
+
         :return: function type
         """
         return self._backend.type
@@ -182,8 +186,10 @@ class Function(Mapping[Addr, BasicBlock]):
     def is_library(self) -> bool:
         """
         Returns whether or not this function is a library function.
+
         A library function is either a thunk function or it has been identified as part
         of an external library. It is not an imported function.
+
         :return: bool
         """
         return self.type == FunctionType.library
@@ -192,6 +198,7 @@ class Function(Mapping[Addr, BasicBlock]):
         """
         Returns whether or not this function is an import function.
         (Thus not having content)
+
         :return: bool
         """
         return self.type in (FunctionType.imported, FunctionType.extern)
@@ -199,14 +206,15 @@ class Function(Mapping[Addr, BasicBlock]):
     def is_thunk(self) -> bool:
         """
         Returns whether or not this function is a thunk function.
+
         :return: bool
         """
         return self.type == FunctionType.thunk
 
     def is_alone(self):
         """
-        Returns whether or not the function have neither
-        caller nor callee.
+        Returns whether or not the function have neither caller nor callee.
+
         :return: bool
         """
         return not (self.children or self.parents)
