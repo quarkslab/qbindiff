@@ -160,14 +160,14 @@ class FeaturePass(GenericPass):
                 secondary_feature_matrix,
                 metric=distance,
                 w=weights,
-                n_jobs=16,
+                n_jobs=-1,
             ).astype(dtype)
         else:
             sim_matrix = pairwise_distances(
                 primary_feature_matrix,
                 secondary_feature_matrix,
                 metric=distance,
-                n_jobs=16,
+                n_jobs=-1,
             ).astype(dtype)
 
         logging.debug("Distance calculated")
@@ -255,6 +255,7 @@ class FeaturePass(GenericPass):
                     sim_matrix.dtype,
                 )
                 result_matrix += f_weights[main_key] * tmp_sim_matrix
+
                 del tmp_sim_matrix  # Free the memory
                 norm_coeff += f_weights[main_key]
             else:
