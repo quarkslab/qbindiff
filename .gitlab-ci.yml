@@ -62,7 +62,8 @@ pages:
   stage: deploy
   script:
     - pip install .[doc]
-    - (cd doc && python make.py html)
+    - (cd doc && pip install -r requirements.txt)
+    - (cd doc && make html)
     - cp -r doc/build/html public
   artifacts:
     name: "pages"

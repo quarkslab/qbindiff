@@ -5,5 +5,4 @@ breathe
 sphinx_fontawesome
 nbsphinx
 ipython
-autodoc_pydantic
-sphinx_design
+sphinx-design
