@@ -218,8 +218,6 @@ class Differ:
             if isinstance(pass_func, FeaturePass):
                 self.p_features, self.s_features =  pass_func(
                     self.sim_matrix,
-                    self.p_features,
-                    self.s_features,
                     self.primary,
                     self.secondary,
                     self.primary_n2i,
