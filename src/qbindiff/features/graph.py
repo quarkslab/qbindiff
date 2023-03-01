@@ -3,6 +3,18 @@ import numpy as np
 from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function
 
+def primesbelow(self, N): # from diaphora
+    correction = N % 6 > 1
+    N = {0:N, 1:N-1, 2:N+4, 3:N+3, 4:N+2, 5:N+1}[N%6]
+    sieve = [True] * (N // 3)
+    sieve[0] = False
+    for i in range(int(N ** .5) // 3 + 1):
+        if sieve[i]:
+        k = (3 * i + 1) | 1
+        sieve[k*k // 3::2*k] = [False] * ((N//6 - (k*k)//6 - 1)//k + 1)
+        sieve[(k*k + 4*k - 2*k*(i%2)) // 3::2*k] = [False] * ((N // 6 - (k*k + 4*k - 2*k*(i%2))//6 - 1) // k + 1)
+    return [2, 3] + [(3 * i + 1) | 1 for i in range(1, N//3 - correction) if sieve[i]]
+    
 
 class BBlockNb(FunctionFeatureExtractor):
     """Number of basic blocks in the function"""
@@ -15,6 +27,31 @@ class BBlockNb(FunctionFeatureExtractor):
         value = len(function.flowgraph.nodes)
         collector.add_feature(self.key, value)
 
+
+class SmallPrimeNumbers(FunctionFeatureExtractor):
+    """Small-Prime-Number based on mnemonics, as defined in https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf """
+
+    key = "spp"
+
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ):
+        mnemonics = set()
+        for bb_addr, bb in function.items():
+            for ins in bb.instructions : 
+                if ins.mnemonic not in mnemonics : 
+                    mnemonics.update({ins.mnemonic})
+
+        mnemonics = list(mnemonics)
+        
+        # TODO : be careful. First, why 4096 (? diaphora stuff) and then, may diverge in some cases with a large functions with a lot of different mnemonics
+        value = 1
+        primes = primesbelow(4096)
+            for bb_addr, bb in function.items() : 
+                for ins in bb.instructions :
+                    value *= primes[mnemonics.index(ins.mnemonic)]
+
+        collector.add_feature(self.key, value)
 
 class CyclomaticComplexity(FunctionFeatureExtractor):
     """ Cyclomatic complexity of the function """
@@ -80,6 +117,7 @@ class MaxParentNb(FunctionFeatureExtractor):
         )
         # value = max(len(bb.parents) for bb in function)
         collector.add_feature(self.key, value)
+
 
 
 class MaxChildNb(FunctionFeatureExtractor):
