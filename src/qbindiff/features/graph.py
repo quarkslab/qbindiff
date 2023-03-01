@@ -29,7 +29,7 @@ class BBlockNb(FunctionFeatureExtractor):
 
 
 class SmallPrimeNumbers(FunctionFeatureExtractor):
-    """Small-Prime-Number based on mnemonics, as defined in https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf """
+    """Small-Prime-Number based on mnemonics, as defined in https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf  . Not so sure about the validity of this hash or that implementation. """
 
     key = "spp"
 
