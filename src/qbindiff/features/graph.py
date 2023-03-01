@@ -15,6 +15,21 @@ class BBlockNb(FunctionFeatureExtractor):
         collector.add_feature(self.key, value)
 
 
+class CyclomaticComplexity(FunctionFeatureExtractor):
+    """ Cyclomatic complexity of the function """
+
+    key='cc'
+    
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ):
+        e = len(function.edges)
+        n = len([n for n in function.nodes])
+        components = len([c for c in nx.weakly_connected_components(function.callgraph)])
+        value = e - n + 2*components
+        collector.add_feature(self.key, value)
+
+
 class JumpNb(FunctionFeatureExtractor):
     """Number of jumps in the function"""
 
