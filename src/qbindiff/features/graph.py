@@ -1,4 +1,5 @@
 import networkx
+import numpy as np
 from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function
 
@@ -29,6 +30,29 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
         value = e - n + 2*components
         collector.add_feature(self.key, value)
 
+class MDIndex(FunctionFeatureExtractor):
+    """ MD-Index of the function, based on : https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf.
+    A slightly modified version of it : notice the topological sort is only available for DAG graphs (which may not always be the case)."""
+
+    key='mdidx'
+
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ):
+
+        try :
+            topological_sort = list(networkx.topological_sort(function.flowgraph))
+            sort_ok = True
+        else :
+            sort_ok = False
+    
+        if sort_ok : 
+            value = np.sum([1/math.sqrt(topological_sort.index(src) + math.sqrt(2)*function.flowgraph.in_degree(src) + math.sqrt(3)*function.flowgraph.out_degree(src) + math.sqrt(5)*function.flowgraph.in_degree(dst) + math.sqrt(7)*function.flowgraph.out_degree(dst)) for (src, dst) in function.edges])
+            
+        else :
+            value = np.sum([1/math.sqrt(math.sqrt(2)*function.flowgraph.in_degree(src) + math.sqrt(3)*function.flowgraph.out_degree(src) + math.sqrt(5)*function.flowgraph.in_degree(dst) + math.sqrt(7)*function.flowgraph.out_degree(dst)) for (src, dst) in function.edges])
+
+        collector.add_feature(self.key, value)
 
 class JumpNb(FunctionFeatureExtractor):
     """Number of jumps in the function"""
