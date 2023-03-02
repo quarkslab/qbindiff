@@ -41,16 +41,6 @@ class StronglyConnectedComponents(FunctionFeatureExtractor):
             )
             collector.add_feature(self.key, value)
 
-class NumberOfCycles(FunctionFeatureExtractor):
-        """Number of cycles in the flowgraph"""
-
-        key = 'nc'
-
-        def visit_function(
-            self, program: Program, function: Function, collector: FeatureCollector
-        ):
-            value = len([c for c in networkx.simple_cycles(function.flowgraph)])
-            collector.add_feature(self.key, value)
 
 class SmallPrimeNumbers(FunctionFeatureExtractor):
     """Small-Prime-Number based on mnemonics, as defined in https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf  . Not so sure about the validity of this hash or that implementation. """
