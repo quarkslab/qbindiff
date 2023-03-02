@@ -87,7 +87,7 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
     ):
         e = len(function.edges)
         n = len([n for n in function.flowgraph.nodes()])
-        components = len([c for c in networkx.weakly_connected_components(function.callgraph)])
+        components = len([c for c in networkx.weakly_connected_components(function.flowgraph)])
         value = e - n + 2*components
         collector.add_feature(self.key, value)
 
