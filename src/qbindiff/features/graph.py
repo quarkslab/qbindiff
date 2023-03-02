@@ -103,7 +103,7 @@ class MDIndex(FunctionFeatureExtractor):
         try :
             topological_sort = list(networkx.topological_sort(function.flowgraph))
             sort_ok = True
-        else :
+        except :
             sort_ok = False
     
         if sort_ok : 
