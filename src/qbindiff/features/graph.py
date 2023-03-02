@@ -49,7 +49,7 @@ class NumberOfCycles(FunctionFeatureExtractor):
         def visit_function(
             self, program: Program, function: Function, collector: FeatureCollector
         ):
-            value = networkx.simple_cycles(function.flowgraph)
+            value = len([c for c in networkx.simple_cycles(function.flowgraph)])
             collector.add_feature(self.key, value)
 
 class SmallPrimeNumbers(FunctionFeatureExtractor):
