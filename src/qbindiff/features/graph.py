@@ -3,7 +3,7 @@ import numpy as np
 from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function
 
-def primesbelow(self, N): # from diaphora
+def primesbelow(N): # from diaphora
     correction = N % 6 > 1
     N = {0:N, 1:N-1, 2:N+4, 3:N+3, 4:N+2, 5:N+1}[N%6]
     sieve = [True] * (N // 3)
