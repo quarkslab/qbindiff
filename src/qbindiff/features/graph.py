@@ -1,5 +1,6 @@
 import networkx
 import numpy as np
+import math
 from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function
 
@@ -85,7 +86,7 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
         self, program: Program, function: Function, collector: FeatureCollector
     ):
         e = len(function.edges)
-        n = len([n for n in function.nodes])
+        n = len([n for n in function.flowgraph.nodes()])
         components = len([c for c in networkx.weakly_connected_components(function.callgraph)])
         value = e - n + 2*components
         collector.add_feature(self.key, value)
