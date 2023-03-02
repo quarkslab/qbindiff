@@ -70,9 +70,9 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
         # TODO : be careful. First, why 4096 (? diaphora stuff) and then, may diverge in some cases with a large functions with a lot of different mnemonics
         value = 1
         primes = primesbelow(4096)
-            for bb_addr, bb in function.items() : 
-                for ins in bb.instructions :
-                    value *= primes[mnemonics.index(ins.mnemonic)]
+        for bb_addr, bb in function.items() : 
+            for ins in bb.instructions :
+                value *= primes[mnemonics.index(ins.mnemonic)]
 
         collector.add_feature(self.key, value)
 
