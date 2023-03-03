@@ -2,7 +2,6 @@ from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCate
 from qbindiff.features.graph import (
     BBlockNb,
     StronglyConnectedComponents,
-    SmallPrimeNumbers,
     CyclomaticComplexity,
     MDIndex,
     MeanInsNB,
@@ -24,7 +23,6 @@ FEATURES = (
     # FunctionFeatureExtractor
     BBlockNb,
     StronglyConnectedComponents,
-    SmallPrimeNumbers,
     CyclomaticComplexity,
     MDIndex,
     MeanInsNB,
