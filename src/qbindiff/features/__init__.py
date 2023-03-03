@@ -24,7 +24,6 @@ FEATURES = (
     # FunctionFeatureExtractor
     BBlockNb,
     StronglyConnectedComponents,
-    NumberOfCycles,
     SmallPrimeNumbers,
     CyclomaticComplexity,
     MDIndex,
