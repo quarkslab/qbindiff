@@ -5,7 +5,7 @@ import numpy as np
 from datasketch import MinHash
 from networkx import DiGraph
 from collections.abc import Generator, Iterator
-from typing import Any, Callable, Optional, List, Type
+from typing import Any, Callable, Optional, List, Type, Tuple, Dict
 
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Program, Function
@@ -45,6 +45,8 @@ class Differ:
         """
         Abstract class that perform the NAP diffing between two generic graphs.
 
+        :param primary: primary graph
+        :param secondary: secondary graph
         :param sparsity_ratio: the sparsity ratio enforced to the similarity matrix
                         of type py:class:`qbindiff.types.Ratio`
         :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0)
@@ -65,9 +67,9 @@ class Differ:
 
         self.primary = primary
         self.secondary = secondary
-        self._pre_passes = []
-        self._post_passes = []
-        self._already_processed = False  # Flag to perform the processing only once
+        self._pre_passes: List = []
+        self._post_passes: List = []
+        self._already_processed: bool = False  # Flag to perform the processing only once
 
         if normalize:
             self.primary = self.normalize(primary)
@@ -85,14 +87,14 @@ class Differ:
         ) = self.extract_adjacency_matrix(secondary)
 
         # Dimension of the graphs
-        self.primary_dim = len(self.primary_i2n)
-        self.secondary_dim = len(self.secondary_i2n)
+        self.primary_dim: int = len(self.primary_i2n)
+        self.secondary_dim: int = len(self.secondary_i2n)
 
         # Similarity matrix filled with -1 (unknown value)
-        self.sim_matrix = np.full(
+        self.sim_matrix: np.ndarray = np.full(
             (self.primary_dim, self.secondary_dim), -1, dtype=Differ.DTYPE
         )
-        self.mapping = None
+        self.mapping: Mapping = {}
 
     def get_similarities(
         self, primary_idx: List[Idx], secondary_idx: List[Idx]
@@ -105,7 +107,7 @@ class Differ:
 
         :param primary_idx: the List of integers that represent nodes inside the primary graph
         :param secondary_idx: the List of integers that represent nodes inside the primary graph
-        :return sim_matrix : the similarity matrix between the specified nodes
+        :return sim_matrix: the similarity matrix between the specified nodes
         """
 
         return self.sim_matrix[primary_idx, secondary_idx]
@@ -116,7 +118,7 @@ class Differ:
 
         :param mapping: The raw mapping between the nodes
         :param confidence: The confidence score for each match
-        :return mapping: mapping given a raw mapping with confidence scores
+        :return: mapping given a raw mapping with confidence scores
         """
 
         logging.debug("Wrapping raw diffing output in a Mapping object")
@@ -167,7 +169,7 @@ class Differ:
 
     def extract_adjacency_matrix(
         self, graph: Graph
-    ) -> (AdjacencyMatrix, dict[Addr, Idx], dict[Idx, Addr]):
+    ) -> (AdjacencyMatrix, Dict[Addr, Idx], Dict[Idx, Addr]):
         """
         Returns the adjacency matrix for the graph and the mappings
 
@@ -198,7 +200,7 @@ class Differ:
 
         :param pass_func: Pass method to apply on the similarity matrix. Example : a Pass that first matches import
         functions.
-        :return None
+        :return: None
         """
 
         self._pre_passes.append((pass_func, extra_args))
@@ -210,7 +212,7 @@ class Differ:
         of them will operate on the output of the previous one.
 
         :param pass_func: Pass method to apply on the similarity matrix. Example : a Pass that extracts graph features.
-        :return None
+        :return: None
         """
 
         self._post_passes.append((pass_func, extra_args))
@@ -230,7 +232,7 @@ class Differ:
         """
         Run all the passes that have been previously registered.
 
-        :return None
+        :return: None
         """
 
         for pass_func, extra_args in self._pre_passes:
@@ -256,7 +258,7 @@ class Differ:
         """
         Initialize all the variables for the NAP algorithm.
 
-        :return None
+        :return: None
         """
 
         # Perform the initialization only once
@@ -271,7 +273,7 @@ class Differ:
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is returned as a Mapping object.
 
-        :return mapping : Mapping between items of the primary and items of the secondary
+        :return: Mapping between items of the primary and items of the secondary
         """
 
         for _ in tqdm.tqdm(
@@ -284,7 +286,7 @@ class Differ:
         """
         Run the belief propagation algorithm.
 
-        :return  A generator the yields the iteration number until the algorithm either converges or reaches
+        :return:  A generator the yields the iteration number until the algorithm either converges or reaches
         `self.maxiter`
         """
 
@@ -310,15 +312,15 @@ class DiGraphDiffer(Differ):
         def __init__(self, graph: DiGraph):
             """
             A wrapper for DiGraph. It has no distinction between node labels and nodes
+
             :param graph: Graph to initialize the differ
             """
 
             self._graph = graph
 
-        def items(self) -> Iterator[tuple[Addr, Any]]:
+        def items(self) -> Iterator[Tuple[Addr, Any]]:
             """
             Return an iterator over the items. Each item is {node_label: node}
-
             """
 
             for node in self._graph.nodes:
@@ -348,7 +350,7 @@ class DiGraphDiffer(Differ):
             return self._graph.nodes
 
         @property
-        def edges(self) -> Iterator[tuple[Any, Any]]:
+        def edges(self) -> Iterator[Tuple[Any, Any]]:
             """
             Return an iterator over the edges.
             An edge is a pair (node_label_a, node_label_b)
@@ -366,11 +368,13 @@ class DiGraphDiffer(Differ):
     def gen_sim_matrix(self, sim_matrix: SimMatrix, *args, **kwargs) -> None:
         """
         Initialize the similarity matrix
-        :param sim_matrix: The similarity matrix of type py:class:`qbindiff.types.SimMatrix
+
+        :param sim_matrix: The similarity matrix of type py:class:`qbindiff.types.SimMatrix`
         :param args:
         :param kwargs:
-        :return:
+        :return: None
         """
+
         sim_matrix[:] = 1
 
 
@@ -421,7 +425,7 @@ class QBinDiff(Differ):
         :param distance: Distance used only for specific features. It does not make sense to use it with bnb feature,
         but it can be useful for the WeisfeilerLehman feature.
 
-        :return None
+        :return: None
         """
 
         extractor = extractorClass(weight, **extra_args)
@@ -432,8 +436,8 @@ class QBinDiff(Differ):
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict,
-        secondary_mapping: dict,
+        primary_mapping: Dict,
+        secondary_mapping: Dict,
     ) -> None:
         """
         Anchoring phase. This phase considers import functions as anchors to the matching and set these functions
