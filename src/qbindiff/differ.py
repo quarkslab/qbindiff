@@ -5,10 +5,10 @@ import numpy as np
 from datasketch import MinHash
 from networkx import DiGraph
 from collections.abc import Generator, Iterator
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, List, Type
 
 from qbindiff.abstract import GenericGraph
-from qbindiff.loader import Program
+from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
@@ -21,22 +21,12 @@ from qbindiff.types import (
     Graph,
     AdjacencyMatrix,
     SimMatrix,
+    Addr,
+    Idx,
 )
-
+from qbindiff.mapping.bindiff import BinDiffFormat
 
 class Differ:
-    """
-    Abstract class that perform the NAP diffing between two generic graphs.
-
-    :param sparsity_ratio: the sparsity ratio enforced to the similarity matrix
-    :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0)
-                     and edge similarity (tradeoff=0.0)
-    :param epsilon: perturbation parameter to enforce convergence and speed up computation.
-                    The greatest the fastest, but least accurate
-    :param maxiter: maximum number of message passing iterations
-    :param sparse_row: Whether to build the sparse similarity matrix considering its
-                       entirety or processing it row per row
-    """
 
     DTYPE = np.float32
 
@@ -52,6 +42,19 @@ class Differ:
         normalize: bool = False,
         sparse_row: bool = False,
     ):
+        """
+        Abstract class that perform the NAP diffing between two generic graphs.
+
+        :param sparsity_ratio: the sparsity ratio enforced to the similarity matrix
+                        of type py:class:`qbindiff.types.Ratio`
+        :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0)
+                         and edge similarity (tradeoff=0.0) of type py:class:`qbindiff.types.Ratio`
+        :param epsilon: perturbation parameter to enforce convergence and speed up computation,
+                        of type py:class:`qbindiff.types.Positive`. The greatest the fastest, but least accurate
+        :param maxiter: maximum number of message passing iterations
+        :param sparse_row: Whether to build the sparse similarity matrix considering its
+                           entirety or processing it row per row
+        """
 
         # NAP parameters
         self.sparsity_ratio = sparsity_ratio
@@ -64,7 +67,7 @@ class Differ:
         self.secondary = secondary
         self._pre_passes = []
         self._post_passes = []
-        self._already_processed = False  # Flag to perfom the processing only once
+        self._already_processed = False  # Flag to perform the processing only once
 
         if normalize:
             self.primary = self.normalize(primary)
@@ -92,23 +95,28 @@ class Differ:
         self.mapping = None
 
     def get_similarities(
-        self, primary_idx: list[int], secondary_idx: list[int]
-    ) -> list[float]:
+        self, primary_idx: List[Idx], secondary_idx: List[Idx]
+    ) -> List[float]:
         """
         Returns the similarity scores between the nodes specified as parameter.
-        By default it uses the similarity matrix.
+        By default, it uses the similarity matrix.
         This method is meant to be overridden by subclasses to give more meaningful
         scores
+
+        :param primary_idx: the List of integers that represent nodes inside the primary graph
+        :param secondary_idx: the List of integers that represent nodes inside the primary graph
+        :return sim_matrix : the similarity matrix between the specified nodes
         """
 
         return self.sim_matrix[primary_idx, secondary_idx]
 
-    def _convert_mapping(self, mapping: RawMapping, confidence: list[float]) -> Mapping:
+    def _convert_mapping(self, mapping: RawMapping, confidence: List[float]) -> Mapping:
         """
         Return the result of the diffing as a Mapping object.
 
         :param mapping: The raw mapping between the nodes
         :param confidence: The confidence score for each match
+        :return mapping: mapping given a raw mapping with confidence scores
         """
 
         logging.debug("Wrapping raw diffing output in a Mapping object")
@@ -136,7 +144,7 @@ class Differ:
             )
         )
 
-        # Get the similiarity scores
+        # Get the similarity scores
         similarities = self.get_similarities(primary_idx, secondary_idx)
 
         # Get the number of squares for each matching pair. We are counting both squares
@@ -159,12 +167,18 @@ class Differ:
 
     def extract_adjacency_matrix(
         self, graph: Graph
-    ) -> (AdjacencyMatrix, dict[int, Any], dict[Any, int]):
-        """Returns the adjacency matrix for the graph and the mappings"""
+    ) -> (AdjacencyMatrix, dict[Addr, Idx], dict[Idx, Addr]):
+        """
+        Returns the adjacency matrix for the graph and the mappings
+
+        :param graph: Graph whose adjacency matrix should be extracted
+        :return matrix, map_i2l, map_l2i: the adjacency matrix of the graph, the map between index to label, the map
+        between label to index
+        """
 
         map_i2l = {}  # Map index to label
         map_l2i = {}  # Map label to index
-        for i, node in enumerate(graph.node_labels):
+        for i, node in enumerate(graph.node_labels):  # Node labels are node function addresses (in decimal)
             map_l2i[node] = i
             map_i2l[i] = node
 
@@ -172,35 +186,52 @@ class Differ:
         for node_a, node_b in graph.edges:
             matrix[map_l2i[node_a], map_l2i[node_b]] = True
 
-        return (matrix, map_i2l, map_l2i)
+        return matrix, map_i2l, map_l2i
 
-    def register_prepass(self, pass_func: Callable, **extra_args):
+    def register_prepass(self, pass_func: Callable, **extra_args) -> None:
         """
         Register a new pre-pass that will operate on the similarity matrix.
         The passes will be called in the same order as they are registered and each one
         of them will operate on the output of the previous one.
         WARNING: a prepass should assign values to the full row or the full column, it
         should never assign single entries in the matrix
+
+        :param pass_func: Pass method to apply on the similarity matrix. Example : a Pass that first matches import
+        functions.
+        :return None
         """
+
         self._pre_passes.append((pass_func, extra_args))
 
-    def register_postpass(self, pass_func: Callable, **extra_args):
+    def register_postpass(self, pass_func: Callable, **extra_args) -> None:
         """
         Register a new post-pass that will operate on the similarity matrix.
         The passes will be called in the same order as they are registered and each one
         of them will operate on the output of the previous one.
+
+        :param pass_func: Pass method to apply on the similarity matrix. Example : a Pass that extracts graph features.
+        :return None
         """
+
         self._post_passes.append((pass_func, extra_args))
 
     def normalize(self, graph: Graph) -> Graph:
         """
         Custom function that normalizes the input graph.
         This method is meant to be overriden by a sub-class.
+
+        :param graph: graph to normalize
+        :return graph: normalized graph
         """
+
         return graph
 
     def run_passes(self) -> None:
-        """Run all the passes that have been previously registered"""
+        """
+        Run all the passes that have been previously registered.
+
+        :return None
+        """
 
         for pass_func, extra_args in self._pre_passes:
             pass_func(
@@ -222,7 +253,12 @@ class Differ:
             )
 
     def process(self) -> None:
-        """Initialize all the variables for the NAP algorithm"""
+        """
+        Initialize all the variables for the NAP algorithm.
+
+        :return None
+        """
+
         # Perform the initialization only once
         if self._already_processed:
             return
@@ -234,17 +270,22 @@ class Differ:
         """
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is returned as a Mapping object.
+
+        :return mapping : Mapping between items of the primary and items of the secondary
         """
+
         for _ in tqdm.tqdm(
-            self.matching_iterator(), total=self.maxiter, disable=not is_debug()
+            self._matching_iterator(), total=self.maxiter, disable=not is_debug()
         ):
             pass
         return self.mapping
 
-    def matching_iterator(self) -> Generator[int]:
+    def _matching_iterator(self) -> Generator[int]:
         """
-        Run the belief propagation algorithm. This method returns a generator the yields
-        the iteration number until the algorithm either converges or reaches `self.maxiter`
+        Run the belief propagation algorithm.
+
+        :return  A generator the yields the iteration number until the algorithm either converges or reaches
+        `self.maxiter`
         """
 
         self.process()
@@ -265,28 +306,45 @@ class DiGraphDiffer(Differ):
     """
 
     class DiGraphWrapper(GenericGraph):
-        """A wrapper for DiGraph. It has no distinction between node labels and nodes"""
 
         def __init__(self, graph: DiGraph):
+            """
+            A wrapper for DiGraph. It has no distinction between node labels and nodes
+            :param graph: Graph to initialize the differ
+            """
+
             self._graph = graph
 
-        def items(self) -> Iterator[tuple[Any, Any]]:
-            """Return an iterator over the items. Each item is {node_label: node} but since"""
+        def items(self) -> Iterator[tuple[Addr, Any]]:
+            """
+            Return an iterator over the items. Each item is {node_label: node}
+
+            """
+
             for node in self._graph.nodes:
                 yield (node, node)
 
-        def get_node(self, node_label: Any):
-            """Returns the node identified by the `node_label`"""
+        def get_node(self, node_label: Any) -> Any:
+            """
+            Returns the node identified by the `node_label`
+            """
+
             return node_label
 
         @property
         def node_labels(self) -> Iterator[Any]:
-            """Return an iterator over the node labels"""
+            """
+            Return an iterator over the node labels
+            """
+
             return self._graph.nodes
 
         @property
         def nodes(self) -> Iterator[Any]:
-            """Return an iterator over the nodes"""
+            """
+            Return an iterator over the nodes
+            """
+
             return self._graph.nodes
 
         @property
@@ -295,6 +353,7 @@ class DiGraphDiffer(Differ):
             Return an iterator over the edges.
             An edge is a pair (node_label_a, node_label_b)
             """
+
             return self._graph.edges
 
     def __init__(self, primary: DiGraph, secondary: DiGraph, **kwargs):
@@ -304,23 +363,34 @@ class DiGraphDiffer(Differ):
 
         self.register_prepass(self.gen_sim_matrix)
 
-    def gen_sim_matrix(self, sim_matrix: SimMatrix, *args, **kwargs):
+    def gen_sim_matrix(self, sim_matrix: SimMatrix, *args, **kwargs) -> None:
+        """
+        Initialize the similarity matrix
+        :param sim_matrix: The similarity matrix of type py:class:`qbindiff.types.SimMatrix
+        :param args:
+        :param kwargs:
+        :return:
+        """
         sim_matrix[:] = 1
 
 
 class QBinDiff(Differ):
-    """
-    QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
-
-    :param distance: the distance function used when comparing the feature vector
-                     extracted from the graphs
-    """
 
     DTYPE = np.float32
 
     def __init__(
         self, primary: Program, secondary: Program, distance: str = "canberra", **kwargs
     ):
+
+        """
+            QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
+
+            :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
+            :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+            :param distance: the distance function used when comparing the feature vector
+                             extracted from the graphs. Default is 'canberra'.
+            """
+
         super(QBinDiff, self).__init__(primary, secondary, **kwargs)
 
         # Aliases
@@ -329,7 +399,7 @@ class QBinDiff(Differ):
         self.secondary_f2i = self.secondary_n2i
         self.secondary_i2f = self.secondary_i2n
 
-        # Register the feature extraction pass
+        # Register the import function mapping and feature extraction pass
         self._feature_pass = FeaturePass(distance)
         self.register_postpass(self._feature_pass)
         self.register_postpass(ZeroPass)
@@ -341,8 +411,19 @@ class QBinDiff(Differ):
         weight: Optional[Positive] = 1.0,
         distance: Optional[str] = None,
         **extra_args,
-    ):
-        """Register a feature extractor class"""
+    ) -> None:
+        """
+        Register a feature extractor class. This will include the corresponding feature in the similarity matrix
+        computation.
+
+        :param extractorClass : A feature extractor of type py:class:`qbindiff.features.extractor`
+        :param weight : Weight associated to the corresponding feature. Default is 1.
+        :param distance: Distance used only for specific features. It does not make sense to use it with bnb feature,
+        but it can be useful for the WeisfeilerLehman feature.
+
+        :return None
+        """
+
         extractor = extractorClass(weight, **extra_args)
         self._feature_pass.register_extractor(extractor, distance=distance)
 
@@ -354,6 +435,19 @@ class QBinDiff(Differ):
         primary_mapping: dict,
         secondary_mapping: dict,
     ) -> None:
+        """
+        Anchoring phase. This phase considers import functions as anchors to the matching and set these functions
+        similarity to 1. This anchoring phase is necessary to obtain a good match.
+
+        :param sim_matrix: The similarity matrix of between the primary and secondary, of
+        type py:class:`qbindiff.types:SimMatrix`
+        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
+        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+        :param primary_mapping: Mapping between the primary function addresses and their corresponding index
+        :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
+        :return: None
+        """
+
         primary_import = {}
         for addr, func in primary.items():
             if func.is_import():
@@ -369,7 +463,12 @@ class QBinDiff(Differ):
                     sim_matrix[p_idx, s_idx] = 1
 
     def normalize(self, program: Program) -> Program:
-        """Normalize the input Program"""
+        """
+        Normalize the input Program. In some cases, this can create an exception, caused by a thunk function.
+
+        :param program : the program of type py:class:`qbindiff.loader.Program` to normalize.
+        :return program : the normalized program
+        """
 
         for addr, func in list(program.items()):
             if not func.is_thunk():
@@ -385,11 +484,15 @@ class QBinDiff(Differ):
         return program
 
     def get_similarities(
-        self, primary_idx: list[int], secondary_idx: list[int]
-    ) -> list[float]:
+        self, primary_idx: List[int], secondary_idx: List[int]
+    ) -> List[float]:
         """
         Returns the similarity scores between the nodes specified as parameter.
         Uses MinHash fuzzy hash at basic block level to give a similarity score.
+
+        :param primary_idx: List of node indexes inside the primary
+        :param secondary_idx: List of node indexes inside the secondary
+        :return similarities : the list of corresponding similarities between the given nodes
         """
 
         # Utils functions
@@ -410,8 +513,13 @@ class QBinDiff(Differ):
             similarities.append(h1.jaccard(h2))
         return similarities
 
-    def export_to_bindiff(self, filename: str):
-        from qbindiff.mapping.bindiff import BinDiffFormat
+    def export_to_bindiff(self, filename: str) -> None:
+        """
+        Exports diffing results inside the BinDiff format
+
+        :param filename: Name of the output diffing file
+        :return: None
+        """
 
         bindiff = BinDiffFormat(filename, self.primary, self.secondary, self.mapping)
         bindiff.save()
