@@ -41,6 +41,26 @@ class StronglyConnectedComponents(FunctionFeatureExtractor):
             )
             collector.add_feature(self.key, value)
 
+class BytesHash(FunctionFeatureExtractor):
+        """Hash of the function, using the instructions sorted by addresses"""
+
+        key = "bh"
+        
+        def visit_function(
+            self, program: Program, function: Function, collector: FeatureCollector
+        ):
+            value = 0
+            instructions = []
+            for bba, bb in functions.items():
+                    for ins in bb.instructions : 
+                        instructions.append(ins)
+            instructions = sorted(instructions, key=lambda x:x.addr)
+            bytes = b''
+            for ins in instructions : 
+                bytes += ins.bytes
+            value = hashlib.md5(bytes)
+
+            collector.add_feature(self.key, value)
 
 class CyclomaticComplexity(FunctionFeatureExtractor):
     """ Cyclomatic complexity of the function """
@@ -108,13 +128,12 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
 
         mnemonics = list(mnemonics)
         
-        # TODO : be careful. First, why 4096 (? diaphora stuff) and then, may diverge in some cases with a large functions with a lot of different mnemonics
         value = 1
         primes = primesbelow(4096)
         for bb_addr, bb in function.items() : 
             for ins in bb.instructions :
                 value *= primes[mnemonics.index(ins.mnemonic)] 
-                value = value % 256
+                value = value % (2**64)
 
         collector.add_feature(self.key, value)
 
