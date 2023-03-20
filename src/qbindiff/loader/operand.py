@@ -56,7 +56,7 @@ class Operand:
 
     @property
     def type(self) -> int:
-        """Returns the operand type as int"""
+        """Returns the operand type as int : 1 corresponds to a register (ex: rax), 2 to an immediate (ex: 8) and 3 to a memory access (ex : [...])"""
         return self._backend.type
 
     @property

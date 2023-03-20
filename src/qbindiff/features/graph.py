@@ -92,6 +92,49 @@ class JumpNb(FunctionFeatureExtractor):
         collector.add_feature(self.key, value)
 
 
+class SmallPrimeNumbers(FunctionFeatureExtractor):
+    """Small-Prime-Number based on mnemonics, as defined in https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf . Not so sure about the validity of this hash or that implementation. """
+
+    key = "spp"
+
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ):
+        mnemonics = set()
+        for bb_addr, bb in function.items():
+            for ins in bb.instructions : 
+                if ins.mnemonic not in mnemonics : 
+                    mnemonics.update({ins.mnemonic})
+
+        mnemonics = list(mnemonics)
+        
+        # TODO : be careful. First, why 4096 (? diaphora stuff) and then, may diverge in some cases with a large functions with a lot of different mnemonics
+        value = 1
+        primes = primesbelow(4096)
+        for bb_addr, bb in function.items() : 
+            for ins in bb.instructions :
+                value *= primes[mnemonics.index(ins.mnemonic)] 
+                value = value % 256
+
+        collector.add_feature(self.key, value)
+
+class ReadWriteAccess(FunctionFeatureExtractor):
+    """Number of Read and Write Access per function"""
+
+    key = "rwa"
+
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ):
+        value = 0
+        for bb_addr, bb in function.items():
+                for ins in bb.instructions :
+                    for op in ins.operands :
+                            if op == 3 : 
+                                value +=1
+
+        collector.add_feature(self.key, value)
+        
 class MaxParentNb(FunctionFeatureExtractor):
     """Maximum number of parent of a bblock in the function"""
 
