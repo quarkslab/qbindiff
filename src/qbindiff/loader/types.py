@@ -21,18 +21,18 @@ class OperandType(IntEnum):
 
     void = 0
     register = 1
-    memory = 3
-    phrase = 4  # base+reg  or  base + offset * factor
-    displacement = 5  # base+offset
-    immediate = 6
-    far = 7
-    near = 8
-    specific0 = 9
-    specific1 = 10
-    specific2 = 11
-    specific3 = 12
-    specific4 = 13
-    specific5 = 14
+    memory = 2
+    phrase = 3  # base+reg  or  base + offset * factor
+    displacement = 4  # base+offset
+    immediate = 5
+    far = 6
+    near = 7
+    specific0 = 8
+    specific1 = 9
+    specific2 = 10
+    specific3 = 11
+    specific4 = 12
+    specific5 = 13
 
 
 class FunctionType(IntEnum):
