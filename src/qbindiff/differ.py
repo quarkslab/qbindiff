@@ -96,6 +96,9 @@ class Differ:
         )
         self.mapping: Mapping = {}
 
+        self.p_features = None
+        self.s_features = None
+        
     def get_similarities(
         self, primary_idx: List[Idx], secondary_idx: List[Idx]
     ) -> List[float]:
@@ -245,14 +248,24 @@ class Differ:
                 **extra_args,
             )
         for pass_func, extra_args in self._post_passes:
-            pass_func(
-                self.sim_matrix,
-                self.primary,
-                self.secondary,
-                self.primary_n2i,
-                self.secondary_n2i,
-                **extra_args,
-            )
+            if isinstance(pass_func, FeaturePass):
+                self.p_features, self.s_features =  pass_func(
+                    self.sim_matrix,
+                    self.primary,
+                    self.secondary,
+                    self.primary_n2i,
+                    self.secondary_n2i,
+                    **extra_args,
+                )
+            else :
+                pass_func(
+                    self.sim_matrix,
+                    self.primary,
+                    self.secondary,
+                    self.primary_n2i,
+                    self.secondary_n2i,
+                    **extra_args,
+                )
 
     def process(self) -> None:
         """

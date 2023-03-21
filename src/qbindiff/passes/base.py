@@ -220,6 +220,9 @@ class FeaturePass(GenericPass):
         primary.set_function_filter(lambda _: True)
         secondary.set_function_filter(lambda _: True)
 
+        p_features = primary_features
+        s_features = secondary_features    
+        
         # Get the weights of each feature
         f_weights = {}
         for extractor in self._visitor.feature_extractors:
@@ -292,3 +295,4 @@ class FeaturePass(GenericPass):
         for idx in map(lambda l: secondary_mapping[l], ignore_secondary):
             result_matrix[:, idx] = sim_matrix[:, idx]
         sim_matrix[:] = result_matrix
+        return p_features, s_features
