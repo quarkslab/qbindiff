@@ -223,13 +223,6 @@ class FeaturePass(GenericPass):
         p_features = primary_features
         s_features = secondary_features    
         
-           
- #for k, v in primary_features.items():
-        #    print('k', k)
-        #    print('v', v._features)
-        #    print('len v', len(v._features))
-        
-        
         # Get the weights of each feature
         f_weights = {}
         for extractor in self._visitor.feature_extractors:
