@@ -3,6 +3,7 @@ import numpy as np
 import math
 from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function
+from qbindiff.loader import types
 
 def primesbelow(N): # from diaphora
     correction = N % 6 > 1
@@ -55,10 +56,10 @@ class BytesHash(FunctionFeatureExtractor):
                     for ins in bb.instructions : 
                         instructions.append(ins)
             instructions = sorted(instructions, key=lambda x:x.addr)
-            bytes = b''
+            bytes_seq = b''
             for ins in instructions : 
-                bytes += ins.bytes
-            value = hashlib.md5(bytes)
+                bytes_seq += ins.bytes
+            value = hashlib.md5(bytes_seq)
 
             collector.add_feature(self.key, value)
 
@@ -77,7 +78,7 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
         collector.add_feature(self.key, value)
 
 class MDIndex(FunctionFeatureExtractor):
-    """ MD-Index of the function, based on : https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf.
+    """ MD-Index of the function, based on : `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_.
     A slightly modified version of it : notice the topological sort is only available for DAG graphs (which may not always be the case)."""
 
     key='mdidx'
@@ -113,7 +114,7 @@ class JumpNb(FunctionFeatureExtractor):
 
 
 class SmallPrimeNumbers(FunctionFeatureExtractor):
-    """Small-Prime-Number based on mnemonics, as defined in https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf . Not so sure about the validity of this hash or that implementation. """
+    """Small-Prime-Number based on mnemonics, as defined in `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_. This hash is slightly different from the theoretical implementation. % is made at each round, instead at the end. """
 
     key = "spp"
 
@@ -149,7 +150,7 @@ class ReadWriteAccess(FunctionFeatureExtractor):
         for bb_addr, bb in function.items():
                 for ins in bb.instructions :
                     for op in ins.operands :
-                            if op == 3 : 
+                            if (op == OperandType.memory.value) or (op == OperandType.phrase.value) or (op == OperandType.displacement.value) : 
                                 value +=1
 
         collector.add_feature(self.key, value)
