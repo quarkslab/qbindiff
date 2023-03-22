@@ -24,7 +24,7 @@ from qbindiff.types import (
     Addr,
     Idx,
 )
-from qbindiff.mapping.bindiff import BinDiffFormat
+
 
 class Differ:
 
@@ -525,5 +525,7 @@ class QBinDiff(Differ):
         :return: None
         """
 
+        from qbindiff.mapping.bindiff import BinDiffFormat
+        
         bindiff = BinDiffFormat(filename, self.primary, self.secondary, self.mapping)
         bindiff.save()
