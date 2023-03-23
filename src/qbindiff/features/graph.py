@@ -4,8 +4,17 @@ import math
 from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function
 from qbindiff.loader import types
+from typing import List
 
-def primesbelow(N): # from diaphora
+
+def primesbelow(N: int) -> List[int]:
+    """
+    Utility function that returns a list of all the primes below N. This comes from `Diaphora <https://github.com/joxeankoret/diaphora/blob/master/jkutils/factor.py>`_
+    
+    :param N: integer N 
+    :return: list of prime integer below N
+    """
+
     correction = N % 6 > 1
     N = {0:N, 1:N-1, 2:N+4, 3:N+3, 4:N+2, 5:N+1}[N%6]
     sieve = [True] * (N // 3)
@@ -19,7 +28,9 @@ def primesbelow(N): # from diaphora
     
 
 class BBlockNb(FunctionFeatureExtractor):
-    """Number of basic blocks in the function"""
+    """
+    Number of basic blocks in the function
+    """
 
     key = "bnb"
 
@@ -29,44 +40,53 @@ class BBlockNb(FunctionFeatureExtractor):
         value = len(function.flowgraph.nodes)
         collector.add_feature(self.key, value)
 
+
 class StronglyConnectedComponents(FunctionFeatureExtractor):
-        """Number of strongly connected components"""
+    """
+    Number of strongly connected components
+    """
 
-        key = "scc"
+    key = "scc"
 
-        def visit_function(
-            self, program: Program, function: Function, collector: FeatureCollector
-        ):
-            value = len(
-                list(networkx.strongly_connected_components(function.flowgraph))
-            )
-            collector.add_feature(self.key, value)
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ):
+        value = len(
+            list(networkx.strongly_connected_components(function.flowgraph))
+        )
+        collector.add_feature(self.key, value)
+
 
 class BytesHash(FunctionFeatureExtractor):
-        """Hash of the function, using the instructions sorted by addresses"""
+    """
+    Hash of the function, using the instructions sorted by addresses
+    """
 
-        key = "bh"
-        
-        def visit_function(
-            self, program: Program, function: Function, collector: FeatureCollector
-        ):
-            value = 0
-            instructions = []
-            for bba, bb in functions.items():
-                    for ins in bb.instructions : 
-                        instructions.append(ins)
-            instructions = sorted(instructions, key=lambda x:x.addr)
-            bytes_seq = b''
-            for ins in instructions : 
-                bytes_seq += ins.bytes
-            value = hashlib.md5(bytes_seq)
+    key = "bh"
+    
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ):
+        value = 0
+        instructions = []
+        for bba, bb in functions.items():
+                for ins in bb.instructions : 
+                    instructions.append(ins)
+        instructions = sorted(instructions, key=lambda x:x.addr)
+        bytes_seq = b''
+        for ins in instructions : 
+            bytes_seq += ins.bytes
+        value = hashlib.md5(bytes_seq)
 
-            collector.add_feature(self.key, value)
+        collector.add_feature(self.key, value)
+
 
 class CyclomaticComplexity(FunctionFeatureExtractor):
-    """ Cyclomatic complexity of the function """
+    """
+    Cyclomatic complexity of the function
+    """
 
-    key='cc'
+    key = 'cc'
     
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
@@ -77,11 +97,14 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
         value = e - n + 2*components
         collector.add_feature(self.key, value)
 
-class MDIndex(FunctionFeatureExtractor):
-    """ MD-Index of the function, based on : `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_.
-    A slightly modified version of it : notice the topological sort is only available for DAG graphs (which may not always be the case)."""
 
-    key='mdidx'
+class MDIndex(FunctionFeatureExtractor):
+    """
+    MD-Index of the function, based on : `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_.
+    A slightly modified version of it : notice the topological sort is only available for DAG graphs (which may not always be the case)
+    """
+
+    key = 'mdidx'
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
@@ -101,8 +124,11 @@ class MDIndex(FunctionFeatureExtractor):
 
         collector.add_feature(self.key, value)
 
+
 class JumpNb(FunctionFeatureExtractor):
-    """Number of jumps in the function"""
+    """
+    Number of jumps in the function
+    """
 
     key = "jnb"
 
@@ -114,7 +140,9 @@ class JumpNb(FunctionFeatureExtractor):
 
 
 class SmallPrimeNumbers(FunctionFeatureExtractor):
-    """Small-Prime-Number based on mnemonics, as defined in `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_. This hash is slightly different from the theoretical implementation. % is made at each round, instead at the end. """
+    """
+    Small-Prime-Number based on mnemonics, as defined in `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_. This hash is slightly different from the theoretical implementation. % is made at each round, instead at the end.
+    """
 
     key = "spp"
 
@@ -138,8 +166,11 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
 
         collector.add_feature(self.key, value)
 
+
 class ReadWriteAccess(FunctionFeatureExtractor):
-    """Number of Read and Write Access per function"""
+    """
+    Number of Read and Write Access per function
+    """
 
     key = "rwa"
 
@@ -155,8 +186,11 @@ class ReadWriteAccess(FunctionFeatureExtractor):
 
         collector.add_feature(self.key, value)
         
+
 class MaxParentNb(FunctionFeatureExtractor):
-    """Maximum number of parent of a bblock in the function"""
+    """
+    Maximum number of parent of a bblock in the function
+    """
 
     key = "maxp"
 
@@ -171,9 +205,10 @@ class MaxParentNb(FunctionFeatureExtractor):
         collector.add_feature(self.key, value)
 
 
-
 class MaxChildNb(FunctionFeatureExtractor):
-    """Maximum number of children of a bblock in the function"""
+    """
+    Maximum number of children of a bblock in the function
+    """
 
     key = "maxc"
 
@@ -188,7 +223,9 @@ class MaxChildNb(FunctionFeatureExtractor):
 
 
 class MaxInsNB(FunctionFeatureExtractor):
-    """Max number of instructions per basic blocks in the function"""
+    """
+    Max number of instructions per basic blocks in the function
+    """
 
     key = "maxins"
 
@@ -200,7 +237,9 @@ class MaxInsNB(FunctionFeatureExtractor):
 
 
 class MeanInsNB(FunctionFeatureExtractor):
-    """Mean number of instructions per basic blocks in the function"""
+    """
+    Mean number of instructions per basic blocks in the function
+    """
 
     key = "meanins"
 
@@ -212,7 +251,9 @@ class MeanInsNB(FunctionFeatureExtractor):
 
 
 class InstNB(FunctionFeatureExtractor):
-    """Number of instructions in the function"""
+    """
+    Number of instructions in the function
+    """
 
     key = "totins"
 
@@ -224,7 +265,9 @@ class InstNB(FunctionFeatureExtractor):
 
 
 class GraphMeanDegree(FunctionFeatureExtractor):
-    """Mean degree of the function"""
+    """
+    Mean degree of the function
+    """
 
     key = "Gmd"
 
@@ -239,7 +282,9 @@ class GraphMeanDegree(FunctionFeatureExtractor):
 
 
 class GraphDensity(FunctionFeatureExtractor):
-    """Density of the function flow graph"""
+    """
+    Density of the function flow graph
+    """
 
     key = "Gd"
 
@@ -251,7 +296,9 @@ class GraphDensity(FunctionFeatureExtractor):
 
 
 class GraphNbComponents(FunctionFeatureExtractor):
-    """Number of components in the function (non-connected flow graphs)"""
+    """
+    Number of components in the function (non-connected flow graphs)
+    """
 
     key = "Gnc"
 
@@ -265,7 +312,9 @@ class GraphNbComponents(FunctionFeatureExtractor):
 
 
 class GraphDiameter(FunctionFeatureExtractor):
-    """Diamater of the function flow graph"""
+    """
+    Diamater of the function flow graph
+    """
 
     key = "Gdi"
 
@@ -288,7 +337,9 @@ class GraphDiameter(FunctionFeatureExtractor):
 
 
 class GraphTransitivity(FunctionFeatureExtractor):
-    """Transitivity of the function flow graph"""
+    """
+    Transitivity of the function flow graph
+    """
 
     key = "Gt"
 
@@ -300,7 +351,9 @@ class GraphTransitivity(FunctionFeatureExtractor):
 
 
 class GraphCommunities(FunctionFeatureExtractor):
-    """Number of graph communities (Louvain modularity)"""
+    """
+    Number of graph communities (Louvain modularity)
+    """
 
     key = "Gcom"
 

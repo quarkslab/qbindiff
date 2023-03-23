@@ -5,39 +5,27 @@ from qbindiff.loader import Program, Instruction
 
 
 class MnemonicSimple(InstructionFeatureExtractor):
-
+    """
+    This feature extracts a dictionary with the instruction mnemonic as key and 1 as value
+    """
     key = "M"
 
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        """
-        Mnemonic of instructions feature
-
-        :param program: program to consider
-        :param instruction: instruction of the program from which we want to extract the feature
-        :param collector: collector to register features
-        :return: None
-        """
 
         collector.add_dict_feature(self.key, {instruction.mnemonic: 1})
 
 
 class MnemonicTyped(InstructionFeatureExtractor):
-
+    """
+    This features extracts a dictionary with hash of the mnemonic and operands of the instruction as key, 1 as value
+    """
     key = "Mt"
 
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        """
-        Mnemonic and type of operand feature
-
-        :param program: program to consider
-        :param instruction: instruction of the program from which we want to extract the feature
-        :param collector: collector to register features
-        :return: None
-        """
 
         # Use keys as string so it can later be sorted
         op_types = defaultdict(int)
@@ -49,21 +37,16 @@ class MnemonicTyped(InstructionFeatureExtractor):
 
 
 class GroupsCategory(InstructionFeatureExtractor):
+    """
+    This feature extracts a dictionary with groups as key and 1 as value
+    """
 
     key = "Gp"
 
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        """
-        Group of the instruction (FPU, SSE, stack..)
-
-        :param program: program to consider
-        :param instruction: instruction of the program from which we want to extract the feature
-        :param collector: collector to register features
-        :return: None
-        """
-
+    
         for key in instruction.groups:
             if key not in ["UNDEFINED", "NOTINCS", "NOTINIDA", "DEPRECATED"]:
                 collector.add_dict_feature(self.key, {str(key): 1})  # Key should be a str, not an int returned by hash

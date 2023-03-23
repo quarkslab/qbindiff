@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from scipy.sparse import lil_array
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, Dict, List
 
 from qbindiff.features.manager import FeatureKeyManager
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
@@ -16,20 +16,20 @@ class FeatureCollector:
     """
 
     def __init__(self):
-        self._features: dict[str, float | dict[str, float]] = {}
+        self._features: Dict[str, float | Dict[str, float]] = {}
 
     def add_feature(self, key: str, value: float) -> None:
         FeatureKeyManager.add(key)
         self._features.setdefault(key, 0)
         self._features[key] += value
 
-    def add_dict_feature(self, key: str, value: dict[str, float]) -> None:
+    def add_dict_feature(self, key: str, value: Dict[str, float]) -> None:
         self._features.setdefault(key, defaultdict(float))
         for k, v in value.items():
             FeatureKeyManager.add(key, k)
             self._features[key][k] += v
 
-    def full_keys(self) -> dict[str, set[str]]:
+    def full_keys(self) -> Dict[str, set[str]]:
         """
         Returns a dict in which keys are the keys of the features and values are the
         subkeys.
@@ -38,11 +38,11 @@ class FeatureCollector:
         keys = {}
         for main_key, feature in self._features.items():
             keys.setdefault(main_key, set())
-            if isinstance(feature, dict):
+            if isinstance(feature, Dict):
                 keys[main_key].update(feature.keys())
         return keys
 
-    def to_sparse_vector(self, dtype: type, main_key_list: list[str]) -> SparseVector:
+    def to_sparse_vector(self, dtype: type, main_key_list: List[str]) -> SparseVector:
         """
         Transform the collection to a sparse feature vector.
 
@@ -60,7 +60,7 @@ class FeatureCollector:
                 offset += manager.get_size(main_key)
                 continue
 
-            if isinstance(self._features[main_key], dict):  # with subkeys
+            if isinstance(self._features[main_key], Dict):  # with subkeys
                 for subkey, value in self._features[main_key].items():
                     vector[0, offset + manager.get(main_key, subkey)] = value
             else:  # without subkeys
@@ -86,7 +86,7 @@ class FeatureExtractor:
     """
 
     key = ""
-    options: dict[
+    options: Dict[
         str, FeatureOption
     ] = {}  # Dict {name : option}, each option is a instance of FeatureOption
 
