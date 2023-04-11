@@ -8,6 +8,7 @@ class MnemonicSimple(InstructionFeatureExtractor):
     """
     This feature extracts a dictionary with the instruction mnemonic as key and 1 as value
     """
+
     key = "M"
 
     def visit_instruction(
@@ -21,6 +22,7 @@ class MnemonicTyped(InstructionFeatureExtractor):
     """
     This features extracts a dictionary with hash of the mnemonic and operands of the instruction as key, 1 as value
     """
+    
     key = "Mt"
 
     def visit_instruction(

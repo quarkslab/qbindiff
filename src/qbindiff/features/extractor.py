@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from scipy.sparse import lil_array
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Any, Callable, TypeVar, Dict, List
+from typing import Any, Callable, TypeVar, Dict, List, Set
 
 from qbindiff.features.manager import FeatureKeyManager
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
@@ -34,11 +34,11 @@ class FeatureCollector:
                 FeatureKeyManager.add(key, k)
                 self._features[key][k] += v
 
-    def full_keys(self) -> Dict[str, set[str]]:
+    def full_keys(self) -> Dict[str, Set[str]]:
         """
-        Returns a dict in which keys are the keys of the features and values are the
-        subkeys.
-        Ex: {feature_key1: [], feature_key2: [], ..., feature_keyN: [subkey1, ...], ...}
+        Returns a dict in which keys are the keys of the features and values are the subkeys.
+
+        Example : {feature_key1: [], feature_key2: [], ..., feature_keyN: [subkey1, ...], ...}
         """
         keys = {}
         for main_key, feature in self._features.items():

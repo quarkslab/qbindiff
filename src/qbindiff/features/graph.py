@@ -10,22 +10,23 @@ import hashlib
 
 def primesbelow(N: int) -> List[int]:
     """
-    Utility function that returns a list of all the primes below N. This comes from `Diaphora <https://github.com/joxeankoret/diaphora/blob/master/jkutils/factor.py>`_
+    Utility function that returns a list of all the primes below n.
+    This comes from `Diaphora <https://github.com/joxeankoret/diaphora/blob/master/jkutils/factor.py>`_
     
-    :param N: integer N 
-    :return: list of prime integer below N
+    :param n: integer n
+    :return: list of prime integer below n
     """
 
-    correction = N % 6 > 1
-    N = {0:N, 1:N-1, 2:N+4, 3:N+3, 4:N+2, 5:N+1}[N%6]
-    sieve = [True] * (N // 3)
+    correction = n % 6 > 1
+    n = {0: n, 1: n-1, 2: n+4, 3: n+3, 4: n+2, 5: n+1}[n % 6]
+    sieve = [True] * (n // 3)
     sieve[0] = False
-    for i in range(int(N ** .5) // 3 + 1):
+    for i in range(int(n ** .5) // 3 + 1):
         if sieve[i]:
             k = (3 * i + 1) | 1
-            sieve[k*k // 3::2*k] = [False] * ((N//6 - (k*k)//6 - 1)//k + 1)
-            sieve[(k*k + 4*k - 2*k*(i%2)) // 3::2*k] = [False] * ((N // 6 - (k*k + 4*k - 2*k*(i%2))//6 - 1) // k + 1)
-    return [2, 3] + [(3 * i + 1) | 1 for i in range(1, N//3 - correction) if sieve[i]]
+            sieve[k*k // 3::2*k] = [False] * ((n//6 - (k*k)//6 - 1)//k + 1)
+            sieve[(k*k + 4*k - 2*k*(i % 2)) // 3::2*k] = [False] * ((n // 6 - (k*k + 4*k - 2*k*(i % 2))//6 - 1) // k + 1)
+    return [2, 3] + [(3 * i + 1) | 1 for i in range(1, n//3 - correction) if sieve[i]]
     
 
 class BBlockNb(FunctionFeatureExtractor):
@@ -37,7 +38,7 @@ class BBlockNb(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = len(function.flowgraph.nodes)
         collector.add_feature(self.key, value)
 
@@ -51,7 +52,7 @@ class StronglyConnectedComponents(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = len(
             list(networkx.strongly_connected_components(function.flowgraph))
         )
@@ -67,7 +68,7 @@ class BytesHash(FunctionFeatureExtractor):
     
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = 0
         instructions = []
         for bba, bb in function.items():
@@ -91,7 +92,7 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
     
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         e = len(function.edges)
         n = len([n for n in function.flowgraph.nodes()])
         components = len([c for c in networkx.weakly_connected_components(function.flowgraph)])
@@ -101,15 +102,17 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
 
 class MDIndex(FunctionFeatureExtractor):
     """
-    MD-Index of the function, based on : `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_.
-    A slightly modified version of it : notice the topological sort is only available for DAG graphs (which may not always be the case)
+    MD-Index of the function,
+    based on `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_.
+    A slightly modified version of it : notice the topological sort is only available for DAG graphs
+    (which may not always be the case)
     """
 
     key = 'mdidx'
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
 
         try :
             topological_sort = list(networkx.topological_sort(function.flowgraph))
@@ -135,21 +138,23 @@ class JumpNb(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = len(function.flowgraph.edges)
         collector.add_feature(self.key, value)
 
 
 class SmallPrimeNumbers(FunctionFeatureExtractor):
     """
-    Small-Prime-Number based on mnemonics, as defined in `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_. This hash is slightly different from the theoretical implementation. % is made at each round, instead at the end.
+    Small-Prime-Number based on mnemonics, as defined
+    in `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_.
+    This hash is slightly different from the theoretical implementation. % is made at each round, instead at the end.
     """
 
     key = "spp"
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         mnemonics = set()
         for bb_addr, bb in function.items():
             for ins in bb.instructions : 
@@ -177,7 +182,7 @@ class ReadWriteAccess(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = 0
         for bb_addr, bb in function.items():
                 for ins in bb.instructions :
@@ -197,7 +202,7 @@ class MaxParentNb(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = max(
             len(list(function.flowgraph.predecessors(bblock)))
             for bblock in function.flowgraph
@@ -215,7 +220,7 @@ class MaxChildNb(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = max(
             len(list(function.flowgraph.successors(bblock))) for bblock in function.flowgraph
         )
@@ -232,7 +237,7 @@ class MaxInsNB(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = max(len(bblock.instructions) for bblock in function)
         collector.add_feature(self.key, value)
 
@@ -246,7 +251,7 @@ class MeanInsNB(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = sum(len(bblock.instructions) for bblock in function) / len(function)
         collector.add_feature(self.key, value)
 
@@ -260,7 +265,7 @@ class InstNB(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = sum(len(bblock.instructions) for bblock in function)
         collector.add_feature(self.key, value)
 
@@ -274,7 +279,7 @@ class GraphMeanDegree(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         n_node = len(function.flowgraph)
         value = (
             sum(d for _, d in function.flowgraph.degree) / n_node if n_node != 0 else 0
@@ -291,7 +296,7 @@ class GraphDensity(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = networkx.density(function.flowgraph)
         collector.add_feature(self.key, value)
 
@@ -305,7 +310,7 @@ class GraphNbComponents(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = len(
             list(networkx.connected_components(function.flowgraph.to_undirected()))
         )
@@ -321,7 +326,7 @@ class GraphDiameter(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         components = list(
             networkx.connected_components(function.flowgraph.to_undirected())
         )
@@ -346,7 +351,7 @@ class GraphTransitivity(FunctionFeatureExtractor):
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    ) -> None:
         value = networkx.transitivity(function.flowgraph)
         collector.add_feature(self.key, value)
 
