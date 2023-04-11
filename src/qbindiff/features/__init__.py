@@ -1,13 +1,19 @@
 from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCategory
+
 from qbindiff.features.graph import (
     BBlockNb,
     StronglyConnectedComponents,
     BytesHash,
     CyclomaticComplexity,
     MDIndex,
+    JumpNb,
     SmallPrimeNumbers, 
     ReadWriteAccess,
+    MaxParentNb,
+    MaxChildNb,
+    MaxInsNB,
     MeanInsNB,
+    InstNB,
     GraphMeanDegree,
     GraphDensity,
     GraphNbComponents,
@@ -15,8 +21,6 @@ from qbindiff.features.graph import (
     GraphTransitivity,
     GraphCommunities,
 )
-
-#TODO : other features from graph are not included (ex: JumpNb) => why ?
 
 from qbindiff.features.artefact import Address, DatName, Constant, FuncName, StrRef
 from qbindiff.features.topology import ChildNb, ParentNb, RelativeNb, LibName, ImpName

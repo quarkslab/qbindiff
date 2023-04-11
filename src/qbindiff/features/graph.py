@@ -5,6 +5,7 @@ from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollect
 from qbindiff.loader import Program, Function
 from qbindiff.loader import types
 from typing import List
+import hashlib
 
 
 def primesbelow(N: int) -> List[int]:
@@ -69,7 +70,7 @@ class BytesHash(FunctionFeatureExtractor):
     ):
         value = 0
         instructions = []
-        for bba, bb in functions.items():
+        for bba, bb in function.items():
                 for ins in bb.instructions : 
                     instructions.append(ins)
         instructions = sorted(instructions, key=lambda x:x.addr)
@@ -181,7 +182,7 @@ class ReadWriteAccess(FunctionFeatureExtractor):
         for bb_addr, bb in function.items():
                 for ins in bb.instructions :
                     for op in ins.operands :
-                            if (op == OperandType.memory.value) or (op == OperandType.phrase.value) or (op == OperandType.displacement.value) : 
+                            if (op == types.OperandType.memory.value) or (op == types.OperandType.phrase.value) or (op == types.OperandType.displacement.value) : 
                                 value +=1
 
         collector.add_feature(self.key, value)
@@ -198,7 +199,7 @@ class MaxParentNb(FunctionFeatureExtractor):
         self, program: Program, function: Function, collector: FeatureCollector
     ):
         value = max(
-            len(function.flowgraph.predecessors(bblock))
+            len(list(function.flowgraph.predecessors(bblock)))
             for bblock in function.flowgraph
         )
         # value = max(len(bb.parents) for bb in function)
@@ -216,7 +217,7 @@ class MaxChildNb(FunctionFeatureExtractor):
         self, program: Program, function: Function, collector: FeatureCollector
     ):
         value = max(
-            len(function.flowgraph.successors(bblock)) for bblock in function.flowgraph
+            len(list(function.flowgraph.successors(bblock))) for bblock in function.flowgraph
         )
         # value = max(len(bb.children) for bb in function)
         collector.add_feature(self.key, value)
@@ -246,7 +247,7 @@ class MeanInsNB(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ):
-        value = sum(len(bblock) for bblock in function) / len(function)
+        value = sum(len(bblock.instructions) for bblock in function) / len(function)
         collector.add_feature(self.key, value)
 
 
