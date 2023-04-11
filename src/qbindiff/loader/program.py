@@ -1,12 +1,13 @@
 from __future__ import annotations
 import networkx
-from typing import Callable, Any
+from typing import Callable, Tuple, Dict, List
 from collections.abc import Iterator
 
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Function, Structure
 from qbindiff.loader.types import LoaderType
 from qbindiff.types import Addr
+from qbindiff.loader.backend.abstract import AbstractProgramBackend
 
 
 class Program(dict, GenericGraph):
@@ -57,6 +58,7 @@ class Program(dict, GenericGraph):
                                disassembling with capstone
         :return: Program instance
         """
+
         return Program(LoaderType.binexport, file_path, enable_cortexm)
 
     @staticmethod
@@ -68,6 +70,7 @@ class Program(dict, GenericGraph):
         :param exec_path: Path of the raw binary
         :return: Program instance
         """
+
         return Program(LoaderType.quokka, file_path, exec_path=exec_path)
 
     @staticmethod
@@ -77,14 +80,18 @@ class Program(dict, GenericGraph):
 
         :return: None
         """
+
         return Program(LoaderType.ida)
 
     @staticmethod
     def from_backend(backend: AbstractProgramBackend) -> Program:
-        """Load the Program from an instanciated program backend object"""
+        """
+        Load the Program from an instanciated program backend object
+        """
+
         return Program(None, backend=backend)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Program:%s>" % self.name
 
     def __iter__(self):
@@ -94,62 +101,91 @@ class Program(dict, GenericGraph):
 
         :return: Iterator of all functions (sorted by address)
         """
+
         for addr in sorted(self.keys()):
             if self._filter(addr):  # yield function only if filter agree to keep it
                 yield self[addr]
 
     def _load_functions(self) -> None:
-        """Load the functions from the backend"""
+        """
+        Load the functions from the backend
+        
+        :return: None
+        """
+
         for function in map(Function.from_backend, self._backend.functions):
             self[function.addr] = function
 
-    def items(self) -> Iterator[tuple[Any, Any]]:
-        """Return an iterator over the items. Each item is {node_label: node}"""
+    def items(self) -> Iterator[tuple[Addr, Function]]:
+        """
+        Return an iterator over the items. Each item is {node_label: node}
+
+        :return: an iterator over the program elements. Each element is a tuple of shape (function_addr, function_obj)
+        """
+
         for addr in self.keys():
             if self._filter(addr):  # yield function only if filter agree to keep it
                 yield (addr, self[addr])
 
-    def get_node(self, node_label: Any):
-        """Returns the node identified by the `node_label`"""
+    def get_node(self, node_label: Addr) -> Function:
+        """
+        Returns the node identified by the `node_label`
+        
+        :param node_label: the node_label or the address from which we want to recover the object
+        :return: the function identified by its address
+        """
+
         return self[node_label]
 
     @property
-    def node_labels(self) -> Iterator[Any]:
-        """Return an iterator over the node labels"""
+    def node_labels(self) -> Iterator[Addr]:
+        """
+        Iterator over the node labels
+        """
+
         for addr in self.keys():
             if self._filter(addr):
                 yield addr
 
     @property
-    def nodes(self) -> Iterator[Any]:
-        """Return an iterator over the nodes"""
+    def nodes(self) -> Iterator[Function]:
+        """
+        Iterator over the nodes
+        """
+
         yield from self.__iter__()
 
     @property
-    def edges(self) -> Iterator[tuple[Any, Any]]:
+    def edges(self) -> Iterator[Tuple[Addr, Addr]]:
         """
-        Return an iterator over the edges.
-        An edge is a pair (node_label_a, node_label_b)
+        Iterator over the edges.
+        An edge is a pair (addr_a, addr_b)
         """
+
         return self.callgraph.edges
 
     @property
     def name(self) -> str:
         """
         Returns the name of the program as defined by the backend
-
-        :return: program name
         """
+
         return self._backend.name
 
     @property
-    def structures(self) -> list[Structure]:
-        """Returns the list of structures defined in program"""
+    def structures(self) -> List[Structure]:
+        """
+        Returns the list of structures defined in program
+        """
+
         return self._backend.structures
 
     @property
     def exec_path(self) -> str | None:
-        """Returns the executable path if it has been specified"""
+        """
+        The executable path if it has been specified, None otherwise
+        """
+
         return self._backend.exec_path
 
     def set_function_filter(self, func: Callable[[Addr], bool]) -> None:
@@ -163,16 +199,27 @@ class Program(dict, GenericGraph):
         :param func: function take the function address (the node label) and returns
                      whether or not to keep it.
         """
+
         self._filter = func
 
     @property
     def callgraph(self) -> networkx.DiGraph:
+        """
+        The function callgraph with a Networkx DiGraph
+        """
+
         cg = self._backend.callgraph
         funcs = list(self)  # functions already filtered
         return cg.subgraph([x.addr for x in funcs])
 
     def get_function(self, name: str) -> Function:
-        """Returns the function by its name"""
+        """
+        Returns the function by its name
+
+        :param name: name of the function
+        :return: the function
+        """
+
         return self[self._backend.fun_names[name]]
 
     def follow_through(self, to_remove: Addr, target: Addr) -> None:
@@ -180,9 +227,13 @@ class Program(dict, GenericGraph):
         Replace node `to_remove` with a follow-through edge from every parent of the
         node with the node `target`.
 
-        Ex: { parents } -> (to_remove) -> (target)
+        Example : ``{ parents } -> (to_remove) -> (target)``
 
-        --> { parents } -> (target)
+        ``--> { parents } -> (target)``
+
+        :param to_remove: node to remove
+        :param target: targe node
+        :return: None
         """
 
         func = self[to_remove]
@@ -208,11 +259,14 @@ class Program(dict, GenericGraph):
         Remove the node ``to_remove`` from the Call Graph of the program.
 
         **WARNING**: The follow-through edges from the parents to the children are not
-        added
+        added. Example :
 
-        Ex: { parents } -> (to_remove) -> { children }
+        ``{ parents } -> (to_remove) -> { children }``
 
-        --> { parents }                   { children }
+        ``--> { parents }                   { children }``
+
+        :param to_remove: function_to_remove
+        :return: None
         """
 
         func = self[to_remove]
