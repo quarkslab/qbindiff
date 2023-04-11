@@ -4,7 +4,7 @@ from struct import pack
 from functools import cached_property
 from capstone import CS_OP_REG, CS_OP_IMM, CS_OP_MEM, CS_GRP_JUMP
 from collections.abc import Iterator
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, Set, Dict, List
 
 from qbindiff.loader import Data, Structure
 from qbindiff.loader.backend import (
@@ -38,7 +38,12 @@ capstoneValue: TypeAlias = Any  # Relaxed typing
 
 
 def convert_data_type(qbe_data_type: quokka.types.DataType) -> DataType:
-    """Convert a quokka DataType to qbindiff DataType"""
+    """
+    Convert a quokka DataType to qbindiff DataType
+    
+    :param qbe_data_type: the Quokka datatype to convert
+    :return: the corresponding qbindiff datatype
+    """
 
     if qbe_data_type == quokka.types.DataType.ASCII:
         return DataType.ASCII
@@ -63,7 +68,12 @@ def convert_data_type(qbe_data_type: quokka.types.DataType) -> DataType:
 def convert_struct_type(
     qbe_struct_type: quokka.types.StructureType,
 ) -> StructureType:
-    """Convert a quokka StructureType to qbindiff StructureType"""
+    """
+    Convert a quokka StructureType to qbindiff StructureType
+
+    :param qbe_struct_type: the Quokka structure to convert
+    :return: the corresponding qbindiff structure
+    """
 
     if qbe_struct_type == quokka.types.StructureType.ENUM:
         return StructureType.ENUM
@@ -76,7 +86,12 @@ def convert_struct_type(
 
 
 def convert_ref_type(qbe_ref_type: quokka.types.ReferenceType) -> ReferenceType:
-    """Convert a quokka ReferenceType to qbindiff ReferenceType"""
+    """
+    Convert a quokka ReferenceType to qbindiff ReferenceType
+
+    :param qbe_ref_type: the Quokka reference to convert
+    :return: the corresponding qbindiff reference
+    """
 
     if qbe_ref_type == quokka.types.ReferenceType.DATA:
         return ReferenceType.DATA
@@ -88,14 +103,27 @@ def convert_ref_type(qbe_ref_type: quokka.types.ReferenceType) -> ReferenceType:
         return StructureType.UNKNOWN
 
 
-def to_hex2(s):
+def to_hex2(s) -> str:
+    """
+    Converts hexadecimal bytes to corresponding hexa string
+
+    :param s: bytes to convert
+    :return: corresponding hexa string
+    """
     r = "".join("{0:02x}".format(c) for c in s)
     while r[0] == "0":
         r = r[1:]
     return r
 
 
-def to_x(s):
+def to_x(s) -> str:
+    """
+    Converts an integer to its hexadecimal representation in string
+
+    :param s: integer
+    :return: corresponding hexadecimal value in string
+    """
+
     if not s:
         return "0"
     x = pack(">q", s)
@@ -108,7 +136,9 @@ def to_x(s):
 
 
 class OperandBackendQuokka(AbstractOperandBackend):
-    """Backend loader of a Operand using Quokka"""
+    """
+    Backend loader of a Operand using Quokka
+    """
 
     def __init__(self, cs_instruction: "capstone.CsInsn", cs_operand: capstoneOperand):
         super(OperandBackendQuokka, self).__init__()
@@ -158,11 +188,16 @@ class OperandBackendQuokka(AbstractOperandBackend):
 
     @property
     def type(self) -> int:
-        """Returns the capstone operand type"""
+        """
+        Returns the capstone operand type
+        """
+
         return self.cs_operand.type
 
     def is_immutable(self) -> bool:
-        """Returns whether the operand is an immutable (not considering addresses)"""
+        """
+        Returns whether the operand is an immutable (not considering addresses)
+        """
 
         # Ignore jumps since the target is an immutable
         return self.cs_operand.type == CS_OP_IMM and not self.cs_instr.group(
@@ -171,7 +206,9 @@ class OperandBackendQuokka(AbstractOperandBackend):
 
 
 class InstructionBackendQuokka(AbstractInstructionBackend):
-    """Backend loader of a Instruction using Quokka"""
+    """
+    Backend loader of a Instruction using Quokka
+    """
 
     def __init__(
         self,
@@ -189,7 +226,11 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
             )
 
     def __del__(self):
-        """Clean quokka internal state to deallocate memory"""
+        """
+        Clean quokka internal state to deallocate memory
+        
+        :return: None
+        """
 
         # Clear the reference to capstone object
         self.qb_instr._cs_instr = None
@@ -198,9 +239,14 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         block._raw_dict[self.qb_instr.address] = self.qb_instr.proto_index
 
     def _cast_references(
-        self, references: list[quokka.types.ReferenceTarget]
-    ) -> list[ReferenceTarget]:
-        """Cast the quokka references to qbindiff reference types"""
+        self, references: List[quokka.types.ReferenceTarget]
+    ) -> List[ReferenceTarget]:
+        """
+        Cast the quokka references to qbindiff reference types
+
+        :param references: list of Quokka references
+        :return: list of corresponding references cast to qbindiff type
+        """
 
         ret_ref = []
         for ref in references:
@@ -222,17 +268,27 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
 
     @property
     def addr(self) -> Addr:
-        """The address of the instruction"""
+        """
+        The address of the instruction
+        """
+
         return self.qb_instr.address
 
     @property
     def mnemonic(self) -> str:
-        """Returns the instruction mnemonic as a string"""
+        """
+        Returns the instruction mnemonic as a string
+        """
+
         return self.qb_instr.mnemonic
 
     @cached_property
-    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
-        """Returns all the references towards the instruction"""
+    def references(self) -> Dict[ReferenceType, List[ReferenceTarget]]:
+        """
+        Returns all the references towards the instruction
+        
+        :return: dictionary with reference type as key and the corresponding references list as values
+        """
 
         ref = {}
         for ref_type, references in self.qb_instr.references.items():
@@ -241,39 +297,55 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
 
     @property
     def operands(self) -> Iterator[OperandBackendQuokka]:
-        """Returns an iterator over backend operand objects"""
+        """
+        Returns an iterator over backend operand objects
+        
+        :return: list of Quokka operands
+        """
+
         if self.cs_instr is None:
             return iter([])
         return (OperandBackendQuokka(self.cs_instr, o) for o in self.cs_instr.operands)
 
     @property
-    def groups(self) -> list[int]:
+    def groups(self) -> List[int]:
         """
-        Returns a list of groups of this instruction. Groups are capstone based
-        but enriched.
+        Returns a list of groups of this instruction. Groups are capstone based but enriched.
         """
+
         return []  # Not supported
 
     @property
     def id(self) -> int:
-        """Return the capstone instruction ID"""
+        """
+        Returns the capstone instruction ID
+        """
+
         if self.cs_instr is None:
             return 1999  # Custom defined value representing a "unknown" instruction
         return self.cs_instr.id
 
     @property
     def comment(self) -> str:
-        """Comment associated with the instruction"""
+        """
+        Comment associated with the instruction
+        """
+
         return []  # Not supported
 
     @property
     def bytes(self) -> bytes:
-        """Returns the bytes representation of the instruction"""
+        """
+        Returns the bytes representation of the instruction
+        """
+
         return self.qb_instr.bytes
 
 
 class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
-    """Backend loader of a BasicBlock using Quokka"""
+    """
+    Backend loader of a BasicBlock using Quokka
+    """
 
     def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_block: qbBlock):
         super(BasicBlockBackendQuokka, self).__init__()
@@ -284,20 +356,32 @@ class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
         # Private attributes
         self._addr = qb_block.start
 
-    def __del__(self):
-        """Clean quokka internal state by unloading from memory the Block object"""
+    def __del__(self) -> None:
+        """
+        Clean quokka internal state by unloading from memory the Block object
+        
+        :return: None
+        """
 
         chunk = self.qb_block.parent
         chunk._raw_dict[self.qb_block.start] = self.qb_block.proto_index
 
     @property
     def addr(self) -> Addr:
-        """The address of the basic block"""
+        """
+        The address of the basic block
+        """
+
         return self._addr
 
     @property
     def instructions(self) -> Iterator[InstructionBackendQuokka]:
-        """Returns an iterator over backend instruction objects"""
+        """
+        Returns an iterator over backend instruction objects
+
+        :return: iterator over Quokka instructions
+        """
+
         return (
             InstructionBackendQuokka(self.program, instr)
             for instr in self.qb_block.instructions
@@ -305,7 +389,9 @@ class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
 
 
 class FunctionBackendQuokka(AbstractFunctionBackend):
-    """Backend loader of a Function using Quokka"""
+    """
+    Backend loader of a Function using Quokka
+    """
 
     def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_func: qbFunction):
         super(FunctionBackendQuokka, self).__init__()
@@ -318,7 +404,11 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
 
     @property
     def basic_blocks(self) -> Iterator[BasicBlockBackendQuokka]:
-        """Returns an iterator over backend basic blocks objects"""
+        """
+        Returns an iterator over backend basic blocks objects
+
+        :return: Iterator over the Quokka Basic Blocks
+        """
 
         # Stop the exploration if it's an imported function
         if self.is_import():
@@ -331,17 +421,25 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
 
     @property
     def addr(self) -> Addr:
-        """The address of the function"""
+        """
+        The address of the function
+        """
+
         return self.qb_func.start
 
     @property
     def graph(self) -> networkx.DiGraph:
-        """The Control Flow Graph of the function"""
+        """
+        The Control Flow Graph of the function
+        """
+
         return self.qb_func.graph
 
     @cached_property
-    def parents(self) -> set[Addr]:
-        """Set of function parents in the call graph"""
+    def parents(self) -> Set[Addr]:
+        """
+        Set of function parents in the call graph
+        """
 
         parents = set()
         for chunk in self.qb_func.callers:
@@ -353,8 +451,10 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
         return parents
 
     @cached_property
-    def children(self) -> set[Addr]:
-        """Set of function children in the call graph"""
+    def children(self) -> Set[Addr]:
+        """
+        Set of function children in the call graph
+        """
 
         children = set()
         for chunk in self.qb_func.calls:
@@ -367,7 +467,9 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
 
     @cached_property
     def type(self) -> FunctionType:
-        """The type of the function (as defined by IDA)"""
+        """
+        The type of the function (as defined by IDA)
+        """
 
         f_type = self.qb_func.type
         if f_type == quokka.types.FunctionType.NORMAL:
@@ -387,17 +489,27 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
 
     @property
     def name(self) -> str:
-        """The name of the function"""
+        """
+        The name of the function
+        """
+
         return self.qb_func.name
 
     def is_import(self) -> bool:
-        """True if the function is imported"""
+        """
+        True if the function is imported
+        
+        :return: whether the fonction is imported
+        """
+
         # Should we consider also FunctionType.thunk?
         return self.type in (FunctionType.imported, FunctionType.extern)
 
 
 class ProgramBackendQuokka(AbstractProgramBackend):
-    """Backend loader of a Program using Quokka"""
+    """
+    Backend loader of a Program using Quokka
+    """
 
     def __init__(self, export_path: str, exec_path: str):
         super(ProgramBackendQuokka, self).__init__()
@@ -410,7 +522,9 @@ class ProgramBackendQuokka(AbstractProgramBackend):
 
     @property
     def functions(self) -> Iterator[FunctionBackendQuokka]:
-        """Returns an iterator over backend function objects"""
+        """
+        Returns an iterator over backend function objects
+        """
 
         functions = {}
         for addr, func in self.qb_prog.items():
@@ -431,11 +545,11 @@ class ProgramBackendQuokka(AbstractProgramBackend):
         return iter(functions.values())
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.qb_prog.executable.exec_file.name
 
     @cached_property
-    def structures(self) -> list[Structure]:
+    def structures(self) -> List[Structure]:
         """Returns the list of structures defined in program"""
 
         struct_list = []
@@ -455,29 +569,41 @@ class ProgramBackendQuokka(AbstractProgramBackend):
         return struct_list
 
     @cached_property
-    def structures_by_name(self) -> dict[str, Structure]:
-        """Returns the dictionary {name: structure}"""
+    def structures_by_name(self) -> Dict[str, Structure]:
+        """
+        Returns the dictionary {name: structure}
+        """
 
         # Hoping that there won't be two struct with the same name
         return {struct.name: struct for struct in self.structures}
 
     def get_structure(self, name: str) -> Structure:
-        """Returns structure identified by the name"""
+        """
+        Returns structure identified by the name
+        """
+
         return self.structures_by_name[name]
 
     @property
     def callgraph(self) -> networkx.DiGraph:
-        """The callgraph of the program"""
+        """
+        The callgraph of the program
+        """
+
         return self._callgraph
 
     @property
-    def fun_names(self) -> dict[str, int]:
+    def fun_names(self) -> Dict[str, int]:
         """
         Returns a dictionary with function name as key and the function address as value
         """
+
         return self._fun_names
 
     @property
     def exec_path(self) -> str:
-        """Returns the executable path"""
+        """
+        Returns the executable path
+        """
+        
         return self._exec_path
