@@ -25,9 +25,14 @@ class FeatureCollector:
 
     def add_dict_feature(self, key: str, value: Dict[str, float]) -> None:
         self._features.setdefault(key, defaultdict(float))
-        for k, v in value.items():
-            FeatureKeyManager.add(key, k)
-            self._features[key][k] += v
+
+        if value == {}:
+            FeatureKeyManager.add(key)
+            self._features[key] = 0
+        else :
+            for k, v in value.items():
+                FeatureKeyManager.add(key, k)
+                self._features[key][k] += v
 
     def full_keys(self) -> Dict[str, set[str]]:
         """

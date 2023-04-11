@@ -77,7 +77,7 @@ class BytesHash(FunctionFeatureExtractor):
         bytes_seq = b''
         for ins in instructions : 
             bytes_seq += ins.bytes
-        value = hashlib.md5(bytes_seq)
+        value = int(hashlib.md5(bytes_seq).hexdigest(), 16)
 
         collector.add_feature(self.key, value)
 
@@ -233,7 +233,7 @@ class MaxInsNB(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ):
-        value = max(len(bblock) for bblock in function)
+        value = max(len(bblock.instructions) for bblock in function)
         collector.add_feature(self.key, value)
 
 
@@ -261,7 +261,7 @@ class InstNB(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ):
-        value = sum(len(bblock) for bblock in function)
+        value = sum(len(bblock.instructions) for bblock in function)
         collector.add_feature(self.key, value)
 
 
