@@ -80,7 +80,10 @@ class Instruction:
     @property
     def data_references(self) -> list[Data]:
         """Returns the list of data that are referenced by the instruction"""
-        return self.references[ReferenceType.DATA]
+        if self.references == {}:
+            return {}
+        else :
+            return self.references[ReferenceType.DATA]
 
     @cached_property
     def operands(self) -> list[Operand]:
