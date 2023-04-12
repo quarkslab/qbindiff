@@ -25,9 +25,11 @@ class Operand:
     def load_binexport(self, *args, **kwargs) -> None:
         """
         Load the operand using the data of the binexport file
+
         :param args: program, function, and operand index
         :return: None
         """
+
         from qbindiff.loader.backend.binexport import OperandBackendBinexport
 
         self._backend = OperandBackendBinexport(*args, **kwargs)
@@ -35,46 +37,64 @@ class Operand:
     def load_ida(self, op_t, ea) -> None:
         """
         Instanciate the operand using IDA API
+
         :param op_t: op_t* as defined in the IDA SDK
         :param ea: address of the instruction
         :return: None
         """
+
         from qbindiff.loader.backend.ida import OperandBackendIDA
 
         self._backend = OperandBackendIDA(op_t, ea)
 
     def load_quokka(self, *args, **kwargs) -> None:
-        """Load the operand using the quokka backend"""
+        """
+        Load the operand using the quokka backend
+        
+        :return: None
+        """
+
         from qbindiff.loader.backend.quokka import OperandBackendQuokka
 
         self._backend = OperandBackendQuokka(*args, **kwargs)
 
     @staticmethod
     def from_backend(backend: AbstractOperandBackend) -> Operand:
-        """Load the Operand from an instanciated operand backend object"""
+        """
+        Load the Operand from an instanciated operand backend object
+        """
+
         return Operand(None, backend=backend)
 
     @property
     def type(self) -> int:
-        """Returns the operand type as int : 1 corresponds to a register (ex: rax), 2 to an immediate (ex: 8) and 3 to a memory access (ex : [...])"""
+        """
+        The operand type as int as defined in the IDA API.
+        Example : 1 corresponds to a register (ex: rax)
+        """
+
         return self._backend.type
 
     @property
     def immutable_value(self) -> int | None:
         """
-        Returns the immutable value (not addresses) used by the operand.
+        The immutable value (not addresses) used by the operand.
         If there is no immutable value then returns None.
         """
+
         if self.is_immutable():
             return self._backend.immutable_value
         return None
 
     def is_immutable(self) -> bool:
-        """Returns whether the operand is an immutable (not considering addresses)"""
+        """
+        Whether the operand is an immutable (not considering addresses)
+        """
+
         return self._backend.is_immutable()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._backend)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Op:%s>" % str(self)

@@ -1,11 +1,12 @@
 from __future__ import annotations
-import networkx, gc, sys
-from collections.abc import Mapping
-from typing import Set
+import networkx
+from collections.abc import Mapping, Generator
+from typing import Set, List, Tuple
 
 from qbindiff.loader import BasicBlock
 from qbindiff.loader.types import LoaderType, FunctionType
 from qbindiff.types import Addr
+from qbindiff.loader.backend.abstract import AbstractFunctionBackend
 
 
 class Function(Mapping[Addr, BasicBlock]):
@@ -51,36 +52,45 @@ class Function(Mapping[Addr, BasicBlock]):
         else:
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
-    def load_binexport(self, *args, **kwargs):
+    def load_binexport(self, *args, **kwargs) -> None:
         from qbindiff.loader.backend.binexport import FunctionBackendBinExport
 
         self._backend = FunctionBackendBinExport(*args, **kwargs)
 
-    def load_ida(self, addr):
+    def load_ida(self, addr) -> None:
         from qbindiff.loader.backend.ida import FunctionBackendIDA
 
         self._backend = FunctionBackendIDA(self, addr)
 
-    def load_quokka(self, *args, **kwargs):
+    def load_quokka(self, *args, **kwargs) -> None:
         from qbindiff.loader.backend.quokka import FunctionBackendQuokka
 
         self._backend = FunctionBackendQuokka(*args, **kwargs)
 
     @staticmethod
     def from_backend(backend: AbstractFunctionBackend) -> Function:
-        """Load the Function from an instanciated function backend object"""
+        """
+        Load the Function from an instanciated function backend object
+        """
+
         return Function(None, backend=backend)
 
     def __hash__(self):
         return hash(self.addr)
 
-    def __enter__(self):
-        """Preload basic blocks and don't deallocate them until __exit__ is called"""
+    def __enter__(self) -> None:
+        """
+        Preload basic blocks and don't deallocate them until __exit__ is called
+        """
+
         self._enable_unloading = False
         self._preload()
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Deallocate all the basic blocks"""
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        """
+        Deallocate all the basic blocks
+        """
+
         self._enable_unloading = True
         self._unload()
 
@@ -93,8 +103,11 @@ class Function(Mapping[Addr, BasicBlock]):
         self._unload()
         return bb
 
-    def __iter__(self):
-        """Iterate over basic blocks, not addresses"""
+    def __iter__(self) -> Generator[BasicBlock]:
+        """
+        Iterate over basic blocks, not addresses
+        """
+
         if self._basic_blocks is not None:
             yield from self._basic_blocks.values()
         else:
@@ -102,7 +115,7 @@ class Function(Mapping[Addr, BasicBlock]):
             yield from self._basic_blocks.values()
             self._unload()
 
-    def __len__(self):
+    def __len__(self) -> int:
         if self._basic_blocks is not None:
             return len(self._basic_blocks)
 
@@ -111,7 +124,13 @@ class Function(Mapping[Addr, BasicBlock]):
         self._unload()
         return size
 
-    def items(self):
+    def items(self) -> Generator[Addr, BasicBlock]:
+        """
+        Returns a generator of tuples with addresses of basic blocks and the corresponding basic blocks objects
+        
+        :return: generator (addr, basicblock)
+        """
+
         if self._basic_blocks is not None:
             yield from self._basic_blocks.items()
         else:
@@ -120,34 +139,50 @@ class Function(Mapping[Addr, BasicBlock]):
             self._unload()
 
     def _preload(self) -> None:
-        """Load in memory all the basic blocks"""
+        """
+        Load in memory all the basic blocks
+
+        :return: None
+        """
+
         self._basic_blocks = {}
         for bb in map(BasicBlock.from_backend, self._backend.basic_blocks):
             self._basic_blocks[bb.addr] = bb
 
     def _unload(self) -> None:
-        """Unload from memory all the basic blocks"""
+        """
+        Unload from memory all the basic blocks
+        
+        :return: None
+        """
+
         if self._enable_unloading:
             self._basic_blocks = None
             self._backend.unload_blocks()
 
     @property
-    def edges(self):
+    def edges(self) -> List[Tuple[Addr, Addr]]:
+        """
+        Edges of the function flowgraph as a list of tuples with basic block addresses
+        """
+
         return list(self.flowgraph.edges)
 
     @property
     def addr(self) -> Addr:
-        """Address of the function"""
+        """
+        Address of the function
+        """
+
         return self._backend.addr
 
     @property
     def flowgraph(self) -> networkx.DiGraph:
         """
-        Gives the networkx DiGraph of the function. This is used to perform networkx
+        The networkx DiGraph of the function. This is used to perform networkx
         based algorithm.
-
-        :return: directed graph of the function
         """
+
         return self._backend.graph
 
     @property
@@ -155,32 +190,35 @@ class Function(Mapping[Addr, BasicBlock]):
         """
         Set of function parents in the call graph.
         Thus functions that calls this function
-
-        :return: caller functions
         """
+
         return self._backend.parents
 
     @property
     def children(self) -> Set[Addr]:
         """
         Set of functions called by this function in the call graph.
-
-        :return: callee functions
         """
+
         return self._backend.children
 
     @property
     def type(self) -> FunctionType:
         """
         Returns the type of the instruction (as defined by IDA)
-
-        :return: function type
         """
+
         return self._backend.type
 
     @type.setter
     def type(self, value) -> None:
-        """Set the type value"""
+        """
+        Set the type value
+
+        :param value: the value to set
+        :return: None
+        """
+
         self._backend.type = value
 
     def is_library(self) -> bool:
@@ -192,38 +230,46 @@ class Function(Mapping[Addr, BasicBlock]):
 
         :return: bool
         """
+
         return self.type == FunctionType.library
 
     def is_import(self) -> bool:
         """
-        Returns whether or not this function is an import function.
+        Returns whether this function is an import function.
         (Thus not having content)
 
         :return: bool
         """
+
         return self.type in (FunctionType.imported, FunctionType.extern)
 
     def is_thunk(self) -> bool:
         """
-        Returns whether or not this function is a thunk function.
+        Returns whether this function is a thunk function.
 
         :return: bool
         """
+
         return self.type == FunctionType.thunk
 
-    def is_alone(self):
+    def is_alone(self) -> bool:
         """
-        Returns whether or not the function have neither caller nor callee.
+        Returns whether the function have neither caller nor callee.
 
         :return: bool
         """
+
         return not (self.children or self.parents)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Function: 0x%x>" % self.addr
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """
+        Name of the function
+        """
+        
         return self._backend.name
 
     @name.setter

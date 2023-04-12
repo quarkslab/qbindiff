@@ -21,40 +21,30 @@ from qbindiff.loader import (
 
 
 class Address(FunctionFeatureExtractor):
+    """
+    Address of the function as feature
+    """
 
     key = "addr"
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        """
-        Address of the function as a feature
-
-        :param program: program to consider
-        :param function: function of the program from which we want to extract the feature
-        :param collector: collector to register features
-        :return: None
-        """
 
         value = function.addr
         collector.add_feature(self.key, value)
 
 
 class DatName(InstructionFeatureExtractor):
+    """
+    References to data in the instruction. It's a superset of strref
+    """
 
     key = "dat"
 
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        """
-        References to data in the instruction. It's a superset of strref
-
-        :param program: program to consider
-        :param instruction: instruction of the program from which we want to extract the feature
-        :param collector: collector to register features
-        :return: None
-        """
 
         for ref_type, references in instruction.references.items():
             for reference in references:
@@ -85,20 +75,15 @@ class DatName(InstructionFeatureExtractor):
 
 
 class StrRef(InstructionFeatureExtractor):
+    """
+    References to strings in the instruction
+    """
 
     key = "strref"
 
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        """
-        References to strings in the instruction
-
-        :param program: program to consider
-        :param instruction: instruction of the program from which we want to extract the feature
-        :param collector: collector to register features
-        :return: None
-        """
 
         for data in instruction.data_references:
             if data.type == DataType.ASCII:
@@ -106,38 +91,30 @@ class StrRef(InstructionFeatureExtractor):
 
 
 class Constant(OperandFeatureExtractor):
+    """
+    Numeric constant (32/64bits) in the instruction (not addresses)
+    """
 
     key = "cst"
 
     def visit_operand(
         self, program: Program, operand: Operand, collector: FeatureCollector
     ) -> None:
-        """
-        Numeric constant (32/64bits) in the instruction (not addresses)
-
-        :param program: program to consider
-        :param operand: operand of the program from which we want to extract the feature
-        :param collector: collector to register features
-        :return: None
-        """
 
         if operand.is_immutable():
             collector.add_dict_feature(self.key, {str(operand.immutable_value): 1})  # This should be a string
 
 
 class FuncName(FunctionFeatureExtractor):
+    """
+    Match the function names. Optionally specify a regular expression pattern to exclude function names
+    """
 
     key = "fname"
 
     def __init__(
         self, *args: Any, excluded_regex: Optional[Pattern[str]] = None, **kwargs: Any
     ):
-        """
-        Match the function names. Optionally specify a regular expression pattern to exclude function names
-        :param args:
-        :param excluded_regex:
-        :param kwargs:
-        """
 
         super(FuncName, self).__init__(*args, **kwargs)
 
@@ -146,9 +123,11 @@ class FuncName(FunctionFeatureExtractor):
     def is_excluded(self, function: Function) -> bool:
         """
         Returns if the function should be excluded (and not considered) based on an optional regex
+
         :param function: function to consider
         :return: bool
         """
+
         if self._excluded_regex is None:
             return bool(
                 re.match(
@@ -161,13 +140,6 @@ class FuncName(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        """
-
-        :param program: program to consider
-        :param function: function of the program from which we want to extract the feature
-        :param collector: collector to register features
-        :return: None
-        """
 
         if self.is_excluded(function):
             # We cannot properly exclude the name since a zero feature vector will

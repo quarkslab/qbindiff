@@ -5,7 +5,9 @@ from qbindiff.types import Addr
 
 
 class Data:
-    """Class that represents a data reference"""
+    """
+    Class that represents a data reference
+    """
 
     def __init__(self, data_type: DataType, addr: Addr, value: Any):
         self.type = data_type

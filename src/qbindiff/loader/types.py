@@ -49,6 +49,10 @@ class FunctionType(IntEnum):
 
 
 class DataType(IntEnum):
+    """
+    Types of data
+    """
+
     UNKNOWN = 0
     BYTE = 1
     WORD = 2
@@ -61,6 +65,10 @@ class DataType(IntEnum):
 
 
 class StructureType(IntEnum):
+    """
+    Different structures
+    """
+
     UNKNOWN = 0
     STRUCT = 1
     ENUM = 2
@@ -68,7 +76,9 @@ class StructureType(IntEnum):
 
 
 class ReferenceType(IntEnum):
-    """Reference types"""
+    """
+    Reference types
+    """
 
     DATA = 0
     ENUM = 1
