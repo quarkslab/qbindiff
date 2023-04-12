@@ -5,6 +5,8 @@ import logging
 import numpy as np
 from lapjv import lapjv
 from scipy.sparse import csr_matrix, coo_matrix
+from collection.abc import Generator
+from typing import Tuple, List
 
 # Local imports
 from qbindiff.matcher.squares import find_squares
