@@ -370,7 +370,11 @@ class GraphCommunities(FunctionFeatureExtractor):
 
         partition = community.best_partition(function.flowgraph.to_undirected())
         if (len(function) > 1) and (partition!={}):
-            value = max(x for x in partition.values() if x != function.addr)
+            p_list = [x for x in partition.values() if x != function.addr]
+            try :
+                value = max(p_list)
+            except :
+                value = 0
         else:
             value = 0
         collector.add_feature(self.key, value)
