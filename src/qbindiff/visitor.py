@@ -1,7 +1,7 @@
 import tqdm
 from abc import ABCMeta, abstractmethod
-from collections.abc import Iterable
-from typing import Any, Callable
+import logging
+from typing import Any, Callable, List, Dict
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
 from qbindiff.features.extractor import (
@@ -24,13 +24,16 @@ class Visitor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def feature_extractors(self) -> list[FeatureExtractor]:
-        """Returns the list of registered features extractor"""
+    def feature_extractors(self) -> List[FeatureExtractor]:
+        """
+        Returns the list of registered features extractor
+        """
+
         raise NotImplementedError()
 
     def visit(
         self, graph: Graph, key_fun: Callable = lambda _, i: i
-    ) -> dict[Any, FeatureCollector]:
+    ) -> Dict[Any, FeatureCollector]:
         """
         Function performing the visit on a Graph object by calling visit_item with a
         FeatureCollector meant to be filled.
@@ -38,9 +41,10 @@ class Visitor(metaclass=ABCMeta):
         :param graph: the Graph to be visited.
         :param key_fun: a function that takes 2 input arguments, namely the current item and
                         the current iteration number, and returns a unique key for that item.
-                        By default the iteration number is used.
+                        By default, the iteration number is used.
         :return: A dict in which keys are key_fun(item, i) and values are the FeatureCollector
         """
+
         obj_features = {}
         for i, item in tqdm.tqdm(
             enumerate(graph.items()), total=len(graph), disable=not is_debug()
@@ -59,7 +63,9 @@ class Visitor(metaclass=ABCMeta):
         :param graph: the graph that is being visited
         :param item: item to be visited
         :param collector: FeatureCollector to fill during the visit
+        :return: None
         """
+
         raise NotImplementedError()
 
     @abstractmethod
@@ -67,8 +73,10 @@ class Visitor(metaclass=ABCMeta):
         """
         Register an instanciated feature extractor on the visitor.
 
-        :param ft: Feature extractor instance
+        :param fte: Feature extractor instance
+        :return: None
         """
+
         raise NotImplementedError()
 
 
@@ -78,12 +86,12 @@ class NoVisitor(Visitor):
     """
 
     @property
-    def feature_extractors(self) -> list[FeatureExtractor]:
+    def feature_extractors(self) -> List[FeatureExtractor]:
         return []
 
     def visit(
         self, graph: Graph, key_fun: Callable = lambda _, i: i
-    ) -> dict[Any, FeatureCollector]:
+    ) -> Dict[Any, FeatureCollector]:
         return {
             key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())
         }
@@ -116,6 +124,7 @@ class ProgramVisitor(Visitor):
         :param graph: The program that is being visited
         :param item: Can be a Function, Instruction etc..
         :param collector: FeatureCollector to be filled
+        :return: None
         """
         if isinstance(item, Function):
             self.visit_function(program, item, collector)
@@ -133,6 +142,7 @@ class ProgramVisitor(Visitor):
         :param ft: Feature extractor instance
         :return: None
         """
+
         assert isinstance(fte, FeatureExtractor)
         if isinstance(fte, FunctionFeatureExtractor):
             self.register_function_feature_callback(fte.visit_function)
@@ -145,15 +155,43 @@ class ProgramVisitor(Visitor):
         self._feature_extractors[fte.key] = fte
 
     def register_function_feature_callback(self, callback: Callable) -> None:
+        """
+        Feature callback at function granularity
+
+        :param callback: feature callback
+        :return: None
+        """
+
         self.function_callbacks.append(callback)
 
     def register_basic_block_feature_callback(self, callback: Callable) -> None:
+        """
+        Feature callback at basic block granularity
+
+        :param callback: feature callback
+        :return: None
+        """
+
         self.basic_block_callbacks.append(callback)
 
     def register_instruction_feature_callback(self, callback: Callable) -> None:
+        """
+        Feature callback at function granularity
+
+        :param callback: feature callback
+        :return: None
+        """
+
         self.instruction_callbacks.append(callback)
 
     def register_operand_feature_callback(self, callback: Callable) -> None:
+        """
+        Feature callback at function granularity
+
+        :param callback: feature callback
+        :return: None
+        """
+
         self.operand_callbacks.append(callback)
 
     def visit_function(
@@ -165,7 +203,9 @@ class ProgramVisitor(Visitor):
         :param program: Program that is being visited
         :param func: Function to visit
         :param collector: FeatureCollector to fill
+        :return: None
         """
+
         # Call all callbacks attacked to a function
         for callback in self.function_callbacks:
             if not func.is_import():
@@ -184,7 +224,9 @@ class ProgramVisitor(Visitor):
         :param program: Program that is being visited
         :param basic_block: Basic Block to visit
         :param collector: FeatureCollector to fill
+        :return: None
         """
+
         # Call all callbacks attacked to a basic block
         for callback in self.basic_block_callbacks:
             callback(program, basic_block, collector)
@@ -202,6 +244,7 @@ class ProgramVisitor(Visitor):
         :param program: Program that is being visited
         :param instruction: Instruction to visit
         :param collector: FeatureCollector to fill
+        :return: None
         """
         # Call all callbacks attached to an instruction
         for callback in self.instruction_callbacks:
@@ -220,6 +263,7 @@ class ProgramVisitor(Visitor):
         :param program: Program that is being visited
         :param operand: Operand
         :param collector: FeatureCollector to fill
+        :return: None
         """
         # Call all callbacks attached to an operand
         for callback in self.operand_callbacks:

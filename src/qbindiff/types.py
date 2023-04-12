@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Iterable, TypeAlias
+from typing import Any, Iterable, TypeAlias, List, Tuple
 
 import numpy
 import enum
@@ -37,12 +37,12 @@ Item: TypeAlias = Any
 """
 Pair of lists of user defined index correspondences. Default None.
 """
-Anchors: TypeAlias = list[tuple[Item, Item]]
+Anchors: TypeAlias = List[Tuple[Item, Item]]
 
 """
 Pair of lists of indexes that are mapped together.
 """
-RawMapping: TypeAlias = tuple[list[Idx], list[Idx]]
+RawMapping: TypeAlias = Tuple[List[Idx], List[Idx]]
 
 """
 Match represent the matching between two functions and can hold the similarity between the two
@@ -53,7 +53,7 @@ Match = namedtuple("Match", "primary secondary similarity confidence squares")
 """
 An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
 """
-ExtendedMapping: TypeAlias = Iterable[tuple[Item, Item, float, int]]
+ExtendedMapping: TypeAlias = Iterable[Tuple[Item, Item, float, int]]
 
 """
 Numpy data type
