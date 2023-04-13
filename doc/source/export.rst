@@ -26,6 +26,14 @@ If you are not familiar with BinDiff and prefer to manipulate .csv file, as it w
    
    f = open('/path/to/output.csv', 'w')
    writer = csv.writer(f)
+   # idb_path_1 : path to the primary
+   # fva_1 : function address inside the primary
+   # func_name_1 : function name inside the primary
+   # idb_path_2 : path to the secondary
+   # fva_2 : function address inside the secondary
+   # func_name_2 : function name inside the secondary
+   # similarity : similarity measure of the function match
+   # confidence : confidence of the match
    writer.writerow(('idb_path_1', 'fva_1', 'func_name_1', 'idb_path_2', 'fva_2', 'func_name_2', 'similarity', 'confidence'))
 
    for match in matches : 

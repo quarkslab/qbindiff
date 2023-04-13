@@ -1,7 +1,7 @@
 Binary diffing
 ==============
 
-Binary diffing aims to automatically compare between two binaries, called primary and secondary, based on their machine code or assembly. 
+Binary diffing aims to automatically compare two binaries, called primary and secondary, based on their machine code or assembly. 
 
 To start, we recall some definitions.
 
@@ -18,6 +18,7 @@ A Function Call Graph follows the same principle but displays the interprocedura
 
 .. image:: images/diff_CG.png
 
+[TODO:cite the Elie PhD for the picture]
 In this image, you can see the difference between the Control-Flow Graph (CG) or the Functin Call Graph or Call Graph (CG). What changes is the level or the granularity of what we look at. 
 
 Method
