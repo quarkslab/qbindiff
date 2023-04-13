@@ -28,14 +28,16 @@ In general, we try to find a one-to-one correspondence between elements of the b
 QBinDiff operates both on binaries and generic graphs. Indeed, graph matching is not limited to binary diffing only. That is why you should consider the terms "binary" and "graph" as swappable [TODO: add bold or italic].
 
 
-In this section we will explain how QBinDiff internally works, while it is not strictly necessary to know this it might be helpful to better understand how to fine tune the parameters for a specific diffing task.
+QBinDiff internally works in a specific way, that is not strictly necessary to know this it might be helpful to better understand how to fine tune the parameters for a specific diffing task.
 
-From a high level prespective QBinDiff operates in the following steps:
-1. Normalization of the program Call Graph (**CG**). This step is optional
-2. Core of the diffing process. In the end a mapping between the most similar functions is produced. This step is performed in multiple substeps:
-   1. Analysis of each function by extracting {ref}`features` and combining them into a similarity matrix
+From a high level prespective, QBinDiff operates in the following steps:
+
+1. Differ object creation with several parameters. [TODO: add link to parameters]
+2. Core of the diffing process. In the end, a mapping between the most similar functions is produced. This step is performed in multiple substeps:
+   1. Ancoring step
+   2. Analysis of non-imported functions by extracting features and combining them into a similarity matrix with a linear combination and a distance computation. [TODO:add link to feat]
    2. Optionally performing user defined similarity matrix refinements
-   3. Combining the similarity matrix and the topology of the CG with a state of the art machine learning algorithm to produce the functions mapping
+   3. Combining the similarity matrix and the topology of the CG with a state-of-the-art machine learning algorithm, called Belief Propagation, [TODO:add link]to produce the functions mapping
 3. Export the result in different formats
 
-Each step will be described in details
+One step in the QBinDiff framework is particularly important : the anchoring phase, only available for binaries. Indeed, binaries often contain imported functions. These functions can be common to primary and secondary. Using them as anchors greatly help the differ to obtain good matches. 
