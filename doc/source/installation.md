@@ -1,46 +1,73 @@
-# Installation
+Install
+====================================
 
-First clone the repository
+QBinDiff
+--------
 
-```bash
-git clone https://gitlab.qb/machine_learning/qbindiff.git qbindiff
-cd qbindiff
-```
+You can install QBinDiff by cloning the official repository : 
 
-It is highly reccomended to install QBinDiff inside a python virtualenv
+..  code-block:: bash
+    
+    git clone qbindiff_repo qbindiff
+    cd qbindiff
+    
+[TODO:add the right address]
 
-```bash
-# Create the virtual environment
-python -m venv venv
+It is highly recommended to install QBinDiff inside a python virtual env : 
 
-# Enter the virtual environment
-. venv/bin/activate
-```
 
-Install QBinDiff is as easy as type
+..  code-block:: bash
 
-```bash
-pip install .
-```
+    python -m venv venv
+    source venv/bin/activate
 
-## Backend installation
+Install QBinDiff :
 
-To use a preconfigured backend you should install the relative python module
+..  code-block:: bash
 
-### Quokka
-Quokka can be installed with pip
-```bash
-pip install .[quokka]
-```
+    pip install .
+   
 
-For more information on how to compile and install Quokka see the official documentation
-[here](https://github.com/quarkslab/quokka)
+If you prefer to install QBinDiff directly using pip : 
 
-### BinExport
-Follow the instructions [here](https://gitlab.qb/rmori/python-binexport)
 
-```{warning}
-There is another `python-binexport` module ([here](https://gitlab.qb/rdavid/python-binexport)) but it is not compatible with QBinDiff.
+..  code-block:: bash
 
-In the future the two projects will be merged into a single one
-```
+    python -m venv venv
+    source venv/bin/activate
+    pip install qbindiff
+
+Backends
+--------
+
+In order to diff binaries, QBinDiff relies on different backends. If you want to use a specific backend, you have to install it in the same virtual env than QBinDiff. 
+
+Available backends are `Quokka <https://github.com/quarkslab/quokka>`_, provided by Quarkslab and `BinExport <https://github.com/google/binexport>`_ , developped by Google. To ease BinExport usage, especially with QBinDiff, Quarkslab has also developped a binexport python package [TODO:add link]. 
+
+To install Quokka : 
+
+
+..  code-block:: bash
+
+    pip install quokka-project
+
+To install BinExport 
+
+..  code-block:: bash
+
+    pip install python-binexport
+
+For more informations about these packages, see the official documentations :
+
+* `Quokka <https://quarkslab.github.io/quokka/>`_
+* BinExport : [TODO:add]
+
+
+
+
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
