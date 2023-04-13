@@ -1,76 +1,66 @@
-# QBinDiff's documentation!
+.. QBinDiff documentation master file, created by
+   sphinx-quickstart on Mon Apr  3 10:51:09 2023.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
-This is the documentation of QBinDiff (temporary name).
-This will be updated in the future.
+Welcome to QBinDiff's documentation!
+====================================
 
-## Project Overview
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
 
-QBinDiff is an experimental diffing tool based on the **Network Alignement Quadratic Problem**.
-
-For an general introduction you can see the slides of the 23/09/2022 fridaycon [here](https://diffing.doc.qb/communications/2022-09-23_qbindiff_fridaycon/pres.pdf)
-
-For an in-depth description of the algorithm read **Elie Mengin**'s PhD thesis
-
-```{figure} _static/thesis.png
----
-width: 200
-align: center
-alt: Technical Documentation
-target: _static/thesis.pdf
-class: with-border
----
-[download thesis](_static/thesis.pdf)
-```
+QBinDiff is a diffing tool provided by Quarkslab, mainly built with Python. It aims to be user-friendly and modular. 
 
 
-```{toctree}
----
-maxdepth: 2
-caption: Installation
----
-installation
-```
+Install QBinDiff
+----------------
 
-```{toctree}
----
-maxdepth: 2
-caption: Usage
----
-usage
-```
+.. toctree::
+   :maxdepth: 1
+   :caption: Install QBinDiff:
+   
+   install.rst
 
-```{toctree}
----
-maxdepth: 2
-caption: QBinDiff diffing algorithm
----
-how_it_works
-normalization
-features
-distances
-passes
-belief_propagation
-export
-```
+Getting Started
+---------------
+.. toctree::
+   :maxdepth: 2
+   :caption: Getting Started:
+   
+   diffing.rst
+   basicex.rst
 
-```{toctree}
----
-maxdepth: 2
-caption: Examples/Tutorial
----
-tutorial
-```
+QBinDiff algorithm
+------------------
 
-```{toctree}
----
-maxdepth: 2
-caption: Python API
----
-api/qbindiff
-```
+.. toctree::
+   :maxdepth: 6
+   :caption: QBinDIff algorithm:
+   
+   how
+   features
+   params
+   passes
+   belief
+   export
+   
 
-# Indices and tables
+Tutorials
+---------
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials:
+   
+   tutorial
 
-* {ref}`genindex`
-* {ref}`modindex`
-* {ref}`search`
+Python API
+----------
+
+TODO (autodoc ?)
+
+Indices and tables
+==================
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
