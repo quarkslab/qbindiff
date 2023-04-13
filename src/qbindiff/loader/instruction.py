@@ -97,6 +97,10 @@ class Instruction:
     def data_references(self) -> List[Data]:
         """
         Returns the list of data that are referenced by the instruction
+
+        .. warning::
+           The BinExport backend tends to return empty references and so are data references
+
         """
 
         if self.references == {}:
