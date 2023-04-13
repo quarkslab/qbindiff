@@ -3,7 +3,7 @@ Features
 
 Consider two binaries, one *primary* and one *secondary*. *Primary* has :math:`n_{1}` functions, *secondary* has :math:`n_{2}` functions. QBinDiff uses a similarity matrix of shape :math:`(n_{1}, n_{2})` that encodes the similarity between each function of the *primary* and each function of the *secondary*. 
 
-The similarity is computed using different features per function. *Features* are heuristics that operate at specific level inside the function (operand, instruction, basic block, function) to extract a **feature vector**. You can also think of feature vectors as a way of compressing the information that was extracted. This information should help to characterize the function.
+The similarity is computed using different features per function. *Features* are heuristics that operate at specific level inside the function (operand, instruction, basic block, function) to extract a *feature vector*. You can also think of feature vectors as a way of compressing the information that was extracted. This information should help to characterize the function.
 
 An example of a feature heuristic can be counting how many basic blocks are there in the function Control Flow Graph (CFG), we can arguably say that similar functions should have more or less the same number of blocks and by using that heuristic (or feature) we can give a score on how similar two functions are.
 
@@ -19,11 +19,11 @@ All the QBinDiff features are listed here, from the larger granularity to the sm
 Outside function-level features
 -------------------------------
 
-* **ChildNb** : Number of function child of the current function inside the Function Call Graph. 
-* **ParentNb** : Number of function parents of the current function inside the Function Call Graph.
-* **RelativeNb** : Sum of the features ChildNb and ParentNb
-* **LibName** : TODO => test
-* **ImpName** :  TODO => test
+* **ChildNb** [TODO:add link] : Number of function child of the current function inside the Function Call Graph. 
+* **ParentNb** [TODO:add link]  : Number of function parents of the current function inside the Function Call Graph.
+* **RelativeNb** [TODO:add link] : Sum of the features ChildNb and ParentNb
+* **LibName** [TODO:add link] : Dictionary with the addresses of children function as key and the number of time these children are called if they are library functions
+* **ImpName** [TODO:add link] :  Dictionary with the addresses of children function as key and the number of time these children are called if they are imported functions
 
 
 Inside function-level features
