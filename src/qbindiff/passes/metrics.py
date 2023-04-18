@@ -34,7 +34,6 @@ import numpy as np
 import sklearn.metrics
 from scipy.spatial import distance
 from scipy.sparse import issparse, csr_matrix
-
 from qbindiff.passes.fast_metrics import sparse_canberra, sparse_strong_jaccard
 
 
@@ -50,8 +49,7 @@ def _validate_weights(w, dtype=np.double):
     if np.any(w < 0):
         raise ValueError("Input weights should be all non-negative")
     return w
-
-
+    
 def canberra_distances(X, Y, w=None):
     """
     Compute the canberra distances between the vectors in X and Y using the optional
@@ -212,15 +210,26 @@ def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
         A distance matrix D such that D_{i, j} is the distance between the ith array
         from X and the jth array from Y.
     """
-
-    if callable(metric):
+    
+    if metric in CUSTOM_DISTANCES: # If we use the canberra distance, choose the custom version, that supports sparse matrix and weights 
+                                   # (not the case for scikit-learn (only sparse, no weights) and scipy (weights but no sparse matrix)
+                                   
+        # All the custom distances are guaranteed to make use of parallelism
+        dist = CUSTOM_DISTANCES[metric](X, Y, **kwargs)
+        return dist
+        
+    if 'w' in kwargs: # If we include a weight vector w, we have to use the scipy implementation (scikit-learn does not support weights)
+                        # but scipy does not support sparse matrix. However, at this step, X and Y should be matrices of shape (n, 1) and (m, 1)
+                        # so it should be OK to use .todense() (no RAM explosion)
+                        # Be careful, some distance may return nan values (ex:correlation)
+        dist = distance.cdist(X.todense(), Y.todense(), metric, **kwargs)
+        return dist
+        
+    elif callable(metric): # other cases (not well understood)
         return sklearn.metrics.pairwise._parallel_pairwise(
             X, Y, metric, n_jobs, **kwargs
         )
-    elif metric in CUSTOM_DISTANCES:
-        # All the custom distances are guaranteed to make use of parallelism
-        return CUSTOM_DISTANCES[metric](X, Y, **kwargs)
-    else:
+    else:  # other cases (not well understood)
         return sklearn.metrics.pairwise.pairwise_distances(
             X, Y, metric, n_jobs=n_jobs, **kwargs
         )
