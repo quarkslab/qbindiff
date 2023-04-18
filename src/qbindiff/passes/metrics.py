@@ -216,20 +216,24 @@ def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
                                    
         # All the custom distances are guaranteed to make use of parallelism
         dist = CUSTOM_DISTANCES[metric](X, Y, **kwargs)
-        return dist
         
     if 'w' in kwargs: # If we include a weight vector w, we have to use the scipy implementation (scikit-learn does not support weights)
                         # but scipy does not support sparse matrix. However, at this step, X and Y should be matrices of shape (n, 1) and (m, 1)
                         # so it should be OK to use .todense() (no RAM explosion)
                         # Be careful, some distance may return nan values (ex:correlation)
         dist = distance.cdist(X.todense(), Y.todense(), metric, **kwargs)
-        return dist
         
     elif callable(metric): # other cases (not well understood)
-        return sklearn.metrics.pairwise._parallel_pairwise(
+        dist = sklearn.metrics.pairwise._parallel_pairwise(
             X, Y, metric, n_jobs, **kwargs
         )
     else:  # other cases (not well understood)
-        return sklearn.metrics.pairwise.pairwise_distances(
+        dist = sklearn.metrics.pairwise.pairwise_distances(
             X, Y, metric, n_jobs=n_jobs, **kwargs
         )
+        
+    if np.isnan(dist).any():
+        raise ValueError("Similarity matrix contains nan values. Consider changing the distance for computing the similarity (check euclidean or canberra).")
+    else :
+        return dist
+        
