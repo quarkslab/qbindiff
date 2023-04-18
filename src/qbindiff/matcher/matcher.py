@@ -91,7 +91,10 @@ class Matcher:
             return
         elif ratio == self.sim_matrix.size:
             threshold = self.sim_matrix.max(1, keepdims=True)
-            self.sparse_sim_matrix = self.sim_matrix >= threshold
+            self.sparse_sim_matrix = self.sim_matrix >= threshold # Simply give a matrix filled with True and False, this is not a sparse similarity matrix
+            self.sparse_sim_matrix = self.sparse_sim_matrix.astype(np.float32) # Convert True and False to float32 (for similarity, 0 or 1)
+            self.sparse_sim_matrix = csr_matrix(self.sparse_sim_matrix) # Convert the matrix to a sparse one
+
             return
 
         if sparse_row:
