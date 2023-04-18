@@ -217,7 +217,7 @@ def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
         # All the custom distances are guaranteed to make use of parallelism
         dist = CUSTOM_DISTANCES[metric](X, Y, **kwargs)
         
-    if 'w' in kwargs: # If we include a weight vector w, we have to use the scipy implementation (scikit-learn does not support weights)
+    elif 'w' in kwargs: # If we include a weight vector w, we have to use the scipy implementation (scikit-learn does not support weights)
                         # but scipy does not support sparse matrix. However, at this step, X and Y should be matrices of shape (n, 1) and (m, 1)
                         # so it should be OK to use .todense() (no RAM explosion)
                         # Be careful, some distance may return nan values (ex:correlation)
