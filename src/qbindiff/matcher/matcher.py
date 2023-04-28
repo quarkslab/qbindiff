@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from lapjv import lapjv
 from scipy.sparse import csr_matrix, coo_matrix
-from collection.abc import Generator
+from collections.abc import Generator
 from typing import Tuple, List
 
 # Local imports
