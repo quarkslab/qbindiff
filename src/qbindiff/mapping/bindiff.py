@@ -4,6 +4,7 @@ import datetime
 from collections.abc import Generator
 from collections import defaultdict
 from functools import cached_property
+from typing import List, Tuple
 
 from qbindiff.loader import Program, Function, BasicBlock
 from qbindiff.mapping.mapping import Mapping
@@ -11,18 +12,23 @@ from qbindiff.types import Addr, Match
 
 
 class BinDiffFormat:
-    """Helper class to export the diffing result to BinDiff file format"""
+    """
+    Helper class to export the diffing result to BinDiff file format
+    """
 
     def __init__(
         self, filename: str, primary: Program, secondary: Program, mapping: Mapping
     ):
         # Create a new file
         open(filename, "w").close()
-
+        #: Connection to the database
         self.db = sqlite3.connect(filename)
         self.db.row_factory = sqlite3.Row
+        #: Primary program
         self.primary = primary
+        #: Secondary program
         self.secondary = secondary
+        #: Diff mapping
         self.mapping = mapping
 
         # Properties loaded at run time
@@ -37,15 +43,19 @@ class BinDiffFormat:
 
         self.init_database()
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.db.close()
 
     @property
-    def version(self):
+    def version(self) -> str:
         return "QBinDiff 0.2"
 
-    def init_database(self):
-        """Initialize the database by creating all the tables"""
+    def init_database(self) -> None:
+        """
+        Initialize the database by creating all the tables
+        
+        :return: None
+        """
 
         conn = self.db.cursor()
         conn.execute(
@@ -152,8 +162,11 @@ class BinDiffFormat:
         self.db.commit()
 
     @cached_property
-    def primes(self) -> list[int]:
-        """Generates the primes up to 1'000'000 using the segmented sieve algorithm"""
+    def primes(self) -> List[int]:
+        """
+        The primes up to 1'000'000 using the segmented sieve algorithm
+        """
+
         n = 1000000
         S = 30000
         nsqrt = round(n**0.5)
@@ -189,12 +202,16 @@ class BinDiffFormat:
 
         return primes
 
-    def _prime_product(self, basic_block: BasicBlock) -> tuple[int, int]:
+    def _prime_product(self, basic_block: BasicBlock) -> Tuple[int, int]:
         """
         Calculate the prime product value of the basic block.
         The function will return a tuple where the first element is the prime product
         and the second is the number of instructions
+
+        :param basic_block: Basic block to consider
+        :return: prime product, number of instructions
         """
+
         tot = 1
         count = 0
         for instruction in basic_block:
@@ -204,8 +221,14 @@ class BinDiffFormat:
 
     def _basic_block_match(
         self, primary_func: Function, secondary_func: Function
-    ) -> Generator[tuple[Addr, Addr]]:
-        """Matches the basic blocks between the two functions"""
+    ) -> Generator[Tuple[Addr, Addr]]:
+        """
+        Matches the basic blocks between the two functions
+
+        :param primary_func: function in the primary
+        :param secondary_func: function in the secondary
+        :return: matches between basic blocks of the two functions
+        """
 
         primary_hash = defaultdict(list)  # {prime product -> addrs}
         secondary_hash = defaultdict(list)  # {prime product -> addrs}
@@ -226,8 +249,14 @@ class BinDiffFormat:
 
     def _instruction_match(
         self, primary_bb: BasicBlock, secondary_bb: BasicBlock
-    ) -> Generator[tuple[Addr, Addr]]:
-        """Matches the instructions between the two basic blocks"""
+    ) -> Generator[Tuple[Addr, Addr]]:
+        """
+        Matches the instructions between the two basic blocks
+
+        :param primary_bb: basic block in the primary
+        :param secondary_bb: basic block in the secondary
+        :return: matches between instructions of the two basic blocks
+        """
 
         primary_instr = defaultdict(list)
         secondary_instr = defaultdict(list)
@@ -240,7 +269,12 @@ class BinDiffFormat:
             yield from zip(primary_instr[k], secondary_instr[k])
 
     def save_file(self, program: Program) -> None:
-        """Save the file `program` in database"""
+        """
+        Save the file `program` in database
+
+        :param program: program to save
+        :return: None
+        """
 
         conn = self.db.cursor()
 
@@ -260,7 +294,12 @@ class BinDiffFormat:
         )
 
     def save_match(self, match: Match) -> None:
-        """Save in the BinDiff file the specified match (aka a pair of function)"""
+        """
+        Save in the BinDiff file the specified match (aka a pair of function)
+
+        :param match: match to save
+        :return: None
+        """
 
         conn = self.db.cursor()
 
@@ -341,9 +380,13 @@ class BinDiffFormat:
             },
         )
 
-    def save(self):
-        """Save the entire diffing result in the file"""
+    def save(self) -> None:
+        """
+        Save the entire diffing result in the file
 
+        :return: None
+        """
+        
         self.save_file(self.primary)
         self.save_file(self.secondary)
 

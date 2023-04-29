@@ -65,7 +65,9 @@ class Differ:
         self.maxiter = maxiter
         self.sparse_row = sparse_row
 
+        #: Primary graph
         self.primary = primary
+        #: Secondary graph
         self.secondary = secondary
         self._pre_passes: List = []
         self._post_passes: List = []
@@ -198,11 +200,11 @@ class Differ:
         Register a new pre-pass that will operate on the similarity matrix.
         The passes will be called in the same order as they are registered and each one
         of them will operate on the output of the previous one.
-        WARNING: a prepass should assign values to the full row or the full column, it
+        .. warning:: A prepass should assign values to the full row or the full column, it
         should never assign single entries in the matrix
 
         :param pass_func: Pass method to apply on the similarity matrix. Example : a Pass that first matches import
-        functions.
+            functions.
         :return: None
         """
 
@@ -383,8 +385,6 @@ class DiGraphDiffer(Differ):
         Initialize the similarity matrix
 
         :param sim_matrix: The similarity matrix of type py:class:`qbindiff.types.SimMatrix`
-        :param args:
-        :param kwargs:
         :return: None
         """
 
@@ -431,13 +431,12 @@ class QBinDiff(Differ):
     ) -> None:
         """
         Register a feature extractor class. This will include the corresponding feature in the similarity matrix
-        computation.
+        computation
 
-        :param extractorClass : A feature extractor of type py:class:`qbindiff.features.extractor`
-        :param weight : Weight associated to the corresponding feature. Default is 1.
+        :param extractorClass: A feature extractor of type py:class:`qbindiff.features.extractor`
+        :param weight: Weight associated to the corresponding feature. Default is 1.
         :param distance: Distance used only for specific features. It does not make sense to use it with bnb feature,
         but it can be useful for the WeisfeilerLehman feature.
-
         :return: None
         """
 

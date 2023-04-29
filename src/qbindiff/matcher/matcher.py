@@ -5,6 +5,8 @@ import logging
 import numpy as np
 from lapjv import lapjv
 from scipy.sparse import csr_matrix, coo_matrix
+from collections.abc import Generator
+from typing import Tuple, List
 
 # Local imports
 from qbindiff.matcher.squares import find_squares
@@ -20,18 +22,28 @@ from qbindiff.types import (
 )
 
 
-def iter_csr_matrix(matrix: SparseMatrix):
+def iter_csr_matrix(matrix: SparseMatrix) -> Generator[Tuple[np.ndarray, np.ndarray]]:
     """
     Iter over non-null items in a CSR (Compressed Sparse Row) matrix.
     It returns a generator that, at each iteration, returns the tuple (row_index, column_index, value)
+
+    :param matrix: CSR matrix
+    :return: generator (row_idx, column_idx, val)
     """
+
     coo_matrix = matrix.tocoo()
     for x, y, v in zip(coo_matrix.row, coo_matrix.col, coo_matrix.data):
         yield (x, y, v)
 
 
 def solve_linear_assignment(cost_matrix: Matrix) -> RawMapping:
-    """Solve the linear assignment problem given the cost_matrix"""
+    """
+    Solve the linear assignment problem given the cost_matrix
+
+    :param: cost matrix
+    :return: raw mapping
+    """
+
     n, m = cost_matrix.shape
     transposed = n > m
     if transposed:
@@ -53,15 +65,25 @@ class Matcher:
         secondary_adj_matrix: AdjacencyMatrix,
     ):
         self._mapping = None  # nodes mapping
+        #: Similarity matrix used by the Matcher
         self.sim_matrix = similarity_matrix
+        #: Adjacency matrix of the primary graph
         self.primary_adj_matrix = primary_adj_matrix
+        #: Adjacency matrix of the secondary graph
         self.secondary_adj_matrix = secondary_adj_matrix
 
         self.sparse_sim_matrix = None
         self.squares_matrix = None
 
-    def _compute_sparse_sim_matrix(self, sparsity_ratio: Ratio, sparse_row: bool):
-        """Generate the sparse similarity matrix given the sparsity_ratio"""
+    def _compute_sparse_sim_matrix(self, sparsity_ratio: Ratio, sparse_row: bool) -> None:
+        """
+        Generate the sparse similarity matrix given the sparsity_ratio
+
+        :param sparsity_ratio: ratio of least probable matches to ignore
+        :param sparse_row: whether to use sparse rows
+        :return: None
+        """
+        
         ratio = round(sparsity_ratio * self.sim_matrix.size)
 
         if ratio == 0:
@@ -69,7 +91,10 @@ class Matcher:
             return
         elif ratio == self.sim_matrix.size:
             threshold = self.sim_matrix.max(1, keepdims=True)
-            self.sparse_sim_matrix = self.sim_matrix >= threshold
+            self.sparse_sim_matrix = self.sim_matrix >= threshold # Simply give a matrix filled with True and False, this is not a sparse similarity matrix
+            self.sparse_sim_matrix = self.sparse_sim_matrix.astype(np.float32) # Convert True and False to float32 (for similarity, 0 or 1)
+            self.sparse_sim_matrix = csr_matrix(self.sparse_sim_matrix) # Convert the matrix to a sparse one
+
             return
 
         if sparse_row:
@@ -97,7 +122,7 @@ class Matcher:
             self.sparse_sim_matrix = csr_matrix(mask, dtype=self.sim_matrix.dtype)
             self.sparse_sim_matrix.data[:] = csr_data
 
-    def _compute_squares_matrix(self):
+    def _compute_squares_matrix(self) -> None:
         """
         Generate the sparse squares matrix and store it in self._squares_matrix.
         Given two graphs G1 and G2, a square is a tuple of nodes (nodeA, nodeB, nodeC, nodeD)
@@ -123,6 +148,8 @@ class Matcher:
         between two similarity edges `e1` and `e2` <=> (iff) self._squares_matrix[e1][e2] == 1
 
         The time complexity is O(|sparse_sim_matrix| * average_graph_degree**2)
+
+        :return: None
         """
 
         squares = find_squares(
@@ -165,12 +192,18 @@ class Matcher:
 
     @property
     def mapping(self) -> RawMapping:
-        """Returns the nodes mapping between the two graphs"""
+        """
+        Nodes mapping between the two graphs
+        """
+
         return self._mapping
 
     @property
-    def confidence_score(self) -> list[float]:
-        """Returns the confidence score for each match in the nodes mapping"""
+    def confidence_score(self) -> List[float]:
+        """
+        Confidence score for each match in the nodes mapping
+        """
+
         return [self._confidence[idx1, idx2] for idx1, idx2 in zip(*self.mapping)]
 
     def process(
@@ -189,6 +222,7 @@ class Matcher:
                            similarity matrix (sparse_row == False) or by considering
                            each vector separately (sparse_row == True)
         :param compute_squares: Whether to compute the squares matrix
+        :return: None
         """
 
         logging.debug(
@@ -209,7 +243,16 @@ class Matcher:
 
     def compute(
         self, tradeoff: Ratio = 0.75, epsilon: Positive = 0.5, maxiter: int = 1000
-    ):
+    ) -> None:
+        """
+        Launch the computation for a given number of iterations, using specific QBinDiff parameters
+
+        :param tradeoff: tradeoff between the node similarity and the structure
+        :param epsilon: perturbation to add to the similarity matrix
+        :param maxiter: maximum number of iterations for the belief propagation
+        :return: None
+        """
+
         if tradeoff == 1:
             logging.info("[+] switching to Maximum Weight Matching (tradeoff is 1)")
             belief = BeliefMWM(self.sparse_sim_matrix, epsilon)
@@ -229,7 +272,12 @@ class Matcher:
         """
         Refine the mappings between the nodes of the two graphs
         by matching the unassigned nodes
+
+        :param mapping: initial mapping
+        :param score_matrix: similarity matrix
+        :return: updated raw mapping
         """
+        
         primary, secondary = mapping
         assert len(primary) == len(secondary)
 
