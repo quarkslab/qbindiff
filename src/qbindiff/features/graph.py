@@ -8,7 +8,7 @@ from typing import List
 import hashlib
 
 
-def primesbelow(N: int) -> List[int]:
+def primesbelow(n: int) -> List[int]:
     """
     Utility function that returns a list of all the primes below n.
     This comes from `Diaphora <https://github.com/joxeankoret/diaphora/blob/master/jkutils/factor.py>`_
