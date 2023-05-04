@@ -84,5 +84,9 @@ The normalization pass can be user supplied by subclassing `QBinDiff` and overri
 
 Sparsity
 --------
-[TODO]
+
+During its computation, QBinDiff constructs the product graph between the primary and the secondary. If your binaries contain a large number of functions, the resulting product graph may be huge and will be difficult to store in RAM or to process. However, keeping the whole product graph is not mandatory to product a good matching. Indeed, we can decimate the product graph by keeping only the product graph edges that are the most probable to product a match. The sparsity ratio tells how much of the edges we keep. As an example, a sparsity ratio of 0 means we keep all the edges of the product graph. A sparsity ratio of 1 means we only keep edges that maximizes the probability of match (this may be only one edge, or several).
+
+.. warning::
+   If your binaries are really large and that your RAM is limited, running QBinDiff with a low sparsity ratio may lead to a out-of-memory error. In that case, consider to increase the sparsity ratio to 0.9 or 1.
 
