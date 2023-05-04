@@ -203,11 +203,13 @@ class MaxParentNb(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        value = max(
-            len(list(function.flowgraph.predecessors(bblock)))
-            for bblock in function.flowgraph
-        )
-        # value = max(len(bb.parents) for bb in function)
+        try : 
+            value = max(
+                len(list(function.flowgraph.predecessors(bblock)))
+                for bblock in function.flowgraph
+            )
+        except :
+            value = 0
         collector.add_feature(self.key, value)
 
 
@@ -221,10 +223,13 @@ class MaxChildNb(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        value = max(
-            len(list(function.flowgraph.successors(bblock))) for bblock in function.flowgraph
-        )
-        # value = max(len(bb.children) for bb in function)
+        
+        try :
+            value = max(
+                len(list(function.flowgraph.successors(bblock))) for bblock in function.flowgraph
+            )
+        except :
+            value = 0
         collector.add_feature(self.key, value)
 
 
@@ -238,7 +243,10 @@ class MaxInsNB(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        value = max(len(bblock.instructions) for bblock in function)
+        try:
+            value = max(len(bblock.instructions) for bblock in function)
+        except :
+            value = 0
         collector.add_feature(self.key, value)
 
 
@@ -252,7 +260,10 @@ class MeanInsNB(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        value = sum(len(bblock.instructions) for bblock in function) / len(function)
+        try :
+            value = sum(len(bblock.instructions) for bblock in function) / len(function)
+        except :
+            value = 0
         collector.add_feature(self.key, value)
 
 
