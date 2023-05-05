@@ -7,7 +7,7 @@ from struct import pack
 from collections.abc import Iterator
 from functools import cached_property
 from capstone import CS_OP_IMM, CS_GRP_JUMP
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, List, Dict, Set
 
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
@@ -158,7 +158,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         return self.cs_instr.mnemonic
 
     @property
-    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
+    def references(self) -> Dict[ReferenceType, List[ReferenceTarget]]:
         """
         Returns all the references towards the instruction
         BinExport only exports data references' address so no data type nor value.
@@ -175,7 +175,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         )
 
     @property
-    def groups(self) -> list[int]:
+    def groups(self) -> List[int]:
         return []  # Not supported
 
     @property
@@ -204,7 +204,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
 
     def _disassemble(
         self, bb_asm: bytes, correct_mnemonic: str, correct_size: int
-    ) -> list[capstone.CsInsn]:
+    ) -> List[capstone.CsInsn]:
         """
         Disassemble the basic block using capstone trying to guess the instruction set
         when unable to determine it from binexport.
@@ -236,7 +236,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                     capstone_mode |= capstone.CS_MODE_ARM
                 if arm_mode & 0b10:
                     capstone_mode |= capstone.CS_MODE_THUMB
-                if be_program.cortexm:
+                if self.program._enable_cortexm::
                     capstone_mode |= capstone.CS_MODE_MCLASS
                 if arm_mode > 0b11:
                     logging.error(
@@ -311,12 +311,12 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
         return self.be_func.graph
 
     @property
-    def parents(self) -> set[Addr]:
+    def parents(self) -> Set[Addr]:
         """Set of function parents in the call graph"""
         return {func.addr for func in self.be_func.parents}
 
     @property
-    def children(self) -> set[Addr]:
+    def children(self) -> Set[Addr]:
         """Set of function children in the call graph"""
         return {func.addr for func in self.be_func.children}
 
@@ -386,7 +386,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         return self.be_prog.name
 
     @property
-    def structures(self) -> list[Structure]:
+    def structures(self) -> List[Structure]:
         """
         Returns the list of structures defined in program.
         WARNING: Not supported by BinExport
@@ -399,7 +399,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         return self.be_prog.callgraph
 
     @property
-    def fun_names(self) -> dict[str, int]:
+    def fun_names(self) -> Dict[str, int]:
         """
         Returns a dictionary with function name as key and the function address as value
         """
