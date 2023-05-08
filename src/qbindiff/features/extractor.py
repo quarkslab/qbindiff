@@ -1,29 +1,46 @@
 from dataclasses import dataclass
 from scipy.sparse import lil_array
 from collections import defaultdict
-from collections.abc import Iterable
 from typing import Any, Callable, TypeVar, Dict, List, Set
 
 from qbindiff.features.manager import FeatureKeyManager
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
-from qbindiff.types import Positive, SparseVector
+from qbindiff.types import Positive, SparseVector, FeatureValue
 
 
 class FeatureCollector:
     """
-    Dict wrapper, representing a collection of features where the key is the feature
-    name and the value is the feature score which can be either a number or a dict.
+    The FeatureCollector is in charge of aggregate all the features
+    values so that it can compute the vector embedding.
+    FeatureExtractor objects receive the collector as argument of the visit
+    functions, and have to register theirs own result to it. The feature
+    score can either be a number or a dict.
     """
 
     def __init__(self):
-        self._features: Dict[str, float | Dict[str, float]] = {}
+        self._features: Dict[str, FeatureValue] = {}
 
     def add_feature(self, key: str, value: float) -> None:
+        """
+        Add a feature value in the collector. Features are responsible to call
+        this function to register a value with its own name.
+        FIXME: Why calling the function add_feature, and and not add_feature_result ?
+        FIXME: Why not combining add_feature and add_dict_feature by enabling the two types ?
+
+        :param key: name of the feature adding the value
+        :param value: float value to be added in the collector
+        """
         FeatureKeyManager.add(key)
         self._features.setdefault(key, 0)
         self._features[key] += value
 
     def add_dict_feature(self, key: str, value: Dict[str, float]) -> None:
+        """
+        Add a feature value in the collector if the value is a dictionary of string to float.
+
+        :param key: name of the feature adding the value
+        :param value: Feature value to add
+        """
         self._features.setdefault(key, defaultdict(float))
 
         if value == {}:
@@ -37,8 +54,11 @@ class FeatureCollector:
     def full_keys(self) -> Dict[str, Set[str]]:
         """
         Returns a dict in which keys are the keys of the features and values are the subkeys.
+        If a Feature directly maps to a float value, the set will be empty.
 
-        Example : {feature_key1: [], feature_key2: [], ..., feature_keyN: [subkey1, ...], ...}
+        e.g: {feature_key1: [], feature_key2: [], ..., feature_keyN: [subkey1, ...], ...}
+
+        :return: dictionary mapping feature keys to their subkeys if any
         """
         keys = {}
         for main_key, feature in self._features.items():
@@ -54,10 +74,11 @@ class FeatureCollector:
         :param dtype: dtype of the sparse vector
         :param main_key_list: A list of main keys that act like a filter: only those
                               keys are considered when building the vector.
+        :return:
         """
 
         manager = FeatureKeyManager
-        size = manager.get_cum_size(main_key_list)
+        size = manager.get_cumulative_size(main_key_list)
         vector = lil_array((1, size), dtype=dtype)
         offset = 0
         for main_key in sorted(main_key_list):  # Sort them to keep consistency
@@ -74,62 +95,106 @@ class FeatureCollector:
         return vector.tocsr()
 
 
-T = TypeVar("T")
-
-
-@dataclass
-class FeatureOption:
-    name: str
-    description: str
-    parser: Callable[[str], T]
-
-
 class FeatureExtractor:
     """
-    Abstract class that represent a feature extractor which sole contraints are to
+    Base class that represent a feature extractor which sole contraints are to
     define a unique key and a function call that is to be called by the visitor.
     """
 
-    key = ""
-    options: Dict[
-        str, FeatureOption
-    ] = {}  # Dict {name : option}, each option is a instance of FeatureOption
+    key: str = ""  #: feature name (short)
 
     def __init__(self, weight: Positive = 1.0):
+        """
+        :param weight: weight to apply to this feature from 0 to 1.0
+        """
         self._weight = weight
 
     @property
     def weight(self) -> Positive:
+        """
+        Weight applied to the feature
+        """
         return self._weight
 
     @weight.setter
     def weight(self, value: Positive) -> None:
+        """
+        Set the weight to the feature.
+
+        :param value: weight value to set
+        """
         self._weight = value
 
 
 class FunctionFeatureExtractor(FeatureExtractor):
-    def visit_function(
-        self, program: Program, function: Function, collector: FeatureCollector
-    ) -> None:
+    """
+    Function extractor feature. It inherits FeatureExtractor
+    and defines the method :py:meth:`visit_function` that has
+    to be implemented by all its inheriting classes.
+    """
+    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+        """
+        Function being called by the visitor when encountering a function in the program.
+        Inheriting classes of the implement the feature extraction in this method.
+
+        :param program: Program being visited
+        :param function: Function object being visited
+        :param collector: collector in which to save the feature value.
+        """
         raise NotImplementedError()
 
 
 class BasicBlockFeatureExtractor(FeatureExtractor):
-    def visit_basic_block(
-        self, program: Program, basicblock: BasicBlock, collector: FeatureCollector
-    ) -> None:
+    """
+    Basic Block extractor feature. It inherits from FeatureExtractor
+    and defines the method :py:meth:`visit_basic_block` that has
+    to be implemented by all its inheriting classes.
+    """
+
+    def visit_basic_block(self, program: Program, basicblock: BasicBlock, collector: FeatureCollector) -> None:
+        """
+        Function being called by the visitor when encountering a basic block in the program.
+        Classes inheriting have to implement this method.
+
+        :param program: program being visited
+        :param basicblock: basic block being visited
+        :param collector: collector in which to save the feature value
+        """
         raise NotImplementedError()
 
 
 class InstructionFeatureExtractor(FeatureExtractor):
-    def visit_instruction(
-        self, program: Program, instruction: Instruction, collector: FeatureCollector
-    ) -> None:
+    """
+    Instruction extractor feature. It inherits from FeatureExtractor
+    and defines the method :py:meth:`visit_instruction` that has to
+    be implemented by all its inheriting classes.
+    """
+    def visit_instruction(self, program: Program, instruction: Instruction, collector: FeatureCollector) -> None:
+        """
+        Function being called by the visitor when encountering an instruction in the program.
+        Classes inheriting have to implement this method.
+
+        :param program: program being visited
+        :param instruction: instruction being visited
+        :param collector: collector in which to save the feature value
+        """
         raise NotImplementedError()
 
 
 class OperandFeatureExtractor(FeatureExtractor):
-    def visit_operand(
-        self, program: Program, operand: Operand, collector: FeatureCollector
-    ) -> None:
+    """
+    Operand extractor feature. It inherits from FeatureExtractor
+    and defines the method :py:meth:`visit_operand` that has to be
+    implemented by all its inheriting classes.
+    """
+
+    def visit_operand(self, program: Program, operand: Operand, collector: FeatureCollector) -> None:
+        """
+        Function being called by the visitor when encountering an operand in the program.
+        Classes inheriting have to implement this method.
+
+        :param program: program being visited
+        :param operand: operand being visited
+        :param collector: collector in which to save the feature value
+        """
         raise NotImplementedError()

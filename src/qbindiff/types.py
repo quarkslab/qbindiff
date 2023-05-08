@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Iterable, TypeAlias, List, Tuple
+from typing import Any, Iterable, TypeAlias, List, Tuple, Dict
 
 import numpy
 import enum
@@ -8,6 +8,11 @@ from scipy.sparse import csr_matrix, csr_array
 from collections import namedtuple
 
 from qbindiff.abstract import GenericGraph
+
+"""
+Type of a feature value.
+"""
+FeatureValue: TypeAlias = float | Dict[str, float]
 
 """
 Float greater than zero

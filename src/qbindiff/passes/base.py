@@ -124,7 +124,7 @@ class FeaturePass(GenericPass):
         """
 
         # Find the dimension of the feature matrix
-        dim = FeatureKeyManager.get_cum_size(features_main_keys)
+        dim = FeatureKeyManager.get_cumulative_size(features_main_keys)
 
         # Build the sparse feature matrices
         logging.debug(f"Building primary feature matrix of size {(shape[0], dim)}")
