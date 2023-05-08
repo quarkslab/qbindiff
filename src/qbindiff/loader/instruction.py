@@ -106,7 +106,10 @@ class Instruction:
         if self.references == {}:
             return {}
         else :
-            return self.references[ReferenceType.DATA]
+            try : 
+                return self.references[ReferenceType.DATA]
+            except :
+                return []
 
     @cached_property
     def operands(self) -> List[Operand]:
