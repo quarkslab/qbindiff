@@ -176,6 +176,10 @@ class ProgramBackendIDA(object):
     def name(self):
         return ida_nalt.get_root_filename()
 
+    @property
+    def exec_file(self) -> str:
+        return ida_nalt.get_input_file_path()
+
     def _load_functions(self):
         for fun_addr in idautils.Functions():
             self._program[fun_addr] = Function(LoaderType.ida, fun_addr)

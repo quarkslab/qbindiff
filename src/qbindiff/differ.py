@@ -7,6 +7,11 @@ from networkx import DiGraph
 from collections.abc import Generator, Iterator
 from typing import Any, Callable, Optional, List, Type, Tuple, Dict
 
+# third-party imports
+from bindiff import BindiffFile
+
+# local imports
+from qbindiff import VERSION
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher
@@ -14,16 +19,8 @@ from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
 from qbindiff.passes import FeaturePass, ZeroPass
 from qbindiff.utils import is_debug
-from qbindiff.types import (
-    RawMapping,
-    Positive,
-    Ratio,
-    Graph,
-    AdjacencyMatrix,
-    SimMatrix,
-    Addr,
-    Idx,
-)
+from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, SimMatrix, Addr, Idx
+from qbindiff.mapping.bindiff import export_to_bindiff
 
 
 class Differ:
@@ -536,8 +533,4 @@ class QBinDiff(Differ):
         :param filename: Name of the output diffing file
         :return: None
         """
-
-        from qbindiff.mapping.bindiff import BinDiffFormat
-        
-        bindiff = BinDiffFormat(filename, self.primary, self.secondary, self.mapping)
-        bindiff.save()
+        export_to_bindiff(filename, self.primary, self.secondary, self.mapping)
