@@ -74,16 +74,9 @@ class Differ:
             self.primary = self.normalize(primary)
             self.secondary = self.normalize(secondary)
 
-        (
-            self.primary_adj_matrix,
-            self.primary_i2n,
-            self.primary_n2i,
-        ) = self.extract_adjacency_matrix(primary)
-        (
-            self.secondary_adj_matrix,
-            self.secondary_i2n,
-            self.secondary_n2i,
-        ) = self.extract_adjacency_matrix(secondary)
+        self.primary_adj_matrix, self.primary_i2n, self.primary_n2i = self.extract_adjacency_matrix(primary)
+
+        self.secondary_adj_matrix, self.secondary_i2n, self.secondary_n2i = self.extract_adjacency_matrix(secondary)
 
         # Dimension of the graphs
         self.primary_dim: int = len(self.primary_i2n)
@@ -98,9 +91,7 @@ class Differ:
         self.p_features = None
         self.s_features = None
         
-    def get_similarities(
-        self, primary_idx: List[Idx], secondary_idx: List[Idx]
-    ) -> List[float]:
+    def get_similarities(self, primary_idx: List[Idx], secondary_idx: List[Idx]) -> List[float]:
         """
         Returns the similarity scores between the nodes specified as parameter.
         By default, it uses the similarity matrix.
@@ -111,7 +102,6 @@ class Differ:
         :param secondary_idx: the List of integers that represent nodes inside the primary graph
         :return sim_matrix: the similarity matrix between the specified nodes
         """
-
         return self.sim_matrix[primary_idx, secondary_idx]
 
     def _convert_mapping(self, mapping: RawMapping, confidence: List[float]) -> Mapping:
@@ -126,9 +116,7 @@ class Differ:
         logging.debug("Wrapping raw diffing output in a Mapping object")
         primary_idx, secondary_idx = mapping
         get_node_primary = lambda idx: self.primary.get_node(self.primary_i2n[idx])
-        get_node_secondary = lambda idx: self.secondary.get_node(
-            self.secondary_i2n[idx]
-        )
+        get_node_secondary = lambda idx: self.secondary.get_node(self.secondary_i2n[idx])
 
         # Get the matching nodes
         primary_matched = map(get_node_primary, primary_idx)
@@ -169,9 +157,7 @@ class Differ:
             secondary_unmatched,
         )
 
-    def extract_adjacency_matrix(
-        self, graph: Graph
-    ) -> (AdjacencyMatrix, Dict[Addr, Idx], Dict[Idx, Addr]):
+    def extract_adjacency_matrix(self, graph: Graph) -> (AdjacencyMatrix, Dict[Addr, Idx], Dict[Idx, Addr]):
         """
         Returns the adjacency matrix for the graph and the mappings
 
@@ -233,8 +219,6 @@ class Differ:
     def run_passes(self) -> None:
         """
         Run all the passes that have been previously registered.
-
-        :return: None
         """
 
         for pass_func, extra_args in self._pre_passes:
@@ -256,7 +240,7 @@ class Differ:
                     self.secondary_n2i,
                     **extra_args,
                 )
-            else :
+            else:
                 pass_func(
                     self.sim_matrix,
                     self.primary,
@@ -269,8 +253,6 @@ class Differ:
     def process(self) -> None:
         """
         Initialize all the variables for the NAP algorithm.
-
-        :return: None
         """
 
         # Perform the initialization only once
@@ -327,22 +309,19 @@ class DiGraphDiffer(Differ):
 
             :param graph: Graph to initialize the differ
             """
-
             self._graph = graph
 
         def items(self) -> Iterator[Tuple[Addr, Any]]:
             """
             Return an iterator over the items. Each item is {node_label: node}
             """
-
             for node in self._graph.nodes:
-                yield (node, node)
+                yield node, node
 
         def get_node(self, node_label: Any) -> Any:
             """
             Returns the node identified by the `node_label`
             """
-
             return node_label
 
         @property
@@ -350,7 +329,6 @@ class DiGraphDiffer(Differ):
             """
             Return an iterator over the node labels
             """
-
             return self._graph.nodes
 
         @property
@@ -358,7 +336,6 @@ class DiGraphDiffer(Differ):
             """
             Return an iterator over the nodes
             """
-
             return self._graph.nodes
 
         @property
@@ -367,13 +344,10 @@ class DiGraphDiffer(Differ):
             Return an iterator over the edges.
             An edge is a pair (node_label_a, node_label_b)
             """
-
             return self._graph.edges
 
     def __init__(self, primary: DiGraph, secondary: DiGraph, **kwargs):
-        super(DiGraphDiffer, self).__init__(
-            self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs
-        )
+        super(DiGraphDiffer, self).__init__(self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs)
 
         self.register_prepass(self.gen_sim_matrix)
 
@@ -392,18 +366,15 @@ class QBinDiff(Differ):
 
     DTYPE = np.float32
 
-    def __init__(
-        self, primary: Program, secondary: Program, distance: str = "canberra", **kwargs
-    ):
-
+    def __init__(self, primary: Program, secondary: Program, distance: str = "canberra", **kwargs):
         """
-            QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
+        QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
 
-            :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
-            :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
-            :param distance: the distance function used when comparing the feature vector
-                             extracted from the graphs. Default is 'canberra'.
-            """
+        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
+        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+        :param distance: the distance function used when comparing the feature vector
+                         extracted from the graphs. Default is 'canberra'.
+        """
 
         super(QBinDiff, self).__init__(primary, secondary, **kwargs)
 
@@ -421,7 +392,7 @@ class QBinDiff(Differ):
 
     def register_feature_extractor(
         self,
-        extractorClass: type[FeatureExtractor],
+        extractor_class: type[FeatureExtractor],
         weight: Optional[Positive] = 1.0,
         distance: Optional[str] = None,
         **extra_args,
@@ -430,14 +401,14 @@ class QBinDiff(Differ):
         Register a feature extractor class. This will include the corresponding feature in the similarity matrix
         computation
 
-        :param extractorClass: A feature extractor of type py:class:`qbindiff.features.extractor`
+        :param extractor_class: A feature extractor of type py:class:`qbindiff.features.extractor`
         :param weight: Weight associated to the corresponding feature. Default is 1.
         :param distance: Distance used only for specific features. It does not make sense to use it with bnb feature,
         but it can be useful for the WeisfeilerLehman feature.
         :return: None
         """
 
-        extractor = extractorClass(weight, **extra_args)
+        extractor = extractor_class(weight, **extra_args)
         self._feature_pass.register_extractor(extractor, distance=distance)
 
     def match_import_functions(
@@ -496,9 +467,7 @@ class QBinDiff(Differ):
 
         return program
 
-    def get_similarities(
-        self, primary_idx: List[int], secondary_idx: List[int]
-    ) -> List[float]:
+    def get_similarities(self, primary_idx: List[int], secondary_idx: List[int]) -> List[float]:
         """
         Returns the similarity scores between the nodes specified as parameter.
         Uses MinHash fuzzy hash at basic block level to give a similarity score.
