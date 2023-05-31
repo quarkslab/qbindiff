@@ -33,7 +33,7 @@ class ParentNb(FunctionFeatureExtractor):
 class RelativeNb(FunctionFeatureExtractor):
     """
     Function relatives number
-    This feature counts both the number of parents and children of th ecurrent one (in call graph).
+    This feature counts both the number of parents and children of the current one (in call graph).
     """
 
     key = "rnb"

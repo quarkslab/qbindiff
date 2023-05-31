@@ -43,6 +43,8 @@ class GroupsCategory(InstructionFeatureExtractor):
     It can correspond to instructions subset (XMM, AES etc..),
     or more generic grouping like (arithmetic, comparisons etc..).
     As of now, rely on capstone groups.
+
+    .. warning:: Feature in maintenance. Do nothing at the moment.
     """
 
     key = "Gp"
