@@ -20,10 +20,10 @@ class AbstractOperandBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def immutable_value(self) -> int | None:
+    def value(self) -> int | None:
         """
-        Returns the immutable value (not addresses) used by the operand.
-        If there is no immutable value then returns None.
+        Returns the immediate value (not addresses) if the operand is constant.
+        If not, None is returned.
         """
         raise NotImplementedError()
 
@@ -36,9 +36,9 @@ class AbstractOperandBackend(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def is_immutable(self) -> bool:
+    def is_immediate(self) -> bool:
         """
-        Returns whether the operand is an immutable (not considering addresses)
+        Returns whether the operand is an immediate (addresses not an address)
         """
         raise NotImplementedError()
 

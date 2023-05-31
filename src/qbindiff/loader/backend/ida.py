@@ -38,19 +38,18 @@ class OperandBackendIDA(AbstractOperandBackend):
     def __str__(self) -> str:
         return ida_lines.tag_remove(ida_ua.print_operand(self._addr, self.op_t.n))
 
-    def is_immutable(self) -> bool:
-        """Returns whether the operand is an immutable (not considering addresses)"""
-        # Ignore jumps since the target is an immutable
+    def is_immediate(self) -> bool:
+        """Returns whether the operand is an immediate value (not considering addresses)"""
+        # Ignore jumps since the target is an immediate
         return self.type == OperandType.immediate
 
     @property
-    def immutable_value(self) -> int | None:
+    def value(self) -> int | None:
         """
-        Returns the immutable value (not addresses) used by the operand.
-        If there is no immutable value then returns None.
+        Returns the immediate value (not addresses) used by the operand.
         """
 
-        if self.is_immutable():
+        if self.is_immediate():
             return self.op_t.value
         return None
 

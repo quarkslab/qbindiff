@@ -90,8 +90,8 @@ class Constant(OperandFeatureExtractor):
     key = "cst"
 
     def visit_operand(self, _: Program, operand: Operand, collector: FeatureCollector) -> None:
-        if operand.is_immutable():
-            collector.add_dict_feature(self.key, {str(operand.immutable_value): 1})  # This should be a string
+        if operand.is_immediate():
+            collector.add_dict_feature(self.key, {str(operand.value): 1})  # This should be a string
 
 
 class FuncName(FunctionFeatureExtractor):

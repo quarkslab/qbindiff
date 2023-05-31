@@ -105,13 +105,12 @@ class OperandBackendBinExport(AbstractOperandBackend):
             raise NotImplementedError(f"Unrecognized capstone type {self.type}")
 
     @property
-    def immutable_value(self) -> int | None:
+    def value(self) -> int | None:
         """
-        Returns the immutable value (not addresses) used by the operand.
-        If there is no immutable value then returns None.
+        Return the immediate value (not addresses) used by the operand.
         """
 
-        if self.is_immutable():
+        if self.is_immediate():
             return self.cs_operand.value.imm
         return None
 
@@ -135,9 +134,9 @@ class OperandBackendBinExport(AbstractOperandBackend):
             raise NotImplementedError(f"Unrecognized capstone type {self.type}")
         return typ
 
-    def is_immutable(self) -> bool:
-        """Returns whether the operand is an immutable (not considering addresses)"""
-        # Ignore jumps since the target is an immutable
+    def is_immediate(self) -> bool:
+        """Returns whether the operand is an immediate value (not considering addresses)"""
+        # Ignore jumps since the target is an immediate
         return self.type == OperandType.immediate and not self.cs_instr.group(capstone.CS_GRP_JUMP)
 
 
