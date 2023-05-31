@@ -1,10 +1,20 @@
 from __future__ import absolute_import
 import networkx
+from typing import List, Dict, Iterator, Set
+from functools import cached_property
 
 from qbindiff.loader.function import Function
-from qbindiff.loader.types import LoaderType, OperandType, FunctionType
+from qbindiff.loader.types import LoaderType, OperandType, FunctionType, ReferenceType, ReferenceTarget
 from qbindiff.loader.instruction import Instruction
-from qbindiff.loader.operand import Operand
+from qbindiff.types import Addr
+# local imports
+from qbindiff.loader.backend import (
+    AbstractProgramBackend,
+    AbstractFunctionBackend,
+    AbstractBasicBlockBackend,
+    AbstractInstructionBackend,
+    AbstractOperandBackend,
+)
 
 import ida_nalt
 import idautils
@@ -16,157 +26,144 @@ import ida_ua
 import ida_lines
 
 
-class OperandBackendIDA(object):
+class OperandBackendIDA(AbstractOperandBackend):
     def __init__(self, op_t, ea):
         self._addr = ea
         self.op_t = op_t
 
     @property
-    def type(self):
+    def type(self) -> OperandType:
         return OperandType(self.op_t.type)
 
+    def __str__(self) -> str:
+        return ida_lines.tag_remove(ida_ua.print_operand(self._addr, self.op_t.n))
+
+    def is_immutable(self) -> bool:
+        """Returns whether the operand is an immutable (not considering addresses)"""
+        # Ignore jumps since the target is an immutable
+        return self.type == OperandType.immediate
+
     @property
-    def expressions(self):
-        blacklist = [
-            "SCOLOR_ON",
-            "SCOLOR_OFF",
-            "SCOLOR_ESC",
-            "SCOLOR_INV",
-            "SCOLOR_UTF8",
-            "SCOLOR_FG_MAX",
-        ]
-        tag_mapping = {
-            getattr(ida_lines, x): x
-            for x in dir(ida_lines)
-            if (x.startswith("SCOLOR_") and x not in blacklist)
-        }
-        opnds = {"opnd1", "opnd2", "opnd3", "opnd4", "opnd5", "opnd6"}
+    def immutable_value(self) -> int | None:
+        """
+        Returns the immutable value (not addresses) used by the operand.
+        If there is no immutable value then returns None.
+        """
 
-        i = 0
-        data = []  # {'type': XXX, 'value':XXX, childs
-        b_opened = False
-        raw = ida_ua.print_operand(self._addr, self.op_t.n)
-        while i < len(raw):
-            c = raw[i]
-            if c == ida_lines.SCOLOR_ON:
-                b_opened = True
-                next_c = raw[i + 1]
-                if next_c != ida_lines.SCOLOR_ADDR:
-                    type = tag_mapping[next_c].split("_")[1].lower()
-                    if type not in opnds:
-                        if data:
-                            yield data[-1]
-                        data.append({"type": type})
-                i += ida_lines.tag_skipcode(raw[i:])
-            elif c == ida_lines.SCOLOR_OFF:
-                b_opened = False
-                i += 2
-            else:
-                if not data:  # for operand not in tags (yes it happens)
-                    yield {"type": "unk", "value": c}
-                    data.append({"type": "unk", "value": c})
-                elif b_opened:
-                    if "value" not in data[-1]:
-                        data[-1]["value"] = ""
-                    data[-1]["value"] += c
-                else:  # if there is data and all brackets are closed (we ignore blank spaces)
-                    pass
-                i += 1
-        for i in data:
-            yield i
-
-    def __str__(self):
-        return "".join(y["value"] for y in self.expressions)
+        if self.is_immutable():
+            return self.op_t.value
+        return None
 
 
-class InstructionBackendIDA(object):
+class InstructionBackendIDA(AbstractInstructionBackend):
     def __init__(self, addr):
         self._addr = addr
         self.insn = ida_ua.insn_t()
         ida_ua.decode_insn(self.insn, self.addr)
         self.nb_ops = self._nb_operand()
 
-    def _nb_operand(self):
-        i = 0
-        while True:
-            if not ida_ua.print_operand(self.addr, i):  # for either None or ''
-                return i
-            else:
-                i += 1
+    def _nb_operand(self) -> int:
+        return len([o for o in self.insn.ops if o.type != ida_ua.o_void])
 
     @property
-    def addr(self):
+    def addr(self) -> Addr:
         return self._addr
 
     @property
-    def mnemonic(self):
+    def mnemonic(self) -> str:
         return ida_ua.ua_mnem(self.addr)
 
     @property
-    def operands(self):
-        return [
-            Operand(LoaderType.ida, self.insn[i], self.addr) for i in range(self.nb_ops)
-        ]
+    def operands(self) -> Iterator[OperandBackendIDA]:
+        return (OperandBackendIDA(self.insn.ops[i], self.addr) for i in range(self.nb_ops))
 
     @property
-    def groups(self):
-        return []  # Not implemented yet
+    def references(self) -> Dict[ReferenceType, List[ReferenceTarget]]:
+        return {}  # TODO: to implement
 
     @property
-    def comment(self):
-        return ""  # TODO: Adding it to the export
+    def groups(self) -> List[str]:
+        return []  # Not implemented for IDA backend
+
+    @property
+    def id(self) -> int:
+        """ Return the IDA itype of the instruction."""
+        return self.insn.itype
+
+    @property
+    def comment(self) -> str:
+        return ida_bytes.get_cmt(self.addr, True)  # return repeatable ones
 
     def __str__(self):
         return "%s %s" % (self.mnemonic, ", ".join((str(op) for op in self.operands)))
 
+    @property
+    def bytes(self) -> bytes:
+        """Returns the bytes representation of the instruction """
+        return ida_bytes.get_bytes(self.addr, self.insn.size)
 
-class FunctionBackendIDA(object):
-    def __init__(self, fun, addr):
-        self._function = fun
-        self.addr = addr
-        self.pfn = ida_funcs.get_func(self.addr)
-        self._graph = networkx.DiGraph()
-        self.parents = set()
-        self.children = set()
-        self._load_basic_blocks()
 
-    def _load_basic_blocks(self):
-        cfg = ida_gdl.FlowChart(self.pfn, flags=ida_gdl.FC_NOEXT)
-        for idabb in cfg:  # First pass to create basic blocks
-            bb = []
-            cur_addr = idabb.start_ea
-            while cur_addr != ida_idaapi.BADADDR:
-                bb.append(Instruction(LoaderType.ida, cur_addr))
-                cur_addr = ida_bytes.next_head(cur_addr, idabb.end_ea)
-            self._function[idabb.start_ea] = bb
-            self._graph.add_node(
-                idabb.start_ea
-            )  # also add the bb as attribute in the graph
+class BasicBlockBackendIDA(AbstractBasicBlockBackend):
+    def __init__(self, block: ida_gdl.BasicBlock):
+        super(BasicBlockBackendIDA, self).__init__()
 
-        for idabb in cfg:  # Second pass to add edges
-            for succs in idabb.succs():
-                self._graph.add_edge(idabb.start_ea, succs.start_ea)
-            for preds in idabb.preds():
-                self._graph.add_edge(idabb.start_ea, preds.start_ea)
+        self.ida_block = block
+
+    @property
+    def addr(self) -> Addr:
+        return self.ida_block.start_ea
+
+    @property
+    def instructions(self) -> Iterator[InstructionBackendIDA]:
+        """Returns an iterator over backend instruction objects"""
+        # Then iterate over the instructions
+        return (InstructionBackendIDA(x) for x in idautils.Heads(self.ida_block.start_ea, self.ida_block.end_ea))
+
+    @property
+    def bytes(self) -> bytes:
+        return ida_bytes.get_bytes(self.ida_block.start_ea, self.ida_block.end_ea)
+
+
+class FunctionBackendIDA(AbstractFunctionBackend):
+    def __init__(self, addr, callgraph: networkx.DiGraph):
+        self.pfn = ida_funcs.get_func(addr)
+        self._cg = callgraph
+        self.cfg = ida_gdl.FlowChart(self.pfn, flags=ida_gdl.FC_NOEXT)
+
+    @property
+    def addr(self) -> Addr:
+        """The address of the function"""
+        return self.pfn.start_ea
+
+    @property
+    def basic_blocks(self) -> Iterator[BasicBlockBackendIDA]:
+        return (BasicBlockBackendIDA(x) for x in self.cfg)
 
     @property
     def name(self):
         return ida_funcs.get_func_name(self.addr)
 
     @property
-    def type(self):
-        """
-        We could have used lags & ida_funcs.FUNC_LIB etc, but
-        as imports are not supported yet we just raise NotImplemented
-        """
-        raise NotImplementedError("function type not implemented for IDA backend")
+    def type(self) -> FunctionType:
+        return FunctionType(self.pfn.t)
 
-    def is_import(self):
-        raise NotImplementedError("is_import not implemented for IDA backend")
+    @cached_property
+    def graph(self) -> networkx.DiGraph:
+        g = networkx.DiGraph()
+        for bb in self.cfg:
+            for pred in bb.preds():
+                g.add_edge(pred.id, bb.id)
+            for succ in bb.succs():
+                g.add_edge(bb.id, succ.id)
+        return g
 
     @property
-    def graph(self) -> networkx.DiGraph:
-        return self._graph
+    def parents(self) -> Set[Addr]:
+        return set(self._cg.predecessors(self.addr))
+
+    @property
+    def children(self) -> Set[Addr]:
+        return set(self._cg.successors(self.addr))
 
 
 class ProgramBackendIDA(object):
@@ -174,7 +171,7 @@ class ProgramBackendIDA(object):
         self._program = program
         self._load_functions()
         self._load_call_graph()
-        self._graph = networkx.DiGraph()
+        self._callgraph = networkx.DiGraph()
 
     @property
     def name(self):
@@ -186,12 +183,12 @@ class ProgramBackendIDA(object):
 
     def _load_call_graph(self):
         for fun_addr in self._program.keys():
-            self._graph.add_node(fun_addr)
+            self._callgraph.add_node(fun_addr)
             for pred in idautils.CodeRefsTo(fun_addr, 1):
                 f_pred = ida_funcs.get_func(pred)
                 if f_pred:
                     pred = f_pred.start_ea
-                    self._graph.add_edge(pred, fun_addr)
+                    self._callgraph.add_edge(pred, fun_addr)
                     self._program[fun_addr].parents.add(pred)
                     self._program[pred].children.add(fun_addr)
 
@@ -200,4 +197,4 @@ class ProgramBackendIDA(object):
 
     @property
     def callgraph(self) -> networkx.DiGraph:
-        return self._graph
+        return self._callgraph

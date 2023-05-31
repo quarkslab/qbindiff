@@ -1,89 +1,85 @@
 from enum import IntEnum
 from typing import TypeAlias
+import enum_tools.documentation
 
 
+@enum_tools.documentation.document_enum
 class LoaderType(IntEnum):
     """
-    The different kind of loaders (diaphora not supported)
+    Enum of different loaders (supported or not)
     """
+    unknown = 0    # doc: unknown loader
+    binexport = 1  # doc: binexport loader
+    diaphora = 2   # doc: diaphora loader (not supported)
+    ida = 3        # doc: IDA loader (discontinued)
+    quokka = 4     # doc: Quokka loader
 
-    unknown = 0
-    binexport = 1
-    diaphora = 2
-    ida = 3
-    quokka = 4
 
-
+@enum_tools.documentation.document_enum
 class OperandType(IntEnum):
     """
     All the operand types as defined by IDA
     """
-
-    void = 0
-    register = 1
-    memory = 2
-    phrase = 3  # base+reg  or  base + offset * factor
-    displacement = 4  # base+offset
-    immediate = 5
-    far = 6
-    near = 7
-    specific0 = 8
-    specific1 = 9
-    specific2 = 10
-    specific3 = 11
-    specific4 = 12
-    specific5 = 13
+    unknown = 0       # doc: type is unknown
+    register = 1      # doc: register (GPR)
+    memory = 2        # doc: Direct memory reference
+    phrase = 3        # doc: Memory access with base+reg  or  base + offset * factor
+    displacement = 4  # doc: Memory access with base+offset
+    immediate = 5     # doc: Immediate value
+    far = 6           # doc: Asbolute address
+    near = 7          # doc: Relative address
+    # TODO: To improve with architectures type specific (reglist,
 
 
+@enum_tools.documentation.document_enum
 class FunctionType(IntEnum):
     """
-    Function types as defined by IDA
+    Function types as defined by IDA.
     """
+    normal = 0    # doc: Normal function
+    library = 1   # doc: Function identified as a library one
+    imported = 2  # doc: Imported function e.g: function in PLT
+    thunk = 3     # doc: Function identified as thunk (trampoline to another one)
+    invalid = 4   # doc: Invalid function (not properly disassembled)
+    extern = 5    # doc: External symbol (function without content)
 
-    normal = 0
-    library = 1
-    imported = 2
-    thunk = 3
-    invalid = 4
-    extern = 5
 
-
+@enum_tools.documentation.document_enum
 class DataType(IntEnum):
     """
     Types of data
     """
+    UNKNOWN = 0      # doc: Data type is unknown
+    BYTE = 1         # doc: 1 byte
+    WORD = 2         # doc: 2 bytes
+    DOUBLE_WORD = 3  # doc: 4 bytes
+    QUAD_WORD = 4    # doc: 8 bytes
+    OCTO_WORD = 5    # doc: 16 bytes
+    FLOAT = 6        # doc: float value
+    DOUBLE = 7       # doc: double value
+    ASCII = 8        # doc: ASCII string
 
-    UNKNOWN = 0
-    BYTE = 1
-    WORD = 2
-    DOUBLE_WORD = 3
-    QUAD_WORD = 4
-    OCTO_WORD = 5
-    FLOAT = 6
-    DOUBLE = 7
-    ASCII = 8
 
-
+@enum_tools.documentation.document_enum
 class StructureType(IntEnum):
     """
-    Different structures
+    Different structure types.
     """
+    UNKNOWN = 0  # doc: Type unknown
+    STRUCT = 1   # doc: Type is structure
+    ENUM = 2     # doc: Type is enum
+    UNION = 3    # doc: Type is union
 
-    UNKNOWN = 0
-    STRUCT = 1
-    ENUM = 2
-    UNION = 3
 
-
+@enum_tools.documentation.document_enum
 class ReferenceType(IntEnum):
     """
-    Reference types
+    Reference types.
     """
-
-    DATA = 0
-    ENUM = 1
-    STRUC = 2
-    UNKNOWN = 3
+    DATA = 0     # doc: Reference is data
+    ENUM = 1     # doc: Reference is an enum
+    STRUC = 2    # doc: Reference is a structure
+    UNKNOWN = 3  # doc: Reference type is unknown
 
 
 ReferenceTarget: TypeAlias = "Data | Structure | StructureMember"
