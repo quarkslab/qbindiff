@@ -7,7 +7,7 @@ from typing import List, Tuple
 from bindiff import BindiffFile
 
 # local imports
-from qbindiff import VERSION
+#from qbindiff import VERSION
 from qbindiff.loader import Program, Function, BasicBlock
 from qbindiff.types import Addr
 from qbindiff import Mapping
