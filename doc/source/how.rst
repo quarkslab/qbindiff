@@ -46,6 +46,6 @@ One step in the QBinDiff framework is particularly important : the anchoring pha
 Supported files 
 ---------------
 
-QBinDiff may theoretically support any file that can be exported to BinExport or Quokka files. This includes classical x86, x86_64, ARM. [TODO:check again for arm and other arch]. But, remember QBinDiff is heavily dependant about the exported files. BinExport and Quokka depend on your disassembly tool (such as IDA for Quokka and BinExport and Ghidra for BinExport only). If your file cannot be disassembled, your diffing results will be useless. The same holds for BinExport : this file format tends to have several drawbacks for very specific cases. 
+QBinDiff may theoretically support any file that can be exported to BinExport or Quokka files. This includes classical x86, x86_64, ARM. [TODO:check again for arm and other arch]. But, remember QBinDiff is heavily dependent about the exported files. BinExport and Quokka depend on your disassembly tool (such as IDA for Quokka and BinExport and Ghidra for BinExport only). If your file cannot be disassembled, your diffing results will be useless. The same holds for BinExport : this file format tends to have several drawbacks for very specific cases. 
 
 QBinDiff will then correctly work for binaries that are "regular" enough. If you want to use QBinDiff to diff two baremetal firmwares for example, you may enter into troubles (missing nodes in the flowgraph for example). 

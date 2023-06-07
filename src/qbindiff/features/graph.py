@@ -117,7 +117,7 @@ class MDIndex(FunctionFeatureExtractor):
         try :
             topological_sort = list(networkx.topological_sort(function.flowgraph))
             sort_ok = True
-        except :
+        except networkx.NetworkXUnfeasible:
             sort_ok = False
     
         if sort_ok : 
@@ -208,7 +208,7 @@ class MaxParentNb(FunctionFeatureExtractor):
                 len(list(function.flowgraph.predecessors(bblock)))
                 for bblock in function.flowgraph
             )
-        except :
+        except ValueError:
             value = 0
         collector.add_feature(self.key, value)
 
@@ -228,7 +228,7 @@ class MaxChildNb(FunctionFeatureExtractor):
             value = max(
                 len(list(function.flowgraph.successors(bblock))) for bblock in function.flowgraph
             )
-        except :
+        except ValueError:
             value = 0
         collector.add_feature(self.key, value)
 
@@ -245,7 +245,7 @@ class MaxInsNB(FunctionFeatureExtractor):
     ) -> None:
         try:
             value = max(len(bblock.instructions) for bblock in function)
-        except :
+        except ValueError:
             value = 0
         collector.add_feature(self.key, value)
 
@@ -262,7 +262,7 @@ class MeanInsNB(FunctionFeatureExtractor):
     ) -> None:
         try :
             value = sum(len(bblock.instructions) for bblock in function) / len(function)
-        except :
+        except ValueError:
             value = 0
         collector.add_feature(self.key, value)
 
@@ -384,7 +384,7 @@ class GraphCommunities(FunctionFeatureExtractor):
             p_list = [x for x in partition.values() if x != function.addr]
             try :
                 value = max(p_list)
-            except :
+            except ValueError:
                 value = 0
         else:
             value = 0

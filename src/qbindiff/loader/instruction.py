@@ -102,14 +102,10 @@ class Instruction:
            The BinExport backend tends to return empty references and so are data references
 
         """
-
-        if self.references == {}:
-            return {}
-        else :
-            try : 
-                return self.references[ReferenceType.DATA]
-            except :
-                return []
+        if ReferenceType.DATA in self.references:
+            return self.references[ReferenceType.DATA]
+        else:
+            return []
 
     @cached_property
     def operands(self) -> List[Operand]:
