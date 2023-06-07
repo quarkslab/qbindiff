@@ -8,7 +8,7 @@ from typing import List
 import hashlib
 
 
-def primesbelow(N: int) -> List[int]:
+def primesbelow(n: int) -> List[int]:
     """
     Utility function that returns a list of all the primes below n.
     This comes from `Diaphora <https://github.com/joxeankoret/diaphora/blob/master/jkutils/factor.py>`_
@@ -107,12 +107,17 @@ class MDIndex(FunctionFeatureExtractor):
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
         try:
             topological_sort = list(networkx.topological_sort(function.flowgraph))
+            sort_ok = True
+        except networkx.NetworkXUnfeasible:
+            sort_ok = False
+    
+        if sort_ok : 
             value = np.sum([1/math.sqrt(topological_sort.index(src) +
                             math.sqrt(2)*function.flowgraph.in_degree(src) +
                             math.sqrt(3)*function.flowgraph.out_degree(src) +
                             math.sqrt(5)*function.flowgraph.in_degree(dst) +
                             math.sqrt(7)*function.flowgraph.out_degree(dst)) for (src, dst) in function.edges])
-        except:
+        else:
             value = np.sum([1/math.sqrt(math.sqrt(2)*function.flowgraph.in_degree(src) +
                             math.sqrt(3)*function.flowgraph.out_degree(src) +
                             math.sqrt(5)*function.flowgraph.in_degree(dst) +
@@ -194,11 +199,13 @@ class MaxParentNb(FunctionFeatureExtractor):
     key = "maxp"
 
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        value = max(
-            len(list(function.flowgraph.predecessors(bblock)))
-            for bblock in function.flowgraph
-        )
-        # value = max(len(bb.parents) for bb in function)
+        try : 
+            value = max(
+                len(list(function.flowgraph.predecessors(bblock)))
+                for bblock in function.flowgraph
+            )
+        except ValueError:
+            value = 0
         collector.add_feature(self.key, value)
 
 
@@ -210,8 +217,13 @@ class MaxChildNb(FunctionFeatureExtractor):
     key = "maxc"
 
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        value = max(len(list(function.flowgraph.successors(bblock))) for bblock in function.flowgraph)
-
+        
+        try :
+            value = max(
+                len(list(function.flowgraph.successors(bblock))) for bblock in function.flowgraph
+            )
+        except ValueError:
+            value = 0
         collector.add_feature(self.key, value)
 
 
@@ -223,7 +235,10 @@ class MaxInsNB(FunctionFeatureExtractor):
     key = "maxins"
 
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        value = max(len(bblock.instructions) for bblock in function)
+        try:
+            value = max(len(bblock.instructions) for bblock in function)
+        except ValueError:
+            value = 0
         collector.add_feature(self.key, value)
 
 
@@ -235,10 +250,10 @@ class MeanInsNB(FunctionFeatureExtractor):
     key = "meanins"
 
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        if len(function):
+        try :
             value = sum(len(bblock.instructions) for bblock in function) / len(function)
-        else:
-            value = 0  # failsafe if external function without basic block
+        except ValueError:
+            value = 0
         collector.add_feature(self.key, value)
 
 
@@ -336,6 +351,4 @@ class GraphCommunities(FunctionFeatureExtractor):
         if (len(function) > 1) and partition:
             p_list = [x for x in partition.values() if x != function.addr]
             value = max(p_list) if p_list else 0
-        else:
-            value = 0
         collector.add_feature(self.key, value)

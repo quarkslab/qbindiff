@@ -2,7 +2,7 @@
 from __future__ import annotations
 import logging
 import weakref
-from typing import Any, TypeAlias, Dict, List
+from typing import Any, TypeAlias, Dict, List, Set
 from collections.abc import Iterator
 from functools import cached_property
 
@@ -228,8 +228,8 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                     capstone_mode |= capstone.CS_MODE_ARM
                 if arm_mode & 0b10:
                     capstone_mode |= capstone.CS_MODE_THUMB
-                #if be_program.cortexm:
-                #    capstone_mode |= capstone.CS_MODE_MCLASS
+                if self.program._enable_cortexm::
+                    capstone_mode |= capstone.CS_MODE_MCLASS
                 if arm_mode > 0b11:
                     logging.error(f"Cannot guess the instruction set of the instruction at address 0x{self.addr:x}")
                 arm_mode += 1
@@ -295,12 +295,12 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
         return self.be_func.graph
 
     @property
-    def parents(self) -> set[Addr]:
+    def parents(self) -> Set[Addr]:
         """Set of function parents in the call graph"""
         return {func.addr for func in self.be_func.parents}
 
     @property
-    def children(self) -> set[Addr]:
+    def children(self) -> Set[Addr]:
         """Set of function children in the call graph"""
         return {func.addr for func in self.be_func.children}
 
@@ -372,7 +372,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         return self.be_prog.name
 
     @property
-    def structures(self) -> list[Structure]:
+    def structures(self) -> List[Structure]:
         """
         Returns the list of structures defined in program.
         WARNING: Not supported by BinExport
@@ -385,7 +385,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         return self.be_prog.callgraph
 
     @property
-    def fun_names(self) -> dict[str, int]:
+    def fun_names(self) -> Dict[str, int]:
         """
         Returns a dictionary with function name as key and the function address as value
         """
