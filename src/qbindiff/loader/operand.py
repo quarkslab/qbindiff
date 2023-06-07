@@ -76,22 +76,22 @@ class Operand:
         return self._backend.type
 
     @property
-    def immutable_value(self) -> int | None:
+    def value(self) -> int | None:
         """
-        The immutable value (not addresses) used by the operand.
-        If there is no immutable value then returns None.
+        The immediate value (not addresses) used by the operand.
+        If not returns None.
         """
 
-        if self.is_immutable():
-            return self._backend.immutable_value
+        if self.is_immediate():
+            return self._backend.value
         return None
 
-    def is_immutable(self) -> bool:
+    def is_immediate(self) -> bool:
         """
-        Whether the operand is an immutable (not considering addresses)
+        Whether the operand is an immediate (not considering addresses)
         """
 
-        return self._backend.is_immutable()
+        return self._backend.is_immediate()
 
     def __str__(self) -> str:
         return str(self._backend)

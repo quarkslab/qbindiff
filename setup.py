@@ -108,11 +108,13 @@ setup(
         "datasketch",
         "scikit-learn", 
         "python-louvain",
+        "enum_tools"
     ],
     scripts=["bin/qbindiff"],
     extras_require={
         "binexport": ["python-binexport"],
         "quokka": ["quokka-project"],
         "doc": ["sphinx", "sphinx-rtd-theme", "myst-parser", "sphinx-design"],
+        "community": ["python-louvain"],
     },
 )

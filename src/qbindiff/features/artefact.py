@@ -22,14 +22,12 @@ from qbindiff.loader import (
 
 class Address(FunctionFeatureExtractor):
     """
-    Address of the function as feature
+    Address of the function as a feature
     """
 
     key = "addr"
 
-    def visit_function(
-        self, program: Program, function: Function, collector: FeatureCollector
-    ) -> None:
+    def visit_function(self, _: Program, function: Function, collector: FeatureCollector) -> None:
 
         value = function.addr
         collector.add_feature(self.key, value)
@@ -37,15 +35,14 @@ class Address(FunctionFeatureExtractor):
 
 class DatName(InstructionFeatureExtractor):
     """
-    References to data in the instruction. It's a superset of strref
+    References to data in the instruction (as retrieved by binexport or Quokka).
+    This feature maps the data address to the number of reference occurences to it.
+    It's a superset of :py:obj:`StrRef` feature.
     """
 
     key = "dat"
 
-    def visit_instruction(
-        self, program: Program, instruction: Instruction, collector: FeatureCollector
-    ) -> None:
-
+    def visit_instruction(self, _: Program, instruction: Instruction, collector: FeatureCollector) -> None:
         for ref_type, references in instruction.references.items():
             for reference in references:
                 if (
@@ -53,22 +50,16 @@ class DatName(InstructionFeatureExtractor):
                     and reference.type != DataType.UNKNOWN
                     and reference.value is not None
                 ):
-                    assert isinstance(
-                        reference, Data
-                    ), "DATA reference not referencing Data"
+                    assert isinstance(reference, Data), "DATA reference not referencing Data"
                     collector.add_dict_feature(self.key, {reference.value: 1})
 
                 elif ref_type == ReferenceType.STRUC:
-                    assert isinstance(
-                        reference, Structure | StructureMember
+                    assert isinstance(reference, Structure | StructureMember
                     ), "STRUC reference not referencing Structure nor StructureMember"
                     if isinstance(reference, Structure):
                         collector.add_dict_feature(self.key, {reference.name: 1})
                     elif isinstance(reference, StructureMember):
-                        collector.add_dict_feature(
-                            self.key,
-                            {reference.structure.name + "." + reference.name: 1},
-                        )
+                        collector.add_dict_feature(self.key, {reference.structure.name + "." + reference.name: 1})
 
                 else:  # Enum, calls
                     pass
@@ -76,15 +67,14 @@ class DatName(InstructionFeatureExtractor):
 
 class StrRef(InstructionFeatureExtractor):
     """
-    References to strings in the instruction
+    References to strings in the instruction.
+    This feature maps the string adddress to the number of occurences to it.
+    It does not relate to the string value itself.
     """
 
     key = "strref"
 
-    def visit_instruction(
-        self, program: Program, instruction: Instruction, collector: FeatureCollector
-    ) -> None:
-
+    def visit_instruction(self, _: Program, instruction: Instruction, collector: FeatureCollector) -> None:
         for data in instruction.data_references:
             if data.type == DataType.ASCII:
                 collector.add_dict_feature(self.key, {data.value: 1})
@@ -92,32 +82,33 @@ class StrRef(InstructionFeatureExtractor):
 
 class Constant(OperandFeatureExtractor):
     """
-    Numeric constant (32/64bits) in the instruction (not addresses)
+    Numeric constant (32/64bits) in the instruction (not addresses).
+    This maps numerical values to the number of occurences to it.
+    It excludes the addresses (relies on IDA to discriminate them).
     """
 
     key = "cst"
 
-    def visit_operand(
-        self, program: Program, operand: Operand, collector: FeatureCollector
-    ) -> None:
-
-        if operand.is_immutable():
-            collector.add_dict_feature(self.key, {str(operand.immutable_value): 1})  # This should be a string
+    def visit_operand(self, _: Program, operand: Operand, collector: FeatureCollector) -> None:
+        if operand.is_immediate():
+            collector.add_dict_feature(self.key, {str(operand.value): 1})  # This should be a string
 
 
 class FuncName(FunctionFeatureExtractor):
     """
-    Match the function names. Optionally specify a regular expression pattern to exclude function names
+    Match the function names.
+    Optionally the constructor takes a regular expression pattern to exclude function names
     """
 
     key = "fname"
 
-    def __init__(
-        self, *args: Any, excluded_regex: Optional[Pattern[str]] = None, **kwargs: Any
-    ):
-
+    def __init__(self, *args: Any, excluded_regex: Optional[Pattern[str]] = None, **kwargs: Any):
+        """
+        :param args: parameters of a feature extractor
+        :param excluded_regex: regex to apply in order to exclude names
+        :param kwargs: keyworded arguments
+        """
         super(FuncName, self).__init__(*args, **kwargs)
-
         self._excluded_regex = excluded_regex
 
     def is_excluded(self, function: Function) -> bool:
@@ -127,27 +118,17 @@ class FuncName(FunctionFeatureExtractor):
         :param function: function to consider
         :return: bool
         """
-
         if self._excluded_regex is None:
-            return bool(
-                re.match(
-                    rf"^(sub|fun)_0*{function.addr:x}$", function.name, re.IGNORECASE
-                )
-            )
+            return bool(re.match(rf"^(sub|fun)_0*{function.addr:x}$", function.name, re.IGNORECASE))
         else:
             return bool(self._excluded_regex.match(function.name))
 
-    def visit_function(
-        self, program: Program, function: Function, collector: FeatureCollector
-    ) -> None:
-
+    def visit_function(self, _: Program, function: Function, collector: FeatureCollector) -> None:
         if self.is_excluded(function):
             # We cannot properly exclude the name since a zero feature vector will
             # have a distance of zero (hence similarity of 1) with any other zero
             # feature vector. Hence, add a good enough random number to reduce the
             # chance of a collision
-            collector.add_dict_feature(
-                self.key, {function.name + str(random.randrange(1000000000)): 1}
-            )
+            collector.add_dict_feature(self.key, {function.name + str(random.randrange(1000000000)): 1})
         else:
             collector.add_dict_feature(self.key, {function.name: 1})

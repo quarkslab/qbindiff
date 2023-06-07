@@ -4,11 +4,7 @@ from collections import defaultdict, Counter
 from abc import ABCMeta, abstractmethod
 from typing import Optional
 
-from qbindiff.features.extractor import (
-    FunctionFeatureExtractor,
-    FeatureCollector,
-    FeatureOption,
-)
+from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function, BasicBlock
 
 
@@ -42,7 +38,9 @@ class LSH(metaclass=ABCMeta):
 
 
 class BOWLSH(LSH):
-    """Extract the bag-of-words representation of a block. The hashes are 4 bytes long"""
+    """
+    Extract the bag-of-words representation of a block. The hashes are 4 bytes long.
+    """
 
     def __init__(self, node: Optional[BasicBlock] = None):
         self.bag = defaultdict(int)
@@ -101,19 +99,14 @@ class BOWLSH(LSH):
 
 
 class WeisfeilerLehman(FunctionFeatureExtractor):
-    """Weisfeiler-Lehman Graph Kernel. It's strongly suggested to use the cosine distance with this feature. Options: ['max_passes': int]"""
+    """
+    Weisfeiler-Lehman Graph Kernel feature.
+    It's strongly suggested to use the cosine distance with this feature. Options: ['max_passes': int]
+    """
 
     key = "wlgk"
 
-    options = {
-        "max_passes": FeatureOption(
-            "max_passes", "Set a limit to the number of iterations", int
-        )
-    }
-
-    def __init__(
-        self, *args, lsh: type[LSH] | None = None, max_passes: int = -1, **kwargs
-    ):
+    def __init__(self, *args, lsh: type[LSH] | None = None, max_passes: int = -1, **kwargs):
         """
         Extract a feature vector by using a custom defined node labeling scheme.
 
@@ -130,9 +123,7 @@ class WeisfeilerLehman(FunctionFeatureExtractor):
         else:
             self.lsh = lsh
 
-    def visit_function(
-        self, program: Program, function: Function, collector: FeatureCollector
-    ):
+    def visit_function(self, program: Program, function: Function, collector: FeatureCollector):
         labels = []  # Labels for each node at step i
         map_node_to_index = {}
         adjacency = defaultdict(list)

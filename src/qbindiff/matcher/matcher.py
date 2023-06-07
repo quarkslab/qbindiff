@@ -11,15 +11,7 @@ from typing import Tuple, List
 # Local imports
 from qbindiff.matcher.squares import find_squares
 from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefQAP
-from qbindiff.types import (
-    Positive,
-    Ratio,
-    RawMapping,
-    AdjacencyMatrix,
-    Matrix,
-    SimMatrix,
-    SparseMatrix,
-)
+from qbindiff.types import Positive, Ratio, RawMapping, AdjacencyMatrix, Matrix, SimMatrix, SparseMatrix
 
 
 def iter_csr_matrix(matrix: SparseMatrix) -> Generator[Tuple[np.ndarray, np.ndarray]]:
@@ -33,7 +25,7 @@ def iter_csr_matrix(matrix: SparseMatrix) -> Generator[Tuple[np.ndarray, np.ndar
 
     coo_matrix = matrix.tocoo()
     for x, y, v in zip(coo_matrix.row, coo_matrix.col, coo_matrix.data):
-        yield (x, y, v)
+        yield x, y, v
 
 
 def solve_linear_assignment(cost_matrix: Matrix) -> RawMapping:
@@ -91,9 +83,9 @@ class Matcher:
             return
         elif ratio == self.sim_matrix.size:
             threshold = self.sim_matrix.max(1, keepdims=True)
-            self.sparse_sim_matrix = self.sim_matrix >= threshold # Simply give a matrix filled with True and False, this is not a sparse similarity matrix
-            self.sparse_sim_matrix = self.sparse_sim_matrix.astype(np.float32) # Convert True and False to float32 (for similarity, 0 or 1)
-            self.sparse_sim_matrix = csr_matrix(self.sparse_sim_matrix) # Convert the matrix to a sparse one
+            self.sparse_sim_matrix = self.sim_matrix >= threshold  # Simply give a matrix filled with True and False, this is not a sparse similarity matrix
+            self.sparse_sim_matrix = self.sparse_sim_matrix.astype(np.float32)  # Convert True and False to float32 (for similarity, 0 or 1)
+            self.sparse_sim_matrix = csr_matrix(self.sparse_sim_matrix)  # Convert the matrix to a sparse one
 
             return
 
@@ -148,13 +140,9 @@ class Matcher:
         between two similarity edges `e1` and `e2` <=> (iff) self._squares_matrix[e1][e2] == 1
 
         The time complexity is O(|sparse_sim_matrix| * average_graph_degree**2)
-
-        :return: None
         """
 
-        squares = find_squares(
-            self.primary_adj_matrix, self.secondary_adj_matrix, self.sparse_sim_matrix
-        )
+        squares = find_squares(self.primary_adj_matrix, self.secondary_adj_matrix, self.sparse_sim_matrix)
 
         size = self.sparse_sim_matrix.nnz
         # Give each similarity edge a unique number
@@ -195,7 +183,6 @@ class Matcher:
         """
         Nodes mapping between the two graphs
         """
-
         return self._mapping
 
     @property
@@ -203,15 +190,9 @@ class Matcher:
         """
         Confidence score for each match in the nodes mapping
         """
-
         return [self._confidence[idx1, idx2] for idx1, idx2 in zip(*self.mapping)]
 
-    def process(
-        self,
-        sparsity_ratio: Ratio = 0.75,
-        sparse_row: bool = False,
-        compute_squares: bool = True,
-    ):
+    def process(self, sparsity_ratio: Ratio = 0.75, sparse_row: bool = False, compute_squares: bool = True):
         """
         Initialize the matching algorithm
 
@@ -225,9 +206,7 @@ class Matcher:
         :return: None
         """
 
-        logging.debug(
-            f"Computing sparse similarity matrix (ratio {sparsity_ratio} sparse_row {sparse_row})"
-        )
+        logging.debug(f"Computing sparse similarity matrix (ratio {sparsity_ratio} sparse_row {sparse_row})")
         self._compute_sparse_sim_matrix(sparsity_ratio, sparse_row)
         logging.debug(
             f"Sparse similarity matrix computed, shape: {self.sparse_sim_matrix.shape}"
@@ -241,9 +220,7 @@ class Matcher:
                 f", nnz elements: {self.squares_matrix.nnz}"
             )
 
-    def compute(
-        self, tradeoff: Ratio = 0.75, epsilon: Positive = 0.5, maxiter: int = 1000
-    ) -> None:
+    def compute(self, tradeoff: Ratio = 0.75, epsilon: Positive = 0.5, maxiter: int = 1000) -> None:
         """
         Launch the computation for a given number of iterations, using specific QBinDiff parameters
 
@@ -257,9 +234,7 @@ class Matcher:
             logging.info("[+] switching to Maximum Weight Matching (tradeoff is 1)")
             belief = BeliefMWM(self.sparse_sim_matrix, epsilon)
         else:
-            belief = BeliefQAP(
-                self.sparse_sim_matrix, self.squares_matrix, tradeoff, epsilon
-            )
+            belief = BeliefQAP(self.sparse_sim_matrix, self.squares_matrix, tradeoff, epsilon)
 
         for niter in belief.compute(maxiter):
             yield niter

@@ -25,7 +25,7 @@ class GenericPass(metaclass=ABCMeta):
         primary: Program,
         secondary: Program,
         primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int],
+        secondary_mapping: dict[Any, int]
     ) -> None:
         """Execute the pass that operates on the similarity matrix inplace"""
         raise NotImplementedError()
@@ -38,6 +38,10 @@ class FeaturePass(GenericPass):
     """
 
     def __init__(self, distance: str):
+        """
+        FIXME: what is distance ? as the type is limited might can create enum ?
+        :param distance:
+        """
         self._default_distance = distance
         self._distances = {}
         self._visitor = ProgramVisitor()
@@ -46,9 +50,7 @@ class FeaturePass(GenericPass):
         """Returns the correct distance for the given feature key"""
         return self._distances.get(key, self._default_distance)
 
-    def register_extractor(
-        self, extractor: FeatureExtractor, distance: str | None = None
-    ) -> None:
+    def register_extractor(self, extractor: FeatureExtractor, distance: str | None = None) -> None:
         """
         Register a feature extractor optionally specifying a distance to use.
         The class will be called when the visitor will traverse the graph.
@@ -124,7 +126,7 @@ class FeaturePass(GenericPass):
         """
 
         # Find the dimension of the feature matrix
-        dim = FeatureKeyManager.get_cum_size(features_main_keys)
+        dim = FeatureKeyManager.get_cumulative_size(features_main_keys)
 
         # Build the sparse feature matrices
         logging.debug(f"Building primary feature matrix of size {(shape[0], dim)}")
@@ -135,10 +137,7 @@ class FeaturePass(GenericPass):
             (shape[0], dim),
             dtype,
         )
-        logging.debug(
-            "Sparse primary feature matrix computed, "
-            f"nnz element: {primary_feature_matrix.nnz}"
-        )
+        logging.debug(f"Sparse primary feature matrix computed, nnz element: {primary_feature_matrix.nnz}")
         logging.debug(f"Building secondary feature matrix of size {(shape[1], dim)}")
         secondary_feature_matrix = self._create_feature_matrix(
             secondary_features,
@@ -147,10 +146,7 @@ class FeaturePass(GenericPass):
             (shape[1], dim),
             dtype,
         )
-        logging.debug(
-            "Sparse secondary feature matrix computed, "
-            f"nnz element: {secondary_feature_matrix.nnz}"
-        )
+        logging.debug(f"Sparse secondary feature matrix computed, nnz element: {secondary_feature_matrix.nnz}")
         logging.debug(f"Calculating distance {distance}")
 
         # Generate the partial similarity matrix (only non empty rows and cols)
