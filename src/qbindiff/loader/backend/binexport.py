@@ -228,7 +228,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                     capstone_mode |= capstone.CS_MODE_ARM
                 if arm_mode & 0b10:
                     capstone_mode |= capstone.CS_MODE_THUMB
-                if self.program._enable_cortexm::
+                if self.program._enable_cortexm:
                     capstone_mode |= capstone.CS_MODE_MCLASS
                 if arm_mode > 0b11:
                     logging.error(f"Cannot guess the instruction set of the instruction at address 0x{self.addr:x}")
