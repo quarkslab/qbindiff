@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional, List, Type, Tuple, Dict
 from bindiff import BindiffFile
 
 # local imports
-from qbindiff import VERSION
+#from qbindiff import VERSION
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher
