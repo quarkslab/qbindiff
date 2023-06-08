@@ -163,7 +163,6 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
             for ins in bb.instructions:
                 value *= primes[mnemonics.index(ins.mnemonic)] 
                 value = value % (2**64)
-        # QUESTION: Does it have to be in 2(n) instead of (n) ?
         collector.add_feature(self.key, value)
 
 
@@ -180,11 +179,7 @@ class ReadWriteAccess(FunctionFeatureExtractor):
         for bb_addr, bb in function.items():
             for ins in bb.instructions:
                 for op in ins.operands:
-                    # FIXME: The following check is wrong it check the operand instance against
-                    # FIXME: an operandType. + not portable between binexport and quokka
-                    if op == types.OperandType.memory.value\
-                            or op == types.OperandType.phrase.value \
-                            or op == types.OperandType.displacement.value:
+                    if op.type.name in ['memory', 'displacement', 'phrase']: 
                         value += 1
 
         collector.add_feature(self.key, value)

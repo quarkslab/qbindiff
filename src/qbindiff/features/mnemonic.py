@@ -27,15 +27,11 @@ class MnemonicTyped(InstructionFeatureExtractor):
     key = "Mt"
 
     def visit_instruction(self, program: Program, instruction: Instruction, collector: FeatureCollector) -> None:
-        # Use keys as string so it can later be sorted
-        # FIXME: Make it way simpler
-        #op_types = defaultdict(int)
-        #for op in instruction.operands:
-        #    op_types[str(op.type)] += 1
-        #op_types[instruction.mnemonic] = 1
-        #key = str(hash(frozenset(sorted(op_types.items()))))  # Key should be a str, not an int returned by hash
         
-        #key = 
+        mnemonic = instruction.mnemonic
+        operands_types = "".join([op.type.name[0] for op in instruction.operands]) # keep the first letter of the type name as types (ex : mov rsp, 8 will give movri (for register, immediate))
+        key = menmonic + operands_types
+        print('key typed mnemonic:', key)
         collector.add_dict_feature(self.key, {key: 1})
 
 

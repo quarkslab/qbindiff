@@ -103,40 +103,15 @@ class OperandBackendQuokka(AbstractOperandBackend):
     Backend loader of an Operand using Quokka
     """
 
-    def __init__(self, cs_instruction: "capstone.CsInsn", cs_operand: capstoneOperand):
+    def __init__(self, cs_instruction: "capstone.CsInsn", cs_operand: capstoneOperand, cs_operand_position: int):
         super(OperandBackendQuokka, self).__init__()
 
         self.cs_instr = cs_instruction
         self.cs_operand = cs_operand
+        self.cs_operand_position = cs_operand_position
 
     def __str__(self) -> str:
-        op = self.cs_operand
-        if self.type == CS_OP_REG:
-            return self.cs_instr.reg_name(op.reg)
-        elif self.type == CS_OP_IMM:
-            return hex(op.imm)
-        elif self.type == CS_OP_MEM:
-            op_str = ""
-            try:
-                if op.mem.segment != 0:
-                    op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
-            except AttributeError:
-                pass  # Not all the architectures have segments
-            if op.mem.base != 0:
-                op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
-            if op.mem.index != 0:
-                op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
-            if (disp := op.mem.disp) != 0:
-                if disp > 0:
-                    op_str += "+"
-                else:
-                    op_str += "-"
-                    disp = -disp
-                op_str += f"0x{disp:x}"
-            op_str += "]"
-            return op_str
-        else:
-            raise NotImplementedError(f"Unrecognized capstone type {self.type}")
+        return self.cs_instr.op_str.split(",")[self.cs_operand_position]
 
     @property
     def value(self) -> int | None:
@@ -153,11 +128,13 @@ class OperandBackendQuokka(AbstractOperandBackend):
         """Returns the capstone operand type"""
         op = self.cs_operand
         typ = OperandType.unknown
-        if self.type == capstone.CS_OP_REG:
+        cs_op_type = self.cs_operand.type
+        
+        if cs_op_type == capstone.CS_OP_REG:
             return OperandType.register
-        elif self.type == capstone.CS_OP_IMM:
+        elif cs_op_type == capstone.CS_OP_IMM:
             return OperandType.immediate
-        elif self.type == capstone.CS_OP_MEM:
+        elif cs_op_type == capstone.CS_OP_MEM:
             if op.mem.base != 0 and op.mem.value != 0:
                 typ = OperandType.displacement
             if op.mem.base != 0 and op.mem.index != 0:
@@ -165,7 +142,7 @@ class OperandBackendQuokka(AbstractOperandBackend):
             if op.mem.disp != 0:
                 typ = OperandType.displacement
         else:
-            raise NotImplementedError(f"Unrecognized capstone type {self.type}")
+            raise NotImplementedError(f"Unrecognized capstone type {cs_op_type}")
         return typ
 
     def is_immediate(self) -> bool:
@@ -266,7 +243,7 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
 
         if self.cs_instr is None:
             return iter([])
-        return (OperandBackendQuokka(self.cs_instr, o) for o in self.cs_instr.operands)
+        return (OperandBackendQuokka(self.cs_instr, o, i) for i, o in enumerate(self.cs_instr.operands))
 
     @property
     def groups(self) -> List[str]:
