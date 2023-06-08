@@ -148,6 +148,7 @@ class Instruction:
         return self._backend.bytes
 
     def __str__(self) -> str:
+            
         return "%s %s" % (
             self.mnemonic,
             ", ".join(str(op) for op in self._backend.operands),

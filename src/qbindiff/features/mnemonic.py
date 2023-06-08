@@ -29,11 +29,13 @@ class MnemonicTyped(InstructionFeatureExtractor):
     def visit_instruction(self, program: Program, instruction: Instruction, collector: FeatureCollector) -> None:
         # Use keys as string so it can later be sorted
         # FIXME: Make it way simpler
-        op_types = defaultdict(int)
-        for op in instruction.operands:
-            op_types[str(op.type)] += 1
-        op_types[instruction.mnemonic] = 1
-        key = str(hash(frozenset(sorted(op_types.items()))))  # Key should be a str, not an int returned by hash
+        #op_types = defaultdict(int)
+        #for op in instruction.operands:
+        #    op_types[str(op.type)] += 1
+        #op_types[instruction.mnemonic] = 1
+        #key = str(hash(frozenset(sorted(op_types.items()))))  # Key should be a str, not an int returned by hash
+        
+        #key = 
         collector.add_dict_feature(self.key, {key: 1})
 
 

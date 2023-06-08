@@ -4,7 +4,7 @@ import numpy as np
 from scipy.sparse import lil_matrix
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
-from typing import Any, Iterable
+from typing import Any, Iterable, Dict, List, Tuple
 
 from qbindiff.loader import Program
 from qbindiff.visitor import ProgramVisitor
@@ -24,8 +24,8 @@ class GenericPass(metaclass=ABCMeta):
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int]
+        primary_mapping: Dict[Any, int],
+        secondary_mapping: Dict[Any, int]
     ) -> None:
         """Execute the pass that operates on the similarity matrix inplace"""
         raise NotImplementedError()
@@ -61,10 +61,10 @@ class FeaturePass(GenericPass):
 
     def _create_feature_matrix(
         self,
-        features: dict[Any, FeatureCollector],
-        features_main_keys: list[str],
-        node_to_index: dict[Any, int],
-        shape: tuple[int, int],
+        features: Dict[Any, FeatureCollector],
+        features_main_keys: List[str],
+        node_to_index: Dict[Any, int],
+        shape: Tuple[int, int],
         dtype: type,
     ):
         """
@@ -93,12 +93,12 @@ class FeaturePass(GenericPass):
 
     def _compute_sim_matrix(
         self,
-        shape: tuple[int, int],
-        primary_features: dict[Any, FeatureCollector],
-        secondary_features: dict[Any, FeatureCollector],
-        primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int],
-        features_main_keys: list[str],
+        shape: Tuple[int, int],
+        primary_features: Dict[Any, FeatureCollector],
+        secondary_features: Dict[Any, FeatureCollector],
+        primary_mapping: Dict[Any, int],
+        secondary_mapping: Dict[Any, int],
+        features_main_keys: List[str],
         distance: str,
         dtype: type,
         weights: Iterable[float] | None = None,
@@ -179,8 +179,8 @@ class FeaturePass(GenericPass):
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int],
+        primary_mapping: Dict[Any, int],
+        secondary_mapping: Dict[Any, int],
         fill: bool = False,
     ) -> None:
         """

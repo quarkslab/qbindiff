@@ -260,11 +260,4 @@ class AbstractProgramBackend(metaclass=ABCMeta):
         Returns a dictionary with function name as key and the function address as value.
         """
         raise NotImplementedError()
-
-    @property
-    def exec_path(self) -> str | None:
-        """
-        Returns the executable path if it has been specified.
-        Returns None by default.
-        """
-        return None
+        

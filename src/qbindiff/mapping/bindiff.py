@@ -10,7 +10,7 @@ from bindiff import BindiffFile
 #from qbindiff import VERSION
 from qbindiff.loader import Program, Function, BasicBlock
 from qbindiff.types import Addr
-from qbindiff import Mapping
+#from qbindiff import Mapping
 
 @lru_cache
 def primes() -> List[int]:
@@ -114,7 +114,7 @@ def compute_instruction_match(primary_bb: BasicBlock, secondary_bb: BasicBlock) 
         yield from zip(primary_instr[k], secondary_instr[k])
 
 
-def export_to_bindiff(filename: str, primary: Program, secondary: Program, mapping: Mapping) -> None:
+def export_to_bindiff(filename: str, primary: Program, secondary: Program, mapping: "Mapping") -> None:
     """
     Exports diffing results inside the BinDiff format
 

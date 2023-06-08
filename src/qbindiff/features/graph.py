@@ -8,29 +8,6 @@ from typing import List
 import hashlib
 
 
-def primesbelow(n: int) -> List[int]:
-    """
-    Utility function that returns a list of all the primes below n.
-    This comes from `Diaphora <https://github.com/joxeankoret/diaphora/blob/master/jkutils/factor.py>`_
-    FIXME: N the parameter is not being used. (param "N" while in the code "n") is it normal ?
-    FIXME: Why not making it a staticmethod in the SmallPrimeNumbers class ?
-
-    :param n: integer n
-    :return: list of prime integer below n
-    """
-
-    correction = n % 6 > 1
-    n = {0: n, 1: n-1, 2: n+4, 3: n+3, 4: n+2, 5: n+1}[n % 6]
-    sieve = [True] * (n // 3)
-    sieve[0] = False
-    for i in range(int(n ** .5) // 3 + 1):
-        if sieve[i]:
-            k = (3 * i + 1) | 1
-            sieve[k*k // 3::2*k] = [False] * ((n//6 - (k*k)//6 - 1)//k + 1)
-            sieve[(k*k + 4*k - 2*k*(i % 2)) // 3::2*k] = [False] * ((n // 6 - (k*k + 4*k - 2*k*(i % 2))//6 - 1) // k + 1)
-    return [2, 3] + [(3 * i + 1) | 1 for i in range(1, n//3 - correction) if sieve[i]]
-    
-
 class BBlockNb(FunctionFeatureExtractor):
     """
     Number of basic blocks in the function as a feature.
@@ -149,6 +126,28 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
 
     key = "spp"
 
+    @staticmethod
+    def primesbelow(n: int) -> List[int]:
+        """
+        Utility function that returns a list of all the primes below n.
+        This comes from `Diaphora <https://github.com/joxeankoret/diaphora/blob/master/jkutils/factor.py>`_
+
+        :param n: integer n
+        :return: list of prime integers below n
+        """
+
+        correction = n % 6 > 1
+        n = {0: n, 1: n-1, 2: n+4, 3: n+3, 4: n+2, 5: n+1}[n % 6]
+        sieve = [True] * (n // 3)
+        sieve[0] = False
+        for i in range(int(n ** .5) // 3 + 1):
+            if sieve[i]:
+                k = (3 * i + 1) | 1
+                sieve[k*k // 3::2*k] = [False] * ((n//6 - (k*k)//6 - 1)//k + 1)
+                sieve[(k*k + 4*k - 2*k*(i % 2)) // 3::2*k] = [False] * ((n // 6 - (k*k + 4*k - 2*k*(i % 2))//6 - 1) // k + 1)
+        return [2, 3] + [(3 * i + 1) | 1 for i in range(1, n//3 - correction) if sieve[i]]
+        
+    
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
         mnemonics = set()
         for bb_addr, bb in function.items():
@@ -159,7 +158,7 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
         mnemonics = list(mnemonics)
         
         value = 1
-        primes = primesbelow(4096)
+        primes = self.primesbelow(4096)
         for bb_addr, bb in function.items():
             for ins in bb.instructions:
                 value *= primes[mnemonics.index(ins.mnemonic)] 
