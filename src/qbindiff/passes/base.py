@@ -211,6 +211,7 @@ class FeaturePass(GenericPass):
         primary.set_function_filter(lambda label: label not in ignore_primary)
         secondary.set_function_filter(lambda label: label not in ignore_secondary)
         key_fun = lambda *args: args[0][0]  # ((label, node), iteration)
+
         primary_features = self._visitor.visit(primary, key_fun=key_fun)
         secondary_features = self._visitor.visit(secondary, key_fun=key_fun)
         primary.set_function_filter(lambda _: True)

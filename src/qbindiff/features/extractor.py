@@ -50,7 +50,14 @@ class FeatureCollector:
             for k, v in value.items():
                 FeatureKeyManager.add(key, k)
                 self._features[key][k] += v
-
+    
+    def feature_vector(self) -> None:
+        """ Show the feature vector associated to the node """
+        feature_vector = {}
+        for main_key, feature in self._features.items():
+            feature_vector[main_key] = feature
+        return feature_vector
+        
     def full_keys(self) -> Dict[str, Set[str]]:
         """
         Returns a dict in which keys are the keys of the features and values are the subkeys.
@@ -63,8 +70,9 @@ class FeatureCollector:
         keys = {}
         for main_key, feature in self._features.items():
             keys.setdefault(main_key, set())
-            if isinstance(feature, Dict):
-                keys[main_key].update(feature.keys())
+            if isinstance(feature, dict):
+                keys[main_key].update(feature.keys())    
+                
         return keys
 
     def to_sparse_vector(self, dtype: type, main_key_list: List[str]) -> SparseVector:

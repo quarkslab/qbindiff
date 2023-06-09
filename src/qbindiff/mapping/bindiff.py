@@ -123,7 +123,8 @@ def export_to_bindiff(filename: str, primary: Program, secondary: Program, mappi
     :param secondary: secondary program
     :param mapping: diffing mapping between the two programs
     """
-
+    from qbindiff import VERSION  # import the version here to avoid circular definition
+    
     def count_items(program: Program) -> Tuple[int, int, int, int]:
         fp, flib, bbs, inst = 0, 0, 0, 0
         for f_addr, f in program.items():
@@ -136,8 +137,8 @@ def export_to_bindiff(filename: str, primary: Program, secondary: Program, mappi
         return fp, flib, bbs, inst
 
     binfile = BindiffFile.create(filename,
-                                 primary.exec_file,
-                                 secondary.exec_file,
+                                 primary.exec_path,
+                                 secondary.exec_path,
                                  f"Qbindiff {VERSION}",
                                  "",
                                  mapping.normalized_similarity,
@@ -172,4 +173,4 @@ def export_to_bindiff(filename: str, primary: Program, secondary: Program, mappi
     f, lib, bbs, insts = count_items(secondary)
     binfile.update_file_infos(2, f, lib, bbs, insts)
 
-    binfile.commit()
+    # binfile.commit()

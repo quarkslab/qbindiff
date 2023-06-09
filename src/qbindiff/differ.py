@@ -240,6 +240,7 @@ class Differ:
                     self.secondary_n2i,
                     **extra_args,
                 )
+                
             else:
                 pass_func(
                     self.sim_matrix,

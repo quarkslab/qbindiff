@@ -18,6 +18,7 @@ class BBlockNb(FunctionFeatureExtractor):
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
         value = len(function.flowgraph.nodes)
         collector.add_feature(self.key, value)
+        
 
 
 class StronglyConnectedComponents(FunctionFeatureExtractor):
@@ -345,4 +346,6 @@ class GraphCommunities(FunctionFeatureExtractor):
         if (len(function) > 1) and partition:
             p_list = [x for x in partition.values() if x != function.addr]
             value = max(p_list) if p_list else 0
+        else :
+            value = 0
         collector.add_feature(self.key, value)

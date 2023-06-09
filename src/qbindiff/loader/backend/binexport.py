@@ -110,8 +110,12 @@ class OperandBackendBinExport(AbstractOperandBackend):
         elif cs_op_type == capstone.CS_OP_IMM:
             return OperandType.immediate
         elif cs_op_type == capstone.CS_OP_MEM:
-            if op.mem.base != 0 and op.mem.value != 0:
+            # A displacement is represented as [reg+hex] (example : [rdi+0x1234])
+            # Then, base (reg) and disp (hex) should be different of 0
+            if op.mem.base != 0 and op.mem.disp != 0:
                 typ = OperandType.displacement
+            # A phrase is represented as [reg1 + reg2] (example : [rdi + eax])
+            # Then, base (reg1) and index (reg2) should be different of 0
             if op.mem.base != 0 and op.mem.index != 0:
                 typ = OperandType.phrase
             if op.mem.disp != 0:

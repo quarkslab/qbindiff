@@ -30,8 +30,7 @@ class MnemonicTyped(InstructionFeatureExtractor):
         
         mnemonic = instruction.mnemonic
         operands_types = "".join([op.type.name[0] for op in instruction.operands]) # keep the first letter of the type name as types (ex : mov rsp, 8 will give movri (for register, immediate))
-        key = menmonic + operands_types
-        print('key typed mnemonic:', key)
+        key = mnemonic + operands_types
         collector.add_dict_feature(self.key, {key: 1})
 
 
