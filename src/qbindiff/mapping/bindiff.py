@@ -128,8 +128,6 @@ def export_to_bindiff(filename: str, primary: Program, secondary: Program, mappi
     def count_items(program: Program) -> Tuple[int, int, int, int]:
         fp, flib, bbs, inst = 0, 0, 0, 0
         for f_addr, f in program.items():
-            # FIXME: the count is the number of all functions or only ones matched ?
-            # FIXME: the previous implementation only considered the matched ones.
             fp += int(not (f.is_import()))
             flib += int(f.is_import())
             bbs += len(f)

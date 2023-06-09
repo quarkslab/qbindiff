@@ -19,7 +19,7 @@ from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
 from qbindiff.passes import FeaturePass, ZeroPass
 from qbindiff.utils import is_debug
-from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, SimMatrix, Addr, Idx
+from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, SimMatrix, Addr, Idx, Distance
 from qbindiff.mapping.bindiff import export_to_bindiff
 
 
@@ -367,14 +367,14 @@ class QBinDiff(Differ):
 
     DTYPE = np.float32
 
-    def __init__(self, primary: Program, secondary: Program, distance: str = "canberra", **kwargs):
+    def __init__(self, primary: Program, secondary: Program, distance=Distance.canberra, **kwargs):
         """
         QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
 
         :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param distance: the distance function used when comparing the feature vector
-                         extracted from the graphs. Default is 'canberra'.
+                         extracted from the graphs. Default is a py:class:`qbindiff.types.Distance` initialized to 'canberra'.
         """
 
         super(QBinDiff, self).__init__(primary, secondary, **kwargs)
@@ -384,7 +384,7 @@ class QBinDiff(Differ):
         self.primary_i2f = self.primary_i2n
         self.secondary_f2i = self.secondary_n2i
         self.secondary_i2f = self.secondary_i2n
-
+        
         # Register the import function mapping and feature extraction pass
         self._feature_pass = FeaturePass(distance)
         self.register_postpass(self._feature_pass)

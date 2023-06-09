@@ -24,9 +24,7 @@ class FeatureCollector:
         """
         Add a feature value in the collector. Features are responsible to call
         this function to register a value with its own name.
-        FIXME: Why calling the function add_feature, and and not add_feature_result ?
-        FIXME: Why not combining add_feature and add_dict_feature by enabling the two types ?
-
+        
         :param key: name of the feature adding the value
         :param value: float value to be added in the collector
         """

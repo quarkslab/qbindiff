@@ -2,10 +2,11 @@ from __future__ import annotations
 from typing import Any, Iterable, TypeAlias, List, Tuple, Dict
 
 import numpy
-import enum
 from pathlib import Path
 from scipy.sparse import csr_matrix, csr_array
 from collections import namedtuple
+import enum_tools.documentation
+from enum import IntEnum
 
 from qbindiff.abstract import GenericGraph
 
@@ -109,3 +110,14 @@ PathLike: TypeAlias = str | Path
 A generic Graph, iterable over the nodes
 """
 Graph: TypeAlias = GenericGraph
+
+
+@enum_tools.documentation.document_enum
+class Distance(IntEnum):
+    """
+    Enum of different (supported) distances used to compute the similarity matrix based on chosen features.
+    """
+    canberra = 0    # doc: canberra distance
+    euclidean = 1  # doc: euclidean distance
+    cosine = 2   # doc: cosine distance
+ 

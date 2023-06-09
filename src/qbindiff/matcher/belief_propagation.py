@@ -7,12 +7,9 @@ from collections.abc import Generator
 # local imports
 from qbindiff.types import Positive, Ratio, RawMapping, SparseMatrix
 
-
 class BeliefMWM:
     """
     Computes the optimal solution to the **Maxmimum Weight Matching problem**.
-
-    # FIXME: some methods shall be protected (if they are not meant to be used API-wise)
     """
 
     def __init__(self, sim_matrix: SparseMatrix, epsilon: Positive = 0.5):
@@ -29,8 +26,7 @@ class BeliefMWM:
         self.scores: List[float] = []         #: Scores list
         self.max_avg_score: float = 0.0       #: Current maximum average score
         self.best_mapping: RawMapping = None  #: Current best mapping
-        # FIXME: what type is this ?
-        self.best_marginals = None           #: Current associated marginals
+        self.best_marginals = None           #: Current associated marginals as a SparseMatrix
         self.epsilon = self._dtype(epsilon)  #: Current epsilon
         self._epsilonref = self.epsilon.copy()
 
@@ -62,63 +58,63 @@ class BeliefMWM:
         """
 
         for niter in range(1, maxiter + 1):
-            self.update_messages()
-            self.round_messages()
-            self.update_epsilon()
+            self._update_messages()
+            self._round_messages()
+            self._update_epsilon()
             yield niter
-            if self.has_converged():
+            if self._has_converged():
                 logging.info(f"[+] Converged after {niter} iterations")
                 return
         logging.info(f"[+] Did not converged after {maxiter} iterations")
 
-    def update_messages(self) -> None:
+    def _update_messages(self) -> None:
         """
         Update the messages considering if it's better to start from the first graph or the second
         """
         if self._shape[0] <= self._shape[1]:
-            self.update_messages_primary()
+            self._update_messages_primary()
         else:
-            self.update_messages_secondary()
+            self._update_messages_secondary()
 
-    def update_messages_primary(self) -> None:
+    def _update_messages_primary(self) -> None:
         """
         Update messages starting from the first graph
         """
 
         # Update messages from node to f
         self.msg_n2f.data[:] = self.weights.data
-        self.update_factor_g_messages()
+        self._update_factor_g_messages()
         self.msg_n2f.data += self.msg_g2n.data
 
         self.marginals.data[:] = self.msg_n2f.data
 
         # Update messages from node to g
         self.msg_n2g.data[:] = self.weights.data
-        self.update_factor_f_messages()
+        self._update_factor_f_messages()
         self.msg_n2g.data += self.msg_f2n.data
 
         self.marginals.data += self.msg_f2n.data
 
-    def update_messages_secondary(self) -> None:
+    def _update_messages_secondary(self) -> None:
         """
         Update messages starting from the second graph
         """
 
         # Update messages from node to g
         self.msg_n2g.data[:] = self.weights.data
-        self.update_factor_f_messages()
+        self._update_factor_f_messages()
         self.msg_n2g.data += self.msg_f2n.data
 
         self.marginals.data[:] = self.msg_n2g.data
 
         # Update messages from node to f
         self.msg_n2f.data[:] = self.weights.data
-        self.update_factor_g_messages()
+        self._update_factor_g_messages()
         self.msg_n2f.data += self.msg_g2n.data
 
         self.marginals.data += self.msg_g2n.data
 
-    def update_factor_msg(self, messages) -> None:
+    def _update_factor_msg(self, messages) -> None:
         """
         Update the messages from factor to node. It is done in-place.
 
@@ -132,7 +128,7 @@ class BeliefMWM:
         else:
             messages[:] = self._dtype(0)
 
-    def update_factor_g_messages(self) -> None:
+    def _update_factor_g_messages(self) -> None:
         """
         Update all the messages from factor g to node
         """
@@ -148,7 +144,7 @@ class BeliefMWM:
             begin = msg_n2g_csc.indptr[k]
             end = msg_n2g_csc.indptr[k + 1]
             col = msg_n2g_csc.data[begin:end]
-            self.update_factor_msg(col)
+            self._update_factor_msg(col)
             self.msg_g2n.data[begin:end] = col
 
             # Non optimized version
@@ -159,7 +155,7 @@ class BeliefMWM:
         # Restore the csr (compressed sparse row) format
         self.msg_g2n = self.msg_g2n.tocsr()
 
-    def update_factor_f_messages(self) -> None:
+    def _update_factor_f_messages(self) -> None:
         """
         Update all the messages from factor f to node
         """
@@ -170,7 +166,7 @@ class BeliefMWM:
             begin = self.msg_n2f.indptr[k]
             end = self.msg_n2f.indptr[k + 1]
             row = self.msg_n2f.data[begin:end]
-            self.update_factor_msg(row)
+            self._update_factor_msg(row)
             self.msg_f2n.data[begin:end] = row
 
             # Non optimized version
@@ -178,14 +174,14 @@ class BeliefMWM:
             # ~ self.update_factor_msg(row.data)
             # ~ self.msg_f2n[k] = row
 
-    def round_messages(self) -> None:
+    def _round_messages(self) -> None:
         """
         Rounding phase
         """
         self.matches_mask[:] = self.marginals.data > 0
         self.scores.append(self.current_score)
 
-    def update_epsilon(self) -> None:
+    def _update_epsilon(self) -> None:
         """
         Epsilon phase
         """
@@ -199,7 +195,7 @@ class BeliefMWM:
         elif len(self.scores) >= 10:
             self.epsilon *= 1.2
 
-    def has_converged(self, window: int = 60, pattern_size: int = 15) -> bool:
+    def _has_converged(self, window: int = 60, pattern_size: int = 15) -> bool:
         """
         Decide whether the algorithm has converged.
         The algorithm has converged if we can find the same pattern at least once by looking
@@ -311,7 +307,7 @@ class BeliefQAP(BeliefMWM):
         #: Number of squares (ii`, jj`) for each edge ii`
         self.squares_per_edge = np.diff(squares.indptr)
 
-    def update_messages_primary(self) -> None:
+    def _update_messages_primary(self) -> None:
         """
         Update messages starting from the first graph
         """
@@ -321,19 +317,19 @@ class BeliefQAP(BeliefMWM):
 
         # Update messages from node to f
         self.msg_n2f.data[:] = partial
-        self.update_factor_g_messages()
+        self._update_factor_g_messages()
         self.msg_n2f.data += self.msg_g2n.data
 
         self.marginals.data[:] = self.msg_n2f.data
 
         # Update messages fron node to g
         self.msg_n2g.data[:] = partial
-        self.update_factor_f_messages()
+        self._update_factor_f_messages()
         self.msg_n2g.data += self.msg_f2n.data
 
         self.marginals.data += self.msg_f2n.data
 
-    def update_messages_secondary(self) -> None:
+    def _update_messages_secondary(self) -> None:
         """
         Update messages starting from the second graph
         """
@@ -343,38 +339,39 @@ class BeliefQAP(BeliefMWM):
 
         # Update messages from node to g
         self.msg_n2g.data[:] = partial
-        self.update_factor_f_messages()
+        self._update_factor_f_messages()
         self.msg_n2g.data += self.msg_f2n.data
 
         self.marginals.data[:] = self.msg_n2g.data
 
         # Update messages from node to f
         self.msg_n2f.data[:] = partial
-        self.update_factor_g_messages()
+        self._update_factor_g_messages()
         self.msg_n2f.data += self.msg_g2n.data
 
         self.marginals.data += self.msg_g2n.data
 
-    def round_messages(self) -> None:
+    def _round_messages(self) -> None:
         """
         Rounding phase
         """
 
-        super(BeliefQAP, self).round_messages()
-        self.update_square_factor_messages()
+        super(BeliefQAP, self)._round_messages()
+        self._update_square_factor_messages()
 
-    def update_square_factor_messages(self) -> None:
+    def _update_square_factor_messages(self) -> None:
         """
-        FIXME: writing in latex ?
-        Update the messages **m**\ (**h**\ [ii\`jj\`] -> **X**\ [ii\`])
-
-        The formula is this one:
-          **m**\ (**h**\ [ii\`jj\`] -> **X**\ [ii\`]) = clip(**w**\ [ii\`jj\`] + **m**\ (**X**\ [jj\`] -> **h**\ [ii\`jj\`])) - clip(**m**\ (**X**\ [jj\`] -> **h**\ [ii\`jj\`]))
-
-          where clip(**x**\ ) = max(0, **x**\ )
-
-        The formula can be rewritten as:
-          **m**\ (**h**\ [ii\`jj\`] -> **X**\ [ii\`]) = clip(**w**\ [ii\`jj\`] + clip(-**m**\ (**X**\ [jj\`] -> **h**\ [ii\`jj\`])))
+        
+        Update the messages denoted by
+        $$
+        m_{h_{ii\prime jj\prime} \rightarrow{} X_{ii\prime}}
+        $$
+        
+        The formula is the following one : 
+        $$
+        m_{h_{ii\prime j j\prime} \xrightarrow{} X_{ii\prime}} = \text{clip} (w_{ii\prime jj\prime} + m_{X_{jj\prime}\rightarrow{} h_{ii\prime j j\prime}}) - \text{clip}(m_{X_{jj\prime} \xrightarrow{} h_{ii\prime j j\prime}})
+        $$
+        where $$ \text{clip}(x) = max(0, x) $$
         """
 
         # partial is the message from node to square factor m(X[ii`] -> h[ii`jj`])

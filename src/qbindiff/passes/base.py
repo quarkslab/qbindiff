@@ -12,7 +12,7 @@ from qbindiff.features.manager import FeatureKeyManager
 from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
 from qbindiff.passes.metrics import pairwise_distances
 from qbindiff.utils import is_debug
-from qbindiff.types import SimMatrix
+from qbindiff.types import SimMatrix, Distance
 
 
 class GenericPass(metaclass=ABCMeta):
@@ -37,12 +37,13 @@ class FeaturePass(GenericPass):
     matrix
     """
 
-    def __init__(self, distance: str):
+    def __init__(self, distance: Distance):
         """
-        FIXME: what is distance ? as the type is limited might can create enum ?
-        :param distance:
+    
+        :param distance: distance to compute the similarity of type py:class:`qbindiff.types.Distance`
         """
-        self._default_distance = distance
+        
+        self._default_distance = distance.name
         self._distances = {}
         self._visitor = ProgramVisitor()
 

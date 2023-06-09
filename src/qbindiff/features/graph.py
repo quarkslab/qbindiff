@@ -6,6 +6,7 @@ from qbindiff.loader import Program, Function
 from qbindiff.loader import types
 from typing import List
 import hashlib
+import community
 
 
 class BBlockNb(FunctionFeatureExtractor):
@@ -43,17 +44,11 @@ class BytesHash(FunctionFeatureExtractor):
     
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
         instructions = []
-        for bba, bb in function.items():
-            for ins in bb.instructions:
-                instructions.append(ins)
-                # FIXME: Exposing a bytes() function in the BasicBlock object of the loader and using it! (might need also modify python-binexport and quokka)
-        instructions = sorted(instructions, key=lambda x: x.addr)
         bytes_seq = b''
-        for ins in instructions:
-            bytes_seq += ins.bytes
-        value = int(hashlib.md5(bytes_seq).hexdigest(), 16)
+        for bba, bb in function.items():
+             bytes_seq += bb.bytes
+        value = float(int(hashlib.md5(bytes_seq).hexdigest(), 16))
 
-        # FIXME: What is that ? isn't value meant to be a float ?
         collector.add_feature(self.key, value)
 
 
@@ -112,8 +107,12 @@ class JumpNb(FunctionFeatureExtractor):
     key = "jnb"
 
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        value = len(function.flowgraph.edges)
-        # FIXME: This is not the number of jumps.
+        value = 0
+        for ffa, ff in function.items():
+            for bba, bb in ff.items():
+                for ins in bb.instructions : 
+                    if ins.mnemonic == 'jmp':
+                        value += 1
         collector.add_feature(self.key, value)
 
 
@@ -340,7 +339,6 @@ class GraphCommunities(FunctionFeatureExtractor):
     key = "Gcom"
 
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        import community  # FIXME: really need local import ?
 
         partition = community.best_partition(function.flowgraph.to_undirected())
         if (len(function) > 1) and partition:
