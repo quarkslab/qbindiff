@@ -98,21 +98,16 @@ class MDIndex(FunctionFeatureExtractor):
         collector.add_feature(self.key, float(value))
 
 
-class JumpNb(FunctionFeatureExtractor):
+class JumpNb(InstructionFeatureExtractor):
     """
     Number of jumps in the function.
     """
 
     key = "jnb"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        value = 0
-        for ffa, ff in function.items():
-            for bba, bb in ff.items():
-                for ins in bb.instructions : 
-                    if ins.mnemonic == 'jmp':
-                        value += 1
-        collector.add_feature(self.key, value)
+    def visit_instruction(self, program: Program, instruction: Instruction, collector: FeatureCollector) -> None:
+        if instruction.mnemonic == 'jmp':
+            collector.add_dict_feature(self.key, {'value': 1})
 
 
 class SmallPrimeNumbers(FunctionFeatureExtractor):
@@ -165,7 +160,7 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
         collector.add_feature(self.key, value)
 
 
-class ReadWriteAccess(FunctionFeatureExtractor):
+class ReadWriteAccess(OperandFeatureExtractor):
     """
     Number of memory access in the function.
     Both read and write.
@@ -173,16 +168,10 @@ class ReadWriteAccess(FunctionFeatureExtractor):
 
     key = "rwa"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        value = 0
-        for bb_addr, bb in function.items():
-            for ins in bb.instructions:
-                for op in ins.operands:
-                    if op.type.name in ['memory', 'displacement', 'phrase']: 
-                        value += 1
+    def visit_operand(self, program: Program, operand: Operand, collector: FeatureCollector) -> None:
+        if operand.type.name in ('memory', 'displacement', 'phrase'): 
+            collector.add_dict_feature(self.key, {'value': 1})
 
-        collector.add_feature(self.key, value)
-        
 
 class MaxParentNb(FunctionFeatureExtractor):
     """
