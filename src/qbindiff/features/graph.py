@@ -43,7 +43,6 @@ class BytesHash(FunctionFeatureExtractor):
     key = "bh"
     
     def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        instructions = []
         bytes_seq = b''
         for bba, bb in function.items():
             bytes_seq += bb.bytes
