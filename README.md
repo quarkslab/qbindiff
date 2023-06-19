@@ -173,4 +173,4 @@ Any help, or feedback is greatly appreciated via Github issues, pull requests.
 * Alexis Challande
 * Elie Mengin
 
-[**All contributions**](https://github.com/quarkslab/pastis/graphs/contributors)
+[**All contributions**](https://github.com/quarkslab/qbindiff/graphs/contributors)
