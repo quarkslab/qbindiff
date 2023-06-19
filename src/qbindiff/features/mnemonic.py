@@ -7,7 +7,7 @@ from qbindiff.loader import Program, Instruction
 class MnemonicSimple(InstructionFeatureExtractor):
     """
     Mnemonic feature.
-    It extracts a dictionary with mnemonic as key and 0 or 1 as value.
+    It extracts a dictionary with mnemonic as key and 1 as value.
     """
 
     key = "M"
