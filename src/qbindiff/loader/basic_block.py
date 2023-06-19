@@ -38,7 +38,7 @@ class BasicBlock(Iterable[Instruction]):
     def load_ida(self, addr) -> None:
         raise NotImplementedError("Ida backend loader is not yet fully implemented")
 
-    def load_quokka(self, *ags, **kwargs) -> None:
+    def load_quokka(self, *args, **kwargs) -> None:
         from qbindiff.loader.backend.quokka import BasicBlockBackendQuokka
 
         self._backend = BasicBlockBackendQuokka(*args, **kwargs)
