@@ -35,7 +35,7 @@ class Address(FunctionFeatureExtractor):
 
 class DatName(InstructionFeatureExtractor):
     """
-    References to data in the instruction (as retrieved by binexport or Quokka).
+    References to data in the instruction (as retrieved by the backend loader).
     This feature maps the data address to the number of reference occurences to it.
     It's a superset of :py:obj:`StrRef` feature.
     """
