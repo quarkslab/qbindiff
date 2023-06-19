@@ -111,7 +111,7 @@ class FeatureExtractor:
 
     def __init__(self, weight: Positive = 1.0):
         """
-        :param weight: weight to apply to this feature from 0 to 1.0
+        :param weight: weight to apply to this feature
         """
         self._weight = weight
 
