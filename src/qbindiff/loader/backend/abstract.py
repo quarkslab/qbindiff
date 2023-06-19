@@ -262,10 +262,9 @@ class AbstractProgramBackend(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @property
-    def exec_path(self) -> str | None:
+    @abstractmethod
+    def exec_path(self) -> str:
         """
-        Returns the executable path if it has been specified.
-        By default it returns None
+        Returns the executable path
         """
-
-        return None
+        raise NotImplementedError()

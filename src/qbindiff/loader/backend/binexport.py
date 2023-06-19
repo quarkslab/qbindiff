@@ -379,3 +379,10 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         Returns a dictionary with function name as key and the function address as value
         """
         return self._fun_names
+
+    @property
+    def exec_path(self) -> str:
+        """
+        Guess the raw binary name by removing the final .BinExport
+        """
+        return self.name.replace(".BinExport", "")
