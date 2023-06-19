@@ -57,8 +57,8 @@ will compile some components written in native c.
 As depicted above, qBinDiff relies on some projects (also developed at Quarkslab):
 
 * [python-binexport](https://github.com/quarkslab/python-binexport), wrapper on the BinExport protobuf format.
-* [python-bindiff](https://github.com/quarkslab/python-binexport), wrapper around bindiff (used to write results as Bindiff databases)
-* [Quokka](https://github.com/quarkslab/quokka), another binary exported based on IDA. Faster than binexpotr and more exhaustive (thus diffing more relevant)
+* [python-bindiff](https://github.com/quarkslab/python-bindiff), wrapper around bindiff (used to write results as Bindiff databases)
+* [Quokka](https://github.com/quarkslab/quokka), another binary exported based on IDA. Faster than binexport and more exhaustive (thus diffing more relevant)
 
 
 
