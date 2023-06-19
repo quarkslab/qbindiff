@@ -108,7 +108,8 @@ setup(
         "datasketch",
         "scikit-learn", 
         "python-louvain",
-        "enum_tools"
+        "enum_tools",
+        "python-bindiff"
     ],
     scripts=["bin/qbindiff"],
     extras_require={
