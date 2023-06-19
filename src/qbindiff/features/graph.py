@@ -46,7 +46,7 @@ class BytesHash(FunctionFeatureExtractor):
         instructions = []
         bytes_seq = b''
         for bba, bb in function.items():
-             bytes_seq += bb.bytes
+            bytes_seq += bb.bytes
         value = float(int(hashlib.md5(bytes_seq).hexdigest(), 16))
 
         collector.add_feature(self.key, value)
