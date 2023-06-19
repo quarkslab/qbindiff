@@ -333,7 +333,6 @@ class ProgramBackendBinExport(AbstractProgramBackend):
 
         self._enable_cortexm = enable_cortexm
 
-        self.exec_path = file
         self.be_prog = binexport.ProgramBinExport(file)
         self.architecture_name = self.be_prog.architecture
         self._fun_names = {}  # {fun_name : fun_address}
