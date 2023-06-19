@@ -364,14 +364,14 @@ class BeliefQAP(BeliefMWM):
         
         Update the messages denoted by
         $$
-        m_{h_{ii\prime jj\prime} \rightarrow{} X_{ii\prime}}
+        m_{h_{ii\\prime jj\\prime} \\rightarrow{} X_{ii\\prime}}
         $$
         
         The formula is the following one : 
         $$
-        m_{h_{ii\prime j j\prime} \xrightarrow{} X_{ii\prime}} = \text{clip} (w_{ii\prime jj\prime} + m_{X_{jj\prime}\rightarrow{} h_{ii\prime j j\prime}}) - \text{clip}(m_{X_{jj\prime} \xrightarrow{} h_{ii\prime j j\prime}})
+        m_{h_{ii\\prime j j\\prime} \\xrightarrow{} X_{ii\\prime}} = \\text{clip} (w_{ii\\prime jj\\prime} + m_{X_{jj\\prime}\\rightarrow{} h_{ii\\prime j j\\prime}}) - \\text{clip}(m_{X_{jj\\prime} \\xrightarrow{} h_{ii\\prime j j\\prime}})
         $$
-        where $$ \text{clip}(x) = max(0, x) $$
+        where $$ \\text{clip}(x) = max(0, x) $$
         """
 
         # partial is the message from node to square factor m(X[ii`] -> h[ii`jj`])
