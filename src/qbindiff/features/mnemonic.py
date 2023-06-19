@@ -19,9 +19,10 @@ class MnemonicSimple(InstructionFeatureExtractor):
 class MnemonicTyped(InstructionFeatureExtractor):
     """
     Typed mnemonic feature.
-    It extracts a dictionary where key is the mnemonic and the type of operands
+    It extracts a dictionary where key is a combination of the mnemonic
+    and the type of the operands.
     e.g I: immediate, R: Register, thus mov rax, 10, becomes MOVRI.
-    Values of the dictionary is 0 or 1 if the typed mnemonic is present.
+    Values of the dictionary is 1 if the typed mnemonic is present.
     """
     
     key = "Mt"
