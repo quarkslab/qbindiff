@@ -47,7 +47,7 @@ class LibName(FunctionFeatureExtractor):
     """
     Library (internal) calls feature.
     This features computes a dictionary of library functions called as keys and the count as values.
-    It relies on IDA to correctly identify a function as a library.
+    It relies on the backend loader to correctly identify a function as a library.
     """
 
     key = "lib"
