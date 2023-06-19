@@ -36,7 +36,7 @@ class Address(FunctionFeatureExtractor):
 class DatName(InstructionFeatureExtractor):
     """
     References to data in the instruction (as retrieved by the backend loader).
-    This feature maps the data address to the number of reference occurences to it.
+    This feature maps the data value to the number of reference occurences to it.
     It's a superset of :py:obj:`StrRef` feature.
     """
 
@@ -68,8 +68,7 @@ class DatName(InstructionFeatureExtractor):
 class StrRef(InstructionFeatureExtractor):
     """
     References to strings in the instruction.
-    This feature maps the string adddress to the number of occurences to it.
-    It does not relate to the string value itself.
+    This feature maps the string to the number of occurences to it.
     """
 
     key = "strref"
