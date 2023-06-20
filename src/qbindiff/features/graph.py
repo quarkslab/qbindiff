@@ -4,6 +4,7 @@ import math
 from qbindiff.features.extractor import FunctionFeatureExtractor, InstructionFeatureExtractor, OperandFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function, Instruction, Operand
 from qbindiff.loader import types
+from qbindiff.types import OperandType
 from typing import List
 import hashlib
 import community
@@ -169,7 +170,7 @@ class ReadWriteAccess(OperandFeatureExtractor):
     key = "rwa"
 
     def visit_operand(self, program: Program, operand: Operand, collector: FeatureCollector) -> None:
-        if operand.type.name in ('memory', 'displacement', 'phrase'): 
+        if operand.type in (OperandType.memory, OperandType.displacement, OperandType.phrase): 
             collector.add_dict_feature(self.key, {'value': 1})
 
 
