@@ -49,6 +49,11 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
     It represents a generic backend loader for a Instruction
     """
 
+    """
+    Max instruction ID. All the instruction IDs will be in the range [0, MAX_ID]
+    """
+    MAX_ID = 2500
+
     @property
     @abstractmethod
     def addr(self) -> Addr:
@@ -93,8 +98,8 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
     @abstractmethod
     def id(self) -> int:
         """
-        Return the instruction ID as int.
-        WARNING: the instruction ID must be in range [0, 2000[
+        Returns the capstone instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
+        The id is MAX_ID if there is no capstone instruction available.
         """
         raise NotImplementedError()
 

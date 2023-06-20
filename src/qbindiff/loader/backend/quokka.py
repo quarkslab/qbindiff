@@ -260,12 +260,11 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
     @property
     def id(self) -> int:
         """
-        Returns the capstone instruction ID and -1
-        if there is no capstone instruction is available.
+        Returns the capstone instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
+        The id is MAX_ID if there is no capstone instruction available.
         """
-
         if self.cs_instr is None:
-            return -1  # Custom defined value representing a "unknown" instruction
+            return self.MAX_ID  # Custom defined value representing a "unknown" instruction
         return self.cs_instr.id
 
     @property
