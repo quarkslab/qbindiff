@@ -306,6 +306,12 @@ class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
         chunk = self.qb_block.parent
         chunk._raw_dict[self.qb_block.start] = self.qb_block.proto_index
 
+    def __len__(self) -> int:
+        """
+        The numbers of instructions in the basic block
+        """
+        return len(self.qb_block)
+
     @property
     def addr(self) -> Addr:
         """

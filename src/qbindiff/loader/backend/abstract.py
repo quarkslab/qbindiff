@@ -126,6 +126,13 @@ class AbstractBasicBlockBackend(metaclass=ABCMeta):
     It represents a generic backend loader for a BasicBlock
     """
 
+    @abstractmethod
+    def __len__(self) -> int:
+        """
+        The numbers of instructions in the basic block
+        """
+        raise NotImplementedError()
+
     @property
     @abstractmethod
     def addr(self) -> Addr:

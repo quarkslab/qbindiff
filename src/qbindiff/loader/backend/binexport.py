@@ -186,6 +186,12 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         self._program = program
         self.be_block = be_block
 
+    def __len__(self) -> int:
+        """
+        The numbers of instructions in the basic block
+        """
+        return len(self.be_block)
+
     def _disassemble(self, bb_asm: bytes, correct_mnemonic: str, correct_size: int) -> list[capstone.CsInsn]:
         """
         Disassemble the basic block using capstone trying to guess the instruction set

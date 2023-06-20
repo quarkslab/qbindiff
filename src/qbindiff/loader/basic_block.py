@@ -57,7 +57,7 @@ class BasicBlock(Iterable[Instruction]):
         return self.instructions.__iter__()
 
     def __len__(self):
-        return len(list(self.instructions.__iter__()))
+        return len(self._backend)
 
     @property
     def addr(self) -> Addr:
