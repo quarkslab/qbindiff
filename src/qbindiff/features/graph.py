@@ -3,8 +3,7 @@ import numpy as np
 import math
 from qbindiff.features.extractor import FunctionFeatureExtractor, InstructionFeatureExtractor, OperandFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Function, Instruction, Operand
-from qbindiff.loader import types
-from qbindiff.types import OperandType
+from qbindiff.loader.types import OperandType
 from typing import List
 import hashlib
 import community
