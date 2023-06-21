@@ -1,11 +1,19 @@
+# local imports
 from __future__ import annotations
-import quokka, networkx, logging, weakref
-from struct import pack
+import logging
+import weakref
 from functools import cached_property
-from capstone import CS_OP_REG, CS_OP_IMM, CS_OP_MEM, CS_GRP_JUMP
 from collections.abc import Iterator
 from typing import Any, TypeAlias, Set, Dict, List
 
+# third party imports
+import quokka
+import quokka.types
+import networkx
+import capstone
+from capstone import CS_OP_REG, CS_OP_IMM, CS_OP_MEM, CS_GRP_JUMP
+
+# local imports
 from qbindiff.loader import Data, Structure
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
@@ -14,29 +22,16 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
-from qbindiff.loader.types import (
-    FunctionType,
-    DataType,
-    StructureType,
-    ReferenceType,
-    ReferenceTarget,
-)
+from qbindiff.loader.types import FunctionType, DataType, StructureType, ReferenceType, ReferenceTarget, OperandType
 from qbindiff.types import Addr
 
 
 # Aliases
-qbProgram: TypeAlias = quokka.Program
-qbFunction: TypeAlias = quokka.function.Function
-qbBlock: TypeAlias = quokka.block.Block
-qbInstruction: TypeAlias = quokka.instruction.Instruction
-qbOperand: TypeAlias = quokka.instruction.Operand
 capstoneOperand: TypeAlias = Any  # Relaxed typing
 capstoneValue: TypeAlias = Any  # Relaxed typing
 
 
 # ===== General purpose utils functions =====
-
-
 def convert_data_type(qbe_data_type: quokka.types.DataType) -> DataType:
     """
     Convert a quokka DataType to qbindiff DataType
@@ -65,9 +60,7 @@ def convert_data_type(qbe_data_type: quokka.types.DataType) -> DataType:
         return DataType.UNKNOWN
 
 
-def convert_struct_type(
-    qbe_struct_type: quokka.types.StructureType,
-) -> StructureType:
+def convert_struct_type(qbe_struct_type: quokka.types.StructureType) -> StructureType:
     """
     Convert a quokka StructureType to qbindiff StructureType
 
@@ -100,109 +93,69 @@ def convert_ref_type(qbe_ref_type: quokka.types.ReferenceType) -> ReferenceType:
     elif qbe_ref_type == quokka.types.ReferenceType.STRUC:
         return ReferenceType.STRUC
     else:
-        return StructureType.UNKNOWN
-
-
-def to_hex2(s) -> str:
-    """
-    Converts hexadecimal bytes to corresponding hexa string
-
-    :param s: bytes to convert
-    :return: corresponding hexa string
-    """
-    r = "".join("{0:02x}".format(c) for c in s)
-    while r[0] == "0":
-        r = r[1:]
-    return r
-
-
-def to_x(s) -> str:
-    """
-    Converts an integer to its hexadecimal representation in string
-
-    :param s: integer
-    :return: corresponding hexadecimal value in string
-    """
-
-    if not s:
-        return "0"
-    x = pack(">q", s)
-    while x[0] in ("\0", 0):
-        x = x[1:]
-    return to_hex2(x)
-
+        return ReferenceType.UNKNOWN
 
 # ===========================================
 
 
 class OperandBackendQuokka(AbstractOperandBackend):
     """
-    Backend loader of a Operand using Quokka
+    Backend loader of an Operand using Quokka
     """
 
-    def __init__(self, cs_instruction: "capstone.CsInsn", cs_operand: capstoneOperand):
+    def __init__(self, cs_instruction: "capstone.CsInsn", cs_operand: capstoneOperand, cs_operand_position: int):
         super(OperandBackendQuokka, self).__init__()
 
         self.cs_instr = cs_instruction
         self.cs_operand = cs_operand
+        self.cs_operand_position = cs_operand_position
 
     def __str__(self) -> str:
-        op = self.cs_operand
-        if self.type == CS_OP_REG:
-            return self.cs_instr.reg_name(op.reg)
-        elif self.type == CS_OP_IMM:
-            return to_x(op.imm)
-        elif self.type == CS_OP_MEM:
-            op_str = ""
-            try:
-                if op.mem.segment != 0:
-                    op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
-            except AttributeError:
-                pass  # Not all the architectures have segments
-            if op.mem.base != 0:
-                op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
-            if op.mem.index != 0:
-                op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
-            if (disp := op.mem.disp) != 0:
-                if disp > 0:
-                    op_str += "+"
-                else:
-                    op_str += "-"
-                    disp = -disp
-                op_str += f"0x{disp:x}"
-            op_str += "]"
-            return op_str
-        else:
-            raise NotImplementedError(f"Unrecognized capstone type {self.type}")
+        return self.cs_instr.op_str.split(",")[self.cs_operand_position]
 
     @property
-    def immutable_value(self) -> int | None:
+    def value(self) -> int | None:
         """
-        Returns the immutable value (not addresses) used by the operand.
-        If there is no immutable value then returns None.
+        Returns the immediate value (not addresses).
         """
 
-        if self.is_immutable():
+        if self.is_immediate():
             return self.cs_operand.value.imm
         return None
 
     @property
-    def type(self) -> int:
+    def type(self) -> OperandType:
+        """Returns the capstone operand type"""
+        op = self.cs_operand
+        typ = OperandType.unknown
+        cs_op_type = self.cs_operand.type
+        
+        if cs_op_type == capstone.CS_OP_REG:
+            return OperandType.register
+        elif cs_op_type == capstone.CS_OP_IMM:
+            return OperandType.immediate
+        elif cs_op_type == capstone.CS_OP_MEM:
+            # A displacement is represented as [reg+hex] (example : [rdi+0x1234])
+            # Then, base (reg) and disp (hex) should be different of 0
+            if op.mem.base != 0 and op.mem.disp != 0:
+                typ = OperandType.displacement
+            # A phrase is represented as [reg1 + reg2] (example : [rdi + eax])
+            # Then, base (reg1) and index (reg2) should be different of 0
+            if op.mem.base != 0 and op.mem.index != 0:
+                typ = OperandType.phrase
+            if op.mem.disp != 0:
+                typ = OperandType.displacement
+        else:
+            raise NotImplementedError(f"Unrecognized capstone type {cs_op_type}")
+        return typ
+
+    def is_immediate(self) -> bool:
         """
-        Returns the capstone operand type
+        Returns whether the operand is an immediate value (not considering addresses)
         """
 
-        return self.cs_operand.type
-
-    def is_immutable(self) -> bool:
-        """
-        Returns whether the operand is an immutable (not considering addresses)
-        """
-
-        # Ignore jumps since the target is an immutable
-        return self.cs_operand.type == CS_OP_IMM and not self.cs_instr.group(
-            CS_GRP_JUMP
-        )
+        # Ignore jumps since the target is an immediate
+        return self.type == OperandType.immediate and not self.cs_instr.group(capstone.CS_GRP_JUMP)
 
 
 class InstructionBackendQuokka(AbstractInstructionBackend):
@@ -210,11 +163,7 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
     Backend loader of a Instruction using Quokka
     """
 
-    def __init__(
-        self,
-        program: weakref.ref[ProgramBackendQuokka],
-        qb_instruction: qbInstruction,
-    ):
+    def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_instruction: quokka.instruction.Instruction):
         super(InstructionBackendQuokka, self).__init__()
 
         self.program = program
@@ -222,14 +171,11 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         self.cs_instr = qb_instruction.cs_inst
         if self.cs_instr is None:
             logging.error(
-                f"Capstone could not disassemble instruction at 0x{self.qb_instr.address:x} {self.qb_instr}"
-            )
+                f"Capstone could not disassemble instruction at 0x{self.qb_instr.address:x} {self.qb_instr}")
 
     def __del__(self):
         """
         Clean quokka internal state to deallocate memory
-        
-        :return: None
         """
 
         # Clear the reference to capstone object
@@ -238,9 +184,7 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         block = self.qb_instr.parent
         block._raw_dict[self.qb_instr.address] = self.qb_instr.proto_index
 
-    def _cast_references(
-        self, references: List[quokka.types.ReferenceTarget]
-    ) -> List[ReferenceTarget]:
+    def _cast_references(self, references: List[quokka.types.ReferenceTarget]) -> List[ReferenceTarget]:
         """
         Cast the quokka references to qbindiff reference types
 
@@ -271,7 +215,6 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         """
         The address of the instruction
         """
-
         return self.qb_instr.address
 
     @property
@@ -279,7 +222,6 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         """
         Returns the instruction mnemonic as a string
         """
-
         return self.qb_instr.mnemonic
 
     @cached_property
@@ -305,10 +247,10 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
 
         if self.cs_instr is None:
             return iter([])
-        return (OperandBackendQuokka(self.cs_instr, o) for o in self.cs_instr.operands)
+        return (OperandBackendQuokka(self.cs_instr, o, i) for i, o in enumerate(self.cs_instr.operands))
 
     @property
-    def groups(self) -> List[int]:
+    def groups(self) -> List[str]:
         """
         Returns a list of groups of this instruction. Groups are capstone based but enriched.
         """
@@ -318,11 +260,11 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
     @property
     def id(self) -> int:
         """
-        Returns the capstone instruction ID
+        Returns the capstone instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
+        The id is MAX_ID if there is no capstone instruction available.
         """
-
         if self.cs_instr is None:
-            return 1999  # Custom defined value representing a "unknown" instruction
+            return self.MAX_ID  # Custom defined value representing a "unknown" instruction
         return self.cs_instr.id
 
     @property
@@ -330,16 +272,14 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         """
         Comment associated with the instruction
         """
-
-        return []  # Not supported
+        return ""  # Not supported
 
     @property
     def bytes(self) -> bytes:
         """
         Returns the bytes representation of the instruction
         """
-
-        return self.qb_instr.bytes
+        return bytes(self.qb_instr.bytes)
 
 
 class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
@@ -347,7 +287,7 @@ class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
     Backend loader of a BasicBlock using Quokka
     """
 
-    def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_block: qbBlock):
+    def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_block: quokka.block.Block):
         super(BasicBlockBackendQuokka, self).__init__()
 
         self.qb_block = qb_block
@@ -366,6 +306,12 @@ class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
         chunk = self.qb_block.parent
         chunk._raw_dict[self.qb_block.start] = self.qb_block.proto_index
 
+    def __len__(self) -> int:
+        """
+        The numbers of instructions in the basic block
+        """
+        return len(self.qb_block)
+
     @property
     def addr(self) -> Addr:
         """
@@ -381,11 +327,11 @@ class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
 
         :return: iterator over Quokka instructions
         """
+        return (InstructionBackendQuokka(self.program, instr) for instr in self.qb_block.instructions)
 
-        return (
-            InstructionBackendQuokka(self.program, instr)
-            for instr in self.qb_block.instructions
-        )
+    @property
+    def bytes(self) -> bytes:
+        return b"".join(x.bytes for x in self.instructions)
 
 
 class FunctionBackendQuokka(AbstractFunctionBackend):
@@ -393,7 +339,7 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
     Backend loader of a Function using Quokka
     """
 
-    def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_func: qbFunction):
+    def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_func: quokka.function.Function):
         super(FunctionBackendQuokka, self).__init__()
 
         self.qb_prog = qb_func.program
@@ -424,7 +370,6 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
         """
         The address of the function
         """
-
         return self.qb_func.start
 
     @property
@@ -432,7 +377,6 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
         """
         The Control Flow Graph of the function
         """
-
         return self.qb_func.graph
 
     @cached_property
@@ -440,7 +384,6 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
         """
         Set of function parents in the call graph
         """
-
         parents = set()
         for chunk in self.qb_func.callers:
             try:
@@ -455,7 +398,6 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
         """
         Set of function children in the call graph
         """
-
         children = set()
         for chunk in self.qb_func.calls:
             try:

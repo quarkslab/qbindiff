@@ -34,7 +34,6 @@ FEATURES = (
     CyclomaticComplexity,
     MDIndex,
     SmallPrimeNumbers,
-    ReadWriteAccess,
     MeanInsNB,
     GraphMeanDegree,
     GraphDensity,
@@ -50,6 +49,7 @@ FEATURES = (
     FuncName,
     # BasicBlockFeatureExtractor
     # InstructionFeatureExtractor
+    JumpNb,
     MnemonicSimple,
     MnemonicTyped,
     GroupsCategory,
@@ -57,6 +57,7 @@ FEATURES = (
     DatName,
     StrRef,
     # OperandFeatureExtractor
+    ReadWriteAccess,
     Constant,
 )
 

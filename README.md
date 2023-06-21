@@ -1,17 +1,68 @@
-qBinDiff
-========
+# qBinDiff
 
-Experimental binary diffing tool based on the **Network Alignement Quadratic Problem**.
+<p align="center">
+  <a href="https://github.com/quarkslab/qbindiff/releases">
+    <img src="https://img.shields.io/github/v/release/quarkslab/qbindiff?logo=github">
+  </a>
+  <img src="https://img.shields.io/github/license/quarkslab/qbindiff"/>
+  <a href="https://github.com/quarkslab/pastis/releases">
+    <img src="https://img.shields.io/github/actions/workflow/status/quarkslab/qbindiff/release.yml">
+  </a>
+  <img src="https://img.shields.io/github/downloads/quarkslab/tritondse/total"/>
+  <img src="https://img.shields.io/pypi/dm/qbindiff"/>
+</p>
 
-Installation
-------------
+qBinDiff is an experimental binary diffing addressing the diffing as a **Network Alignement Quadratic Problem**.
+But why developing yet another differ when Bindiff works well ?
+We love bindiff, but we have no control at all on the diffing process. Also, it works great on standard
+binaries but it is more complex to put it in practice on some cornercases (embedded firmwares, diffing
+two portions of the same binary etc).
 
-qBinDiff follows the regular installation process given below:
+The key idea is to enable **programing the diffing** by:
+* writing its own feature
+* being able to enforce some matches
+* being able to put the emphasis on either the content of functions (similarity)
+  or the links between them (callgraph)
 
-    pip install .
+In essence, the idea is to be able to diff by defining its own criteria which sometimes, are not the 
+control-flow CFG and instruction but more data-oriented for instance.
 
-Usage (command line)
---------------------
+Last, qbindiff as primarly been designed with the binary-diffing use-case in mind, but
+it can be applied to various other use-cases like social-networks. Indeed, diffing two
+programs boils down to determining the best alignement of the call graph following some
+similarity criterias.
+
+Indeed, solving this problem, APX-hard, that why we use a machine learning approach
+(more precisely optimization) to approximate the best match.
+
+Likewise Bindiff, qBinDiff also works using an exported disassembly of program obtained
+from IDA. Originally using BinExport, it now also support Quokka as backend which extracted
+file is more exhaustive and also more compact on disk (good for large binary dataset).
+
+> Note: qBinDiff is an experimental tool for power-user where many parameters, thresholds
+> or weights can be adjusted. Use it at your own risks.
+
+*(Please note that qBinDiff does not intend to be faster to Bindiff or other differ counterparts)*
+
+
+## Installation
+
+qBinDiff can be installed through pip with:
+
+    pip install qbindiff
+
+As some part of the algorithm are very CPU intensive the installation
+will compile some components written in native c.
+
+As depicted above, qBinDiff relies on some projects (also developed at Quarkslab):
+
+* [python-binexport](https://github.com/quarkslab/python-binexport), wrapper on the BinExport protobuf format.
+* [python-bindiff](https://github.com/quarkslab/python-bindiff), wrapper around bindiff (used to write results as Bindiff databases)
+* [Quokka](https://github.com/quarkslab/quokka), another binary exported based on IDA. Faster than binexport and more exhaustive (thus diffing more relevant)
+
+
+
+## Usage (command line)
 
 After installation, the binary ``qbindiff`` is available in the path.
 It takes in input two exported files and start the diffing analysis. The result can then
@@ -66,8 +117,7 @@ The complete command line options are:
       -h, --help                    Show this message and exit.
 
 
-Usage library
--------------
+## Library usage
 
 The strength of qBinDiff is to be usable as a python library. The following snippet shows an example
 of loading to binexport files and to compare them using the mnemonic feature.
@@ -89,47 +139,38 @@ mapping = differ.compute_matching()
 output = {(match.primary.addr, match.secondary.addr) for match in mapping}
 ```
 
-qBinViz
--------
+## Documentation
 
-qBinViz helps vizualizing diffs in IDA as twin views. However using it requires
-a python2 version of qBinDiff. The only thing that prevent it to work out of the
-box with python2 are types on prototypes. The can be removed with the following
-command in the main project directory:
+The documentation is available on the [diffing portal](https://quarkslab.github.io/diffing-portal/).
 
-```bash
-find . -name '*.py' -exec sed -i -e '/^\s*def/ s/: \?[^,=)]*\([,=)]\)/\1/g' -e '/^\s*def/ s/ -> .*:/:/g' '{}' \;
+
+## Custom diffing
+
+TODO: Example diffing something unrelated to diffing.
+
+
+## Papers and conference
+
+TODO:
+
+## Cite qBinDiff
+
+```latex
+TODO: ASE
 ```
 
 
-_(We recommend doing it in a separated dedicated branch)_
+## Contributing & Contributors
 
-Then the qbindiff module should be available in the pythonpath so that IDA qBinViz
-will find it. A simple solution is to create a symbolic link of qbindiff into $IDA_ROOT/python.
-qBinViz can then be triggered as a script with Ctrl+F7 or as a plugin by putting it
-in the $IDA_ROOT/plugins directory.
+Any help, or feedback is greatly appreciated via Github issues, pull requests.
 
-For developers
--------
+**Current**:
+* Robin David
+* Riccardo Mori
+* Roxane Cohen
 
-Since the commit ad057ae9 "Change coding style to `black`" the project switched to the
-automated code formatter Black. If you want to retrieve the old, clean `git blame` output
-you can either run it with `git blame [file] --ignore-revs-file .git-blame-ignore-revs`
-or configure git to automatically ignore that revision with
-```bash
-$ git config blame.ignoreRevsFile .git-blame-ignore-revs
-```
+**Past**:
+* Alexis Challande
+* Elie Mengin
 
-_Please note that GitLab blame interface doesn't support this feature yet (but there's an [open issue](https://gitlab.com/gitlab-org/gitlab/-/issues/31423))_
-
-TODO LIST
----------
-If you want to help us improve the tools, here are some items we want to work on. Feel free to contribute
-
-### Functionalities
-
-* adding dependencies & incompatibilities between features
-* refactor binexport loader to use: https://gitlab.qb/rdavid/python-binexport
-* memory managements (limit the memory used or a toggle)
-
-### Features
+[**All contributions**](https://github.com/quarkslab/qbindiff/graphs/contributors)

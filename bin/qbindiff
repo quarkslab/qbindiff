@@ -14,6 +14,7 @@ from tqdm import tqdm
 from qbindiff.features import FEATURES, DEFAULT_FEATURES
 from qbindiff.loader import LOADERS, LoaderType
 from qbindiff import Program, QBinDiff, Mapping
+from qbindiff.types import Distance
 
 
 def configure_logging(verbose: int):
@@ -57,7 +58,6 @@ def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
     print(output)
 
 
-DISTANCES = ("canberra", "correlation", "cosine", "euclidean")
 FEATURES_KEYS = {x.key: x for x in FEATURES}
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=300)
@@ -83,8 +83,8 @@ Features may be weighted by a positive value (default 1.0) and compared with a s
     "\n".join("  - {}: {}".format(x.key, x.__doc__) for x in FEATURES), DEFAULT_FEATURES
 )
 help_distance = f"""\b
-The following distances are available {DISTANCES}
-[default: {DISTANCES[0]}]"""
+The following distances are available {[d.name for d in Distance]}
+[default: canberra]"""
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -122,7 +122,7 @@ The following distances are available {DISTANCES}
 @click.option(
     "-d",
     "--distance",
-    type=click.Choice(DISTANCES),
+    type=click.Choice([d.name for d in Distance]),
     default=DEFAULT_DISTANCE,
     metavar="<function>",
     help=help_distance,

@@ -11,7 +11,8 @@ from typing import List
 
 class BasicBlock(Iterable[Instruction]):
     """
-    Representation of a binary basic block. This class is an Iterable of Instruction.
+    Representation of a binary basic block.
+    This class is an Iterable of Instruction.
     """
 
     def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
@@ -55,12 +56,14 @@ class BasicBlock(Iterable[Instruction]):
     def __iter__(self):
         return self.instructions.__iter__()
 
+    def __len__(self):
+        return len(self._backend)
+
     @property
     def addr(self) -> Addr:
         """
         Address of the basic block
         """
-
         return self._backend.addr
 
     @cached_property
@@ -68,5 +71,11 @@ class BasicBlock(Iterable[Instruction]):
         """
         List of Instruction objects of the basic block
         """
-        
         return [Instruction.from_backend(i) for i in self._backend.instructions]
+
+    @property
+    def bytes(self) -> bytes:
+        """
+        Raw bytes of basic block instructions.
+        """
+        return self._backend.bytes

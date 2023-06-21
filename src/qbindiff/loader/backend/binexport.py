@@ -1,14 +1,18 @@
+# builtin imports
 from __future__ import annotations
 import logging
-import capstone
 import weakref
-import binexport
-from struct import pack
+from typing import Any, TypeAlias, Dict, List, Set
 from collections.abc import Iterator
 from functools import cached_property
-from capstone import CS_OP_IMM, CS_GRP_JUMP
-from typing import Any, TypeAlias
 
+# third-party imports
+import capstone
+import binexport
+import binexport.types
+import networkx
+
+# local imports
 from qbindiff.loader.backend import (
     AbstractProgramBackend,
     AbstractFunctionBackend,
@@ -16,8 +20,8 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
-from qbindiff.loader import Data, Structure
-from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
+from qbindiff.loader import Structure
+from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
 from qbindiff.types import Addr
 
 # Type aliases
@@ -34,30 +38,20 @@ def _get_capstone_disassembler(binexport_arch: str, mode: int = 0):
         context.detail = True
         return context
 
-    if binexport_arch == "x86":
+    if binexport_arch == "x86-32":
         return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_32 | mode)
     elif binexport_arch == "x86-64":
         return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_64 | mode)
     elif binexport_arch == "ARM-32":
         return capstone_context(capstone.CS_ARCH_ARM, mode)
+    elif binexport_arch == "ARM-64":
+        return capstone_context(capstone.CS_ARCH_ARM64, mode)
+    elif binexport_arch == "MIPS-32":
+        return capstone_context(capstone.CS_ARCH_MIPS, capstone.CS_MODE_32 | mode)
+    elif binexport_arch == "MIPS-64":
+        return capstone_context(capstone.CS_ARCH_MIPS, capstone.CS_MODE_32 | mode)
 
     raise NotImplementedError(f"Architecture {binexport_arch} has not be implemented")
-
-
-def to_hex2(s):
-    r = "".join("{0:02x}".format(c) for c in s)
-    while r[0] == "0":
-        r = r[1:]
-    return r
-
-
-def to_x(s):
-    if not s:
-        return "0"
-    x = pack(">q", s)
-    while x[0] in ("\0", 0):
-        x = x[1:]
-    return to_hex2(x)
 
 
 def is_same_mnemonic(mnemonic1: str, mnemonic2: str) -> bool:
@@ -80,67 +74,60 @@ def is_same_mnemonic(mnemonic1: str, mnemonic2: str) -> bool:
         return True
 
     return False
-
-
 # =======================================
 
 
 class OperandBackendBinExport(AbstractOperandBackend):
-    def __init__(self, cs_instruction: capstone.CsInsn, cs_operand: capstoneOperand):
+    def __init__(self, cs_instruction: capstone.CsInsn, cs_operand: capstoneOperand, cs_operand_position: int):
         super(OperandBackendBinExport, self).__init__()
 
         self.cs_instr = cs_instruction
         self.cs_operand = cs_operand
+        self.cs_operand_position = cs_operand_position
 
     def __str__(self) -> str:
-        op = self.cs_operand
-        if self.type == capstone.CS_OP_REG:
-            return self.cs_instr.reg_name(op.reg)
-        elif self.type == capstone.CS_OP_IMM:
-            return to_x(op.imm)
-        elif self.type == capstone.CS_OP_MEM:
-            op_str = ""
-            if op.mem.segment != 0:
-                op_str += f"[{self.cs_instr.reg_name(op.mem.segment)}]:"
-            if op.mem.base != 0:
-                op_str += f"[{self.cs_instr.reg_name(op.mem.base)}"
-            if op.mem.index != 0:
-                op_str += f"+{self.cs_instr.reg_name(op.mem.index)}"
-            if (disp := op.mem.disp) != 0:
-                if disp > 0:
-                    op_str += "+"
-                else:
-                    op_str += "-"
-                    disp = -disp
-                op_str += f"0x{disp:x}"
-            op_str += "]"
-            return op_str
-        else:
-            raise NotImplementedError(f"Unrecognized capstone type {self.type}")
+        return self.cs_instr.op_str.split(",")[self.cs_operand_position]
 
     @property
-    def immutable_value(self) -> int | None:
+    def value(self) -> int | None:
         """
-        Returns the immutable value (not addresses) used by the operand.
-        If there is no immutable value then returns None.
+        Return the immediate value (not addresses) used by the operand.
         """
 
-        if self.is_immutable():
+        if self.is_immediate():
             return self.cs_operand.value.imm
         return None
 
     @property
-    def type(self) -> int:
+    def type(self) -> OperandType:
         """Returns the capstone operand type"""
-        return self.cs_operand.type
+        op = self.cs_operand
+        typ = OperandType.unknown
+        cs_op_type = self.cs_operand.type
+        
+        if cs_op_type == capstone.CS_OP_REG:
+            return OperandType.register
+        elif cs_op_type == capstone.CS_OP_IMM:
+            return OperandType.immediate
+        elif cs_op_type == capstone.CS_OP_MEM:
+            # A displacement is represented as [reg+hex] (example : [rdi+0x1234])
+            # Then, base (reg) and disp (hex) should be different of 0
+            if op.mem.base != 0 and op.mem.disp != 0:
+                typ = OperandType.displacement
+            # A phrase is represented as [reg1 + reg2] (example : [rdi + eax])
+            # Then, base (reg1) and index (reg2) should be different of 0
+            if op.mem.base != 0 and op.mem.index != 0:
+                typ = OperandType.phrase
+            if op.mem.disp != 0:
+                typ = OperandType.displacement
+        else:
+            raise NotImplementedError(f"Unrecognized capstone type {cs_op_type}")
+        return typ
 
-    def is_immutable(self) -> bool:
-        """Returns whether the operand is an immutable (not considering addresses)"""
-
-        # Ignore jumps since the target is an immutable
-        return self.cs_operand.type == CS_OP_IMM and not self.cs_instr.group(
-            CS_GRP_JUMP
-        )
+    def is_immediate(self) -> bool:
+        """Returns whether the operand is an immediate value (not considering addresses)"""
+        # Ignore jumps since the target is an immediate
+        return self.type == OperandType.immediate and not self.cs_instr.group(capstone.CS_GRP_JUMP)
 
 
 class InstructionBackendBinExport(AbstractInstructionBackend):
@@ -150,15 +137,15 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         self.cs_instr = cs_instruction
 
     @property
-    def addr(self):
+    def addr(self) -> Addr:
         return self.cs_instr.address
 
     @property
-    def mnemonic(self):
+    def mnemonic(self) -> str:
         return self.cs_instr.mnemonic
 
     @property
-    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
+    def references(self) -> Dict[ReferenceType, List[ReferenceTarget]]:
         """
         Returns all the references towards the instruction
         BinExport only exports data references' address so no data type nor value.
@@ -170,13 +157,11 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         """Returns an iterator over backend operand objects"""
         if self.cs_instr is None:
             return iter([])
-        return (
-            OperandBackendBinExport(self.cs_instr, o) for o in self.cs_instr.operands
-        )
+        return (OperandBackendBinExport(self.cs_instr, o, i) for i, o in enumerate(self.cs_instr.operands))
 
     @property
-    def groups(self) -> list[int]:
-        return []  # Not supported
+    def groups(self) -> List[str]:
+        return self.cs_instr.groups
 
     @property
     def id(self) -> int:
@@ -184,7 +169,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         return self.cs_instr.id
 
     @property
-    def comment(self):
+    def comment(self) -> str:
         return ""  # Not supported
 
     @property
@@ -194,17 +179,20 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
 
 
 class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
-    def __init__(
-        self, program: weakref.ref[ProgramBackendBinExport], be_block: beBasicBlock
-    ):
+
+    def __init__(self, program: weakref.ref[ProgramBackendBinExport], be_block: beBasicBlock):
         super(BasicBlockBackendBinExport, self).__init__()
 
         self._program = program
         self.be_block = be_block
 
-    def _disassemble(
-        self, bb_asm: bytes, correct_mnemonic: str, correct_size: int
-    ) -> list[capstone.CsInsn]:
+    def __len__(self) -> int:
+        """
+        The numbers of instructions in the basic block
+        """
+        return len(self.be_block)
+
+    def _disassemble(self, bb_asm: bytes, correct_mnemonic: str, correct_size: int) -> list[capstone.CsInsn]:
         """
         Disassemble the basic block using capstone trying to guess the instruction set
         when unable to determine it from binexport.
@@ -236,13 +224,10 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                     capstone_mode |= capstone.CS_MODE_ARM
                 if arm_mode & 0b10:
                     capstone_mode |= capstone.CS_MODE_THUMB
-                if be_program.cortexm:
+                if self.program._enable_cortexm:
                     capstone_mode |= capstone.CS_MODE_MCLASS
                 if arm_mode > 0b11:
-                    logging.error(
-                        f"Cannot guess the instruction set of the instruction at address 0x{self.addr:x}"
-                    )
-                    exit(1)
+                    raise Exception(f"Cannot guess the instruction set of the instruction at address 0x{self.addr:x}")
                 arm_mode += 1
 
             md = _get_capstone_disassembler(arch, capstone_mode)
@@ -274,31 +259,26 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
 
         # Generates the first instruction and use it to guess the context for capstone
         first_instr = next(iter(self.be_block.values()))
-        capstone_instructions = self._disassemble(
-            self.be_block.bytes, first_instr.mnemonic, len(first_instr.bytes)
-        )
+        capstone_instructions = self._disassemble(self.be_block.bytes, first_instr.mnemonic, len(first_instr.bytes))
 
         # Then iterate over the instructions
         return (InstructionBackendBinExport(instr) for instr in capstone_instructions)
 
+    @property
+    def bytes(self) -> bytes:
+        return b"".join(x.bytes for x in self.instructions)
+
 
 class FunctionBackendBinExport(AbstractFunctionBackend):
-    def __init__(
-        self, program: weakref.ref[ProgramBackendBinExport], be_func: beFunction
-    ):
+    def __init__(self, program: weakref.ref[ProgramBackendBinExport], be_func: beFunction):
         super(FunctionBackendBinExport, self).__init__()
-
         self.be_func = be_func
         self._program = program
 
     @property
     def basic_blocks(self) -> Iterator[BasicBlockBackendBinExport]:
         """Returns an iterator over backend basic blocks objects"""
-
-        return (
-            BasicBlockBackendBinExport(self._program, bb)
-            for addr, bb in self.be_func.blocks.items()
-        )
+        return (BasicBlockBackendBinExport(self._program, bb) for addr, bb in self.be_func.blocks.items())
 
     @property
     def addr(self) -> Addr:
@@ -311,12 +291,12 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
         return self.be_func.graph
 
     @property
-    def parents(self) -> set[Addr]:
+    def parents(self) -> Set[Addr]:
         """Set of function parents in the call graph"""
         return {func.addr for func in self.be_func.parents}
 
     @property
-    def children(self) -> set[Addr]:
+    def children(self) -> Set[Addr]:
         """Set of function children in the call graph"""
         return {func.addr for func in self.be_func.children}
 
@@ -349,7 +329,8 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
 
     def unload_blocks(self) -> None:
         """Unload basic blocks from memory"""
-        del self.be_func.blocks
+        # del self.be_func.blocks
+        pass  # can't delete it as it is decorated with @cache_property
 
 
 class ProgramBackendBinExport(AbstractProgramBackend):
@@ -386,7 +367,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         return self.be_prog.name
 
     @property
-    def structures(self) -> list[Structure]:
+    def structures(self) -> List[Structure]:
         """
         Returns the list of structures defined in program.
         WARNING: Not supported by BinExport
@@ -399,8 +380,15 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         return self.be_prog.callgraph
 
     @property
-    def fun_names(self) -> dict[str, int]:
+    def fun_names(self) -> Dict[str, int]:
         """
         Returns a dictionary with function name as key and the function address as value
         """
         return self._fun_names
+
+    @property
+    def exec_path(self) -> str:
+        """
+        Guess the raw binary name by removing the final .BinExport
+        """
+        return self.name.replace(".BinExport", "")

@@ -31,9 +31,7 @@ class Visitor(metaclass=ABCMeta):
 
         raise NotImplementedError()
 
-    def visit(
-        self, graph: Graph, key_fun: Callable = lambda _, i: i
-    ) -> Dict[Any, FeatureCollector]:
+    def visit(self, graph: Graph, key_fun: Callable = lambda _, i: i) -> Dict[Any, FeatureCollector]:
         """
         Function performing the visit on a Graph object by calling visit_item with a
         FeatureCollector meant to be filled.
@@ -63,9 +61,7 @@ class Visitor(metaclass=ABCMeta):
         :param graph: the graph that is being visited
         :param item: item to be visited
         :param collector: FeatureCollector to fill during the visit
-        :return: None
         """
-
         raise NotImplementedError()
 
     @abstractmethod
@@ -74,7 +70,6 @@ class Visitor(metaclass=ABCMeta):
         Register an instanciated feature extractor on the visitor.
 
         :param fte: Feature extractor instance
-        :return: None
         """
 
         raise NotImplementedError()
@@ -89,17 +84,11 @@ class NoVisitor(Visitor):
     def feature_extractors(self) -> List[FeatureExtractor]:
         return []
 
-    def visit(
-        self, graph: Graph, key_fun: Callable = lambda _, i: i
-    ) -> Dict[Any, FeatureCollector]:
-        return {
-            key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())
-        }
+    def visit(self, graph: Graph, key_fun: Callable = lambda _, i: i) -> Dict[Any, FeatureCollector]:
+        return {key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())}
 
     def register_feature_extractor(self, fte: FeatureExtractor) -> None:
-        logging.warning(
-            f"NoVisitor is being used. The feature {fte.key} will be ignored"
-        )
+        logging.warning(f"NoVisitor is being used. The feature {fte.key} will be ignored")
 
 
 class ProgramVisitor(Visitor):
@@ -115,9 +104,7 @@ class ProgramVisitor(Visitor):
         self.instruction_callbacks = []
         self.operand_callbacks = []
 
-    def visit_item(
-        self, program: Program, item: Any, collector: FeatureCollector
-    ) -> None:
+    def visit_item(self, program: Program, item: Any, collector: FeatureCollector) -> None:
         """
         Visit a program item according to its type.
 
@@ -139,8 +126,7 @@ class ProgramVisitor(Visitor):
         """
         Register an instanciated feature extractor on the visitor.
 
-        :param ft: Feature extractor instance
-        :return: None
+        :param fte: Feature extractor instance
         """
 
         assert isinstance(fte, FeatureExtractor)
@@ -159,9 +145,7 @@ class ProgramVisitor(Visitor):
         Feature callback at function granularity
 
         :param callback: feature callback
-        :return: None
         """
-
         self.function_callbacks.append(callback)
 
     def register_basic_block_feature_callback(self, callback: Callable) -> None:
@@ -169,9 +153,7 @@ class ProgramVisitor(Visitor):
         Feature callback at basic block granularity
 
         :param callback: feature callback
-        :return: None
         """
-
         self.basic_block_callbacks.append(callback)
 
     def register_instruction_feature_callback(self, callback: Callable) -> None:
@@ -179,7 +161,6 @@ class ProgramVisitor(Visitor):
         Feature callback at function granularity
 
         :param callback: feature callback
-        :return: None
         """
 
         self.instruction_callbacks.append(callback)
@@ -189,21 +170,17 @@ class ProgramVisitor(Visitor):
         Feature callback at function granularity
 
         :param callback: feature callback
-        :return: None
         """
 
         self.operand_callbacks.append(callback)
 
-    def visit_function(
-        self, program: Program, func: Function, collector: FeatureCollector
-    ) -> None:
+    def visit_function(self, program: Program, func: Function, collector: FeatureCollector) -> None:
         """
         Visit the given function with the feature extractors registered beforehand.
 
         :param program: Program that is being visited
         :param func: Function to visit
         :param collector: FeatureCollector to fill
-        :return: None
         """
 
         # Call all callbacks attacked to a function
@@ -215,16 +192,13 @@ class ProgramVisitor(Visitor):
         for bb in func:
             self.visit_basic_block(program, bb, collector)
 
-    def visit_basic_block(
-        self, program: Program, basic_block: BasicBlock, collector: FeatureCollector
-    ) -> None:
+    def visit_basic_block(self, program: Program, basic_block: BasicBlock, collector: FeatureCollector) -> None:
         """
         Visit the given basic block with the feature extractors registered beforehand.
 
         :param program: Program that is being visited
         :param basic_block: Basic Block to visit
         :param collector: FeatureCollector to fill
-        :return: None
         """
 
         # Call all callbacks attacked to a basic block
@@ -235,16 +209,13 @@ class ProgramVisitor(Visitor):
         for inst in basic_block:
             self.visit_instruction(program, inst, collector)
 
-    def visit_instruction(
-        self, program: Program, instruction: Instruction, collector: FeatureCollector
-    ) -> None:
+    def visit_instruction(self, program: Program, instruction: Instruction, collector: FeatureCollector) -> None:
         """
         Visit the instruction with the feature extractor registered beforehand.
 
         :param program: Program that is being visited
         :param instruction: Instruction to visit
         :param collector: FeatureCollector to fill
-        :return: None
         """
         # Call all callbacks attached to an instruction
         for callback in self.instruction_callbacks:
@@ -254,16 +225,13 @@ class ProgramVisitor(Visitor):
         for op in instruction.operands:
             self.visit_operand(program, op, collector)
 
-    def visit_operand(
-        self, program: Program, operand: Operand, collector: FeatureCollector
-    ) -> None:
+    def visit_operand(self, program: Program, operand: Operand, collector: FeatureCollector) -> None:
         """
         Visit the given operand with the feature extractor registered beforehand.
 
         :param program: Program that is being visited
         :param operand: Operand
         :param collector: FeatureCollector to fill
-        :return: None
         """
         # Call all callbacks attached to an operand
         for callback in self.operand_callbacks:

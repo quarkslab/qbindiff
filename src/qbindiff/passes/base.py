@@ -4,7 +4,7 @@ import numpy as np
 from scipy.sparse import lil_matrix
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
-from typing import Any, Iterable
+from typing import Any, Iterable, Dict, List, Tuple
 
 from qbindiff.loader import Program
 from qbindiff.visitor import ProgramVisitor
@@ -12,7 +12,7 @@ from qbindiff.features.manager import FeatureKeyManager
 from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
 from qbindiff.passes.metrics import pairwise_distances
 from qbindiff.utils import is_debug
-from qbindiff.types import SimMatrix
+from qbindiff.types import SimMatrix, Distance
 
 
 class GenericPass(metaclass=ABCMeta):
@@ -24,8 +24,8 @@ class GenericPass(metaclass=ABCMeta):
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int],
+        primary_mapping: Dict[Any, int],
+        secondary_mapping: Dict[Any, int]
     ) -> None:
         """Execute the pass that operates on the similarity matrix inplace"""
         raise NotImplementedError()
@@ -37,8 +37,13 @@ class FeaturePass(GenericPass):
     matrix
     """
 
-    def __init__(self, distance: str):
-        self._default_distance = distance
+    def __init__(self, distance: Distance):
+        """
+    
+        :param distance: distance to compute the similarity of type py:class:`qbindiff.types.Distance`
+        """
+        
+        self._default_distance = distance.name
         self._distances = {}
         self._visitor = ProgramVisitor()
 
@@ -46,9 +51,7 @@ class FeaturePass(GenericPass):
         """Returns the correct distance for the given feature key"""
         return self._distances.get(key, self._default_distance)
 
-    def register_extractor(
-        self, extractor: FeatureExtractor, distance: str | None = None
-    ) -> None:
+    def register_extractor(self, extractor: FeatureExtractor, distance: str | None = None) -> None:
         """
         Register a feature extractor optionally specifying a distance to use.
         The class will be called when the visitor will traverse the graph.
@@ -59,10 +62,10 @@ class FeaturePass(GenericPass):
 
     def _create_feature_matrix(
         self,
-        features: dict[Any, FeatureCollector],
-        features_main_keys: list[str],
-        node_to_index: dict[Any, int],
-        shape: tuple[int, int],
+        features: Dict[Any, FeatureCollector],
+        features_main_keys: List[str],
+        node_to_index: Dict[Any, int],
+        shape: Tuple[int, int],
         dtype: type,
     ):
         """
@@ -91,12 +94,12 @@ class FeaturePass(GenericPass):
 
     def _compute_sim_matrix(
         self,
-        shape: tuple[int, int],
-        primary_features: dict[Any, FeatureCollector],
-        secondary_features: dict[Any, FeatureCollector],
-        primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int],
-        features_main_keys: list[str],
+        shape: Tuple[int, int],
+        primary_features: Dict[Any, FeatureCollector],
+        secondary_features: Dict[Any, FeatureCollector],
+        primary_mapping: Dict[Any, int],
+        secondary_mapping: Dict[Any, int],
+        features_main_keys: List[str],
         distance: str,
         dtype: type,
         weights: Iterable[float] | None = None,
@@ -124,7 +127,7 @@ class FeaturePass(GenericPass):
         """
 
         # Find the dimension of the feature matrix
-        dim = FeatureKeyManager.get_cum_size(features_main_keys)
+        dim = FeatureKeyManager.get_cumulative_size(features_main_keys)
 
         # Build the sparse feature matrices
         logging.debug(f"Building primary feature matrix of size {(shape[0], dim)}")
@@ -135,10 +138,7 @@ class FeaturePass(GenericPass):
             (shape[0], dim),
             dtype,
         )
-        logging.debug(
-            "Sparse primary feature matrix computed, "
-            f"nnz element: {primary_feature_matrix.nnz}"
-        )
+        logging.debug(f"Sparse primary feature matrix computed, nnz element: {primary_feature_matrix.nnz}")
         logging.debug(f"Building secondary feature matrix of size {(shape[1], dim)}")
         secondary_feature_matrix = self._create_feature_matrix(
             secondary_features,
@@ -147,10 +147,7 @@ class FeaturePass(GenericPass):
             (shape[1], dim),
             dtype,
         )
-        logging.debug(
-            "Sparse secondary feature matrix computed, "
-            f"nnz element: {secondary_feature_matrix.nnz}"
-        )
+        logging.debug(f"Sparse secondary feature matrix computed, nnz element: {secondary_feature_matrix.nnz}")
         logging.debug(f"Calculating distance {distance}")
 
         # Generate the partial similarity matrix (only non empty rows and cols)
@@ -183,8 +180,8 @@ class FeaturePass(GenericPass):
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int],
+        primary_mapping: Dict[Any, int],
+        secondary_mapping: Dict[Any, int],
         fill: bool = False,
     ) -> None:
         """
@@ -215,6 +212,7 @@ class FeaturePass(GenericPass):
         primary.set_function_filter(lambda label: label not in ignore_primary)
         secondary.set_function_filter(lambda label: label not in ignore_secondary)
         key_fun = lambda *args: args[0][0]  # ((label, node), iteration)
+
         primary_features = self._visitor.visit(primary, key_fun=key_fun)
         secondary_features = self._visitor.visit(secondary, key_fun=key_fun)
         primary.set_function_filter(lambda _: True)

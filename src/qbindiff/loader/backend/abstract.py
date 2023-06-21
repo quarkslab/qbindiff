@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
 
 from qbindiff.loader import Structure
-from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget
+from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
 from qbindiff.types import Addr
 from typing import Set, Dict, List
 
@@ -20,29 +20,26 @@ class AbstractOperandBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def immutable_value(self) -> int | None:
+    def value(self) -> int | None:
         """
-        Returns the immutable value (not addresses) used by the operand.
-        If there is no immutable value then returns None.
+        Returns the immediate value (not addresses) if the operand is constant.
+        If not, None is returned.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def type(self) -> int:
+    def type(self) -> OperandType:
         """
-        Returns the operand type as int
+        Returns the operand type.
         """
-
         raise NotImplementedError()
 
     @abstractmethod
-    def is_immutable(self) -> bool:
+    def is_immediate(self) -> bool:
         """
-        Returns whether the operand is an immutable (not considering addresses)
+        Returns whether the operand is an immediate (not addresses)
         """
-
         raise NotImplementedError()
 
 
@@ -52,13 +49,17 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
     It represents a generic backend loader for a Instruction
     """
 
+    """
+    Max instruction ID. All the instruction IDs will be in the range [0, MAX_ID]
+    """
+    MAX_ID = 2500
+
     @property
     @abstractmethod
     def addr(self) -> Addr:
         """
         The address of the instruction
         """
-
         raise NotImplementedError()
 
     @property
@@ -67,7 +68,6 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
         """
         Returns the instruction mnemonic as a string
         """
-
         raise NotImplementedError()
 
     @property
@@ -76,7 +76,6 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
         """
         Returns all the references towards the instruction
         """
-
         raise NotImplementedError()
 
     @property
@@ -85,26 +84,23 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
         """
         Returns an iterator over backend operand objects
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def groups(self) -> List[int]:
+    def groups(self) -> List[str]:
         """
         Returns a list of groups of this instruction
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def id(self) -> int:
         """
-        Return the instruction ID as int.
-        WARNING: the instruction ID must be in range [0, 2000[
+        Returns the capstone instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
+        The id is MAX_ID if there is no capstone instruction available.
         """
-
         raise NotImplementedError()
 
     @property
@@ -113,7 +109,6 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
         """
         Comment associated with the instruction
         """
-
         raise NotImplementedError()
 
     @property
@@ -122,7 +117,6 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
         """
         Returns the bytes representation of the instruction
         """
-
         raise NotImplementedError()
 
 
@@ -132,13 +126,19 @@ class AbstractBasicBlockBackend(metaclass=ABCMeta):
     It represents a generic backend loader for a BasicBlock
     """
 
+    @abstractmethod
+    def __len__(self) -> int:
+        """
+        The numbers of instructions in the basic block
+        """
+        raise NotImplementedError()
+
     @property
     @abstractmethod
     def addr(self) -> Addr:
         """
         The address of the basic block
         """
-
         raise NotImplementedError()
 
     @property
@@ -147,84 +147,83 @@ class AbstractBasicBlockBackend(metaclass=ABCMeta):
         """
         Returns an iterator over backend instruction objects
         """
+        raise NotImplementedError()
 
+    @property
+    @abstractmethod
+    def bytes(self) -> bytes:
+        """
+        Returns the bytes representation of the basic block
+        """
         raise NotImplementedError()
 
 
 class AbstractFunctionBackend(metaclass=ABCMeta):
     """
     This is an abstract class and should not be used as is.
-    It represents a generic backend loader for a Function
+    It represents a generic backend loader for a Function.
     """
 
     @property
     @abstractmethod
     def basic_blocks(self) -> Iterator[AbstractBasicBlockBackend]:
         """
-        Returns an iterator over backend basic blocks objects
+        Returns an iterator over backend basic blocks objects.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def addr(self) -> Addr:
         """
-        The address of the function
+        The address of the function.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def graph(self) -> networkx.DiGraph:
         """
-        The Control Flow Graph of the function
+        The Control Flow Graph of the function.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def parents(self) -> Set[Addr]:
         """
-        Set of function parents in the call graph
+        Set of function parents in the call graph.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def children(self) -> Set[Addr]:
         """
-        Set of function children in the call graph
+        Set of function children in the call graph.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def type(self) -> FunctionType:
         """
-        The type of the function (as defined by IDA)
+        The type of the function.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def name(self) -> str:
         """
-        The name of the function
+        The name of the function.
         """
-
         raise NotImplementedError()
 
     def unload_blocks(self) -> None:
         """
         Unload basic blocks from memory
         """
-
         pass
 
 
@@ -238,52 +237,46 @@ class AbstractProgramBackend(metaclass=ABCMeta):
     @abstractmethod
     def functions(self) -> Iterator[AbstractFunctionBackend]:
         """
-        Returns an iterator over backend function objects
+        Returns an iterator over backend function objects.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def name(self) -> str:
         """
-        The name of the program
+        The name of the program.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def structures(self) -> List[Structure]:
         """
-        Returns the list of structures defined in program
+        Returns the list of structures defined in program.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def callgraph(self) -> networkx.DiGraph:
         """
-        The callgraph of the program
+        The callgraph of the program.
         """
-
         raise NotImplementedError()
 
     @property
     @abstractmethod
     def fun_names(self) -> Dict[str, Addr]:
         """
-        Returns a dictionary with function name as key and the function address as value
+        Returns a dictionary with function name as key and the function address as value.
         """
-
         raise NotImplementedError()
 
     @property
-    def exec_path(self) -> str | None:
+    @abstractmethod
+    def exec_path(self) -> str:
         """
-        Returns the executable path if it has been specified.
-        By default it returns None
+        Returns the executable path
         """
-        
-        return None
+        raise NotImplementedError()

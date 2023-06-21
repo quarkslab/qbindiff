@@ -13,7 +13,6 @@ class GenericGraph(metaclass=ABCMeta):
         """
         Return an iterator over the items. Each item is {node_label: node}
         """
-
         raise NotImplementedError()
 
     @abstractmethod
@@ -21,7 +20,6 @@ class GenericGraph(metaclass=ABCMeta):
         """
         Returns the node identified by the `node_label`
         """
-
         raise NotImplementedError()
 
     @property
@@ -30,7 +28,6 @@ class GenericGraph(metaclass=ABCMeta):
         """
         Return an iterator over the node labels
         """
-
         raise NotImplementedError()
 
     @property
@@ -39,7 +36,6 @@ class GenericGraph(metaclass=ABCMeta):
         """
         Return an iterator over the nodes
         """
-
         raise NotImplementedError()
 
     @property
@@ -49,5 +45,4 @@ class GenericGraph(metaclass=ABCMeta):
         Return an iterator over the edges.
         An edge is a pair (node_label_a, node_label_b)
         """
-        
         raise NotImplementedError()

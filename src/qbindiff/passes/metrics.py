@@ -49,7 +49,8 @@ def _validate_weights(w, dtype=np.double):
     if np.any(w < 0):
         raise ValueError("Input weights should be all non-negative")
     return w
-    
+
+
 def canberra_distances(X, Y, w=None):
     """
     Compute the canberra distances between the vectors in X and Y using the optional
