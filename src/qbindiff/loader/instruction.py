@@ -13,53 +13,8 @@ class Instruction:
     Defines an Instruction object that wrap the backend using under the scene.
     """
 
-    def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
-        self._backend = None
-        if loader is None and (backend := kwargs.get("backend")) is not None:
-            self._backend = backend  # Load directly from instanciated backend
-        elif loader == LoaderType.binexport:
-            self.load_binexport(*args, **kwargs)
-        elif loader == LoaderType.ida:
-            self.load_ida(*args, **kwargs)
-        elif loader == LoaderType.quokka:
-            self.load_quokka(*args, **kwargs)
-        else:
-            raise NotImplementedError("Loader: %s not implemented" % loader)
-
-    def load_binexport(self, *args, **kwargs) -> None:
-        """
-        Load the Instruction using the protobuf data
-        
-        :param args: program, function, addr, protobuf index
-        :return: None
-        """
-
-        from qbindiff.loader.backend.binexport import InstructionBackendBinExport
-
-        self._backend = InstructionBackendBinExport(*args, **kwargs)
-
-    def load_ida(self, addr) -> None:
-        """
-        Load the Instruction using the IDA backend, (only applies when running in IDA)
-
-        :param addr: Address of the instruction
-        :return: None
-        """
-
-        from qbindiff.loader.backend.ida import InstructionBackendIDA
-
-        self._backend = InstructionBackendIDA(addr)
-
-    def load_quokka(self, *args, **kwargs) -> None:
-        """
-        Load the Instruction using the Quokka backend
-
-        :return: None
-        """
-
-        from qbindiff.loader.backend.quokka import InstructionBackendQuokka
-
-        self._backend = InstructionBackendQuokka(*args, **kwargs)
+    def __init__(self, backend: AbstractInstructionBackend):
+        self._backend = backend  # Load directly from instanciated backend
 
     @staticmethod
     def from_backend(backend: AbstractInstructionBackend) -> Instruction:
@@ -67,7 +22,7 @@ class Instruction:
         Load the Instruction from an instanciated instruction backend object
         """
 
-        return Instruction(None, backend=backend)
+        return Instruction(backend)
 
     @property
     def addr(self) -> int:

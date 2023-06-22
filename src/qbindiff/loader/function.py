@@ -33,39 +33,14 @@ class Function(Mapping[Addr, BasicBlock]):
         # here the blocks have been unloaded
     """
 
-    def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
+    def __init__(self, backend: AbstractFunctionBackend):
         super(Function, self).__init__()
 
         # The basic blocks are lazily loaded
         self._basic_blocks = None
         self._enable_unloading = True
 
-        self._backend = None
-        if loader is None and (backend := kwargs.get("backend")) is not None:
-            self._backend = backend  # Load directly from instanciated backend
-        elif loader == LoaderType.binexport:
-            self.load_binexport(*args, **kwargs)
-        elif loader == LoaderType.ida:
-            self.load_ida(*args, **kwargs)
-        elif loader == LoaderType.quokka:
-            self.load_quokka(*args, **kwargs)
-        else:
-            raise NotImplementedError("Loader: %s not implemented" % loader)
-
-    def load_binexport(self, *args, **kwargs) -> None:
-        from qbindiff.loader.backend.binexport import FunctionBackendBinExport
-
-        self._backend = FunctionBackendBinExport(*args, **kwargs)
-
-    def load_ida(self, addr) -> None:
-        from qbindiff.loader.backend.ida import FunctionBackendIDA
-
-        self._backend = FunctionBackendIDA(self, addr)
-
-    def load_quokka(self, *args, **kwargs) -> None:
-        from qbindiff.loader.backend.quokka import FunctionBackendQuokka
-
-        self._backend = FunctionBackendQuokka(*args, **kwargs)
+        self._backend = backend  # Load directly from instanciated backend
 
     @staticmethod
     def from_backend(backend: AbstractFunctionBackend) -> Function:
@@ -73,7 +48,7 @@ class Function(Mapping[Addr, BasicBlock]):
         Load the Function from an instanciated function backend object
         """
 
-        return Function(None, backend=backend)
+        return Function(backend)
 
     def __hash__(self):
         return hash(self.addr)
