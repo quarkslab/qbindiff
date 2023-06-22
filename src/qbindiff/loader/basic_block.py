@@ -4,7 +4,6 @@ from functools import cached_property
 
 from qbindiff.loader.backend import AbstractBasicBlockBackend
 from qbindiff.loader import Instruction
-from qbindiff.loader.types import LoaderType
 from qbindiff.types import Addr
 from typing import List
 

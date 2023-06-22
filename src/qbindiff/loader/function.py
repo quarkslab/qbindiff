@@ -4,7 +4,7 @@ from collections.abc import Mapping, Generator
 from typing import Set, List, Tuple
 
 from qbindiff.loader import BasicBlock
-from qbindiff.loader.types import LoaderType, FunctionType
+from qbindiff.loader.types import FunctionType
 from qbindiff.types import Addr
 from qbindiff.loader.backend.abstract import AbstractFunctionBackend
 

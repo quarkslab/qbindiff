@@ -3,7 +3,7 @@ from functools import cached_property
 
 from qbindiff.loader.backend import AbstractInstructionBackend
 from qbindiff.loader import Data, Operand
-from qbindiff.loader.types import LoaderType, ReferenceType, ReferenceTarget
+from qbindiff.loader.types import ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
 from typing import List, Dict
 

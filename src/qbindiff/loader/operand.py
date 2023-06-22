@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from qbindiff.loader.backend import AbstractOperandBackend
-from qbindiff.loader.types import LoaderType
 
 
 class Operand:
