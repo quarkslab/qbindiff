@@ -13,6 +13,8 @@ import ida_bytes
 import ida_gdl
 import ida_bytes
 import ida_ua
+import ida_lines
+import ida_name
 
 # local imports
 from qbindiff.loader import Structure
@@ -23,19 +25,8 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
-from qbindiff.loader.types import DataType, StructureType, FunctionType, ReferenceType, ReferenceTarget
+from qbindiff.loader.types import DataType, StructureType, FunctionType, ReferenceType, ReferenceTarget, OperandType
 from qbindiff.types import Addr
-
-
-from typing import List, Dict, Iterator, Set
-from functools import cached_property
-
-from qbindiff.loader.function import Function
-from qbindiff.loader.types import LoaderType, OperandType, 
-from qbindiff.loader.instruction import Instruction
-
-
-import ida_lines
 
 
 # ===== General purpose utils functions =====
@@ -70,32 +61,86 @@ def extract_data_type(ida_flag: int) -> DataType:
 # ===========================================
 
 
-class OperandBackendIDA(AbstractOperandBackend):
-    def __init__(self, op_t, ea):
-        self._addr = ea
-        self.op_t = op_t
+class ImportManager:
+    """
+    Class responsible for identifying imported functions.
+    This is needed as there is no direct IDA API to know if a function is external or not
+    """
+    def __init__(self):
+        # { address : (name, ordinal) }
+        self.imports: dict[Addr, tuple(str, int)] = {}
 
-    @property
-    def type(self) -> OperandType:
-        return OperandType(self.op_t.type)
+        for i in range(ida_nalt.get_import_module_qty()):
+            ida_nalt.enum_import_names(i, lambda ea, name, ord: self.handle_import(ea, name, ord))
+    
+    def handle_import(self, ea: Addr, name: str, ord: int) -> int:
+        """Handle the imported function by adding it to the collection"""
+        
+        if name == "":
+            # IDA might know the name even though it is not reporting it now
+            flags = ida_bytes.get_flags(ea)
+            if ida_bytes.has_user_name(flags):
+                name = ida_name.get_short_name(ea)
+        
+        self.imports[ea] = (name, ord)
+        return 1
+    
+    def is_import(self, addr: Addr) -> bool:
+        """Returns True if the address specified refers to an imported function"""
+
+        return addr in self.imports
+
+
+class OperandBackendIDA(AbstractOperandBackend):
+    def __init__(self, ida_operand: ida_ua.op_t, inst_addr: Addr):
+        self._addr = inst_addr
+        self.ida_op = ida_operand
 
     def __str__(self) -> str:
-        return ida_lines.tag_remove(ida_ua.print_operand(self._addr, self.op_t.n))
-
-    def is_immediate(self) -> bool:
-        """Returns whether the operand is an immediate value (not considering addresses)"""
-        # Ignore jumps since the target is an immediate
-        return self.type == OperandType.immediate
+        return ida_lines.tag_remove(ida_ua.print_operand(self._addr, self.ida_op.n))
 
     @property
     def value(self) -> int | None:
         """
-        Returns the immediate value (not addresses) used by the operand.
+        Returns the immediate value (not addresses) if the operand is constant.
+        If not, None is returned.
         """
 
         if self.is_immediate():
-            return self.op_t.value
+            return self.ida_op.value
         return None
+
+    @property
+    def type(self) -> OperandType:
+        """
+        Returns the operand type.
+        """
+
+        match self.ida_op.type:
+            case 1: # o_reg
+                return OperandType.register
+            case 2: # o_mem
+                return OperandType.memory
+            case 3: # o_phrase
+                return OperandType.phrase
+            case 4: # o_displ
+                return OperandType.displacement
+            case 5: # o_imm
+                return OperandType.immediate
+            case 6: # o_far
+                return OperandType.far
+            case 7: # o_near
+                return OperandType.near
+            case _:
+                return OperandType.unknown
+
+    def is_immediate(self) -> bool:
+        """
+        Returns whether the operand is an immediate value (not considering addresses)
+        """
+        
+        # Ignore jumps since the target is an immediate
+        return self.type == OperandType.immediate
 
 
 class InstructionBackendIDA(AbstractInstructionBackend):
@@ -105,9 +150,6 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         self._addr = addr
         self.insn = ida_ua.insn_t()
         ida_ua.decode_insn(self.insn, addr)
-
-        # After the first o_void all the others are o_void as well
-        self.nb_ops = sum(1 for o in self.insn.ops if o.type != ida_ua.o_void)
 
     def __str__(self):
         return f"{self.mnemonic} {', '.join((str(op) for op in self.operands))}"
@@ -142,7 +184,7 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         Returns an iterator over backend operand objects
         """
         
-        return (OperandBackendIDA(self.insn.ops[i]) for i in range(self.nb_ops))
+        return (OperandBackendIDA(op, self.addr) for op in self.insn.ops if op.type != ida_ua.o_void and op.shown())
 
     @property
     def groups(self) -> list[str]:
@@ -167,7 +209,7 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         Comment associated with the instruction
         """
         
-        return ida_bytes.get_cmt(self.addr, True)  # return repeatable ones
+        return ida_bytes.get_cmt(self.addr, True) or ""  # return repeatable ones
         
     @property
     def bytes(self) -> bytes:
@@ -215,15 +257,16 @@ class BasicBlockBackendIDA(AbstractBasicBlockBackend):
         Returns the bytes representation of the basic block
         """
         
-        return ida_bytes.get_bytes(self._start_addr, self._end_addr)
+        return ida_bytes.get_bytes(self._start_addr, self._end_addr - self._start_addr)
 
 
 class FunctionBackendIDA(AbstractFunctionBackend):
-    def __init__(self, program: weakref.ref[ProgramBackendIDA], addr: Addr):
+    def __init__(self, program: weakref.ref["ProgramBackendIDA"], addr: Addr, import_manager: ImportManager):
         super(FunctionBackendIDA, self).__init__()
         
         self._program = program
         self._addr = addr
+        self.import_manager = import_manager
         self._ida_fun = ida_funcs.get_func(addr)
         self._cfg = networkx.DiGraph()
 
@@ -250,7 +293,7 @@ class FunctionBackendIDA(AbstractFunctionBackend):
         if self.is_import():
             return iter([])
         
-        return (BasicBlockBackendIDA(block) for block in ida_gdl.FlowChart(self._ida_fun, flags=ida_gdl.FC_NOEXT))
+        return (BasicBlockBackendIDA(block.start_ea, block.end_ea) for block in ida_gdl.FlowChart(self._ida_fun, flags=ida_gdl.FC_NOEXT))
 
     @property
     def addr(self) -> Addr:
@@ -290,14 +333,14 @@ class FunctionBackendIDA(AbstractFunctionBackend):
         The type of the function.
         """
         
-        # Still missing imported, normal, invalid, external
         if self._ida_fun.flags & ida_funcs.FUNC_THUNK:
             return FunctionType.thunk
         elif self._ida_fun.flags & ida_funcs.FUNC_LIB:
             return FunctionType.library
+        elif self.import_manager.is_import(self.addr):
+            return FunctionType.imported
         else:
             return FunctionType.normal
-
 
     @property
     def name(self) -> str:
@@ -306,6 +349,13 @@ class FunctionBackendIDA(AbstractFunctionBackend):
         """
         
         return ida_funcs.get_func_name(self.addr)
+
+    def is_import(self) -> bool:
+        """
+        True if the function is imported
+        """
+
+        return self.type == FunctionType.imported
 
 
 class ProgramBackendIDA(AbstractProgramBackend):
@@ -318,6 +368,7 @@ class ProgramBackendIDA(AbstractProgramBackend):
 
         self._callgraph = None
         self._fun_names = {}  # {fun_name : fun_address}
+        self.import_manager = ImportManager()
 
     def __repr__(self):
         return f"<Program:{self.name}>"
@@ -332,7 +383,7 @@ class ProgramBackendIDA(AbstractProgramBackend):
         self._callgraph = networkx.DiGraph()
 
         for fun_addr in idautils.Functions():
-            functions.append(FunctionBackendIDA(weakref.ref(self), fun_addr))
+            functions.append(FunctionBackendIDA(weakref.ref(self), fun_addr, self.import_manager))
             self._fun_names[ida_funcs.get_func_name(fun_addr)] = fun_addr
             
             # Load the callgraph
@@ -358,6 +409,7 @@ class ProgramBackendIDA(AbstractProgramBackend):
         Returns the list of structures defined in program.
         """
 
+        # TODO add enums
         struct_list = []
         for idx in range(ida_struct.get_struc_qty()):
             struct_id = ida_struct.get_struc_by_idx(idx)

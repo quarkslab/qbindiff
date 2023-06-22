@@ -38,7 +38,7 @@ class AbstractOperandBackend(metaclass=ABCMeta):
     @abstractmethod
     def is_immediate(self) -> bool:
         """
-        Returns whether the operand is an immediate (not addresses)
+        Returns whether the operand is an immediate value (not considering addresses)
         """
         raise NotImplementedError()
 
