@@ -11,7 +11,7 @@ class LoaderType(IntEnum):
     unknown = 0    # doc: unknown loader
     binexport = 1  # doc: binexport loader
     diaphora = 2   # doc: diaphora loader (not supported)
-    ida = 3        # doc: IDA loader (discontinued)
+    ida = 3        # doc: IDA loader
     quokka = 4     # doc: Quokka loader
 
 

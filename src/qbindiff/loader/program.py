@@ -30,7 +30,7 @@ class Program(dict, GenericGraph):
         elif loader == LoaderType.ida:
             from qbindiff.loader.backend.ida import ProgramBackendIDA
 
-            self._backend = ProgramBackendIDA(self, **kwargs)
+            self._backend = ProgramBackendIDA(*args, **kwargs)
 
         elif loader == LoaderType.binexport:
             from qbindiff.loader.backend.binexport import ProgramBackendBinExport
@@ -74,11 +74,11 @@ class Program(dict, GenericGraph):
         return Program(LoaderType.quokka, file_path, exec_path=exec_path)
 
     @staticmethod
-    def from_ida() -> "Program":
+    def from_ida() -> Program:
         """
-        Load the program using the idapython API
+        Load the program using the IDA backend
 
-        :return: None
+        :return: Program instance
         """
 
         return Program(LoaderType.ida)

@@ -71,6 +71,7 @@ setup(
         where="src",
         include=["qbindiff*"],
     ),
+    python_requires=">=3.10",
     package_dir={"": "src"},
     ext_modules=cythonize_extensions(
         [

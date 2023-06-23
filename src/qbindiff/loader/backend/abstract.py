@@ -38,7 +38,7 @@ class AbstractOperandBackend(metaclass=ABCMeta):
     @abstractmethod
     def is_immediate(self) -> bool:
         """
-        Returns whether the operand is an immediate (not addresses)
+        Returns whether the operand is an immediate value (not considering addresses)
         """
         raise NotImplementedError()
 
@@ -52,7 +52,7 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
     """
     Max instruction ID. All the instruction IDs will be in the range [0, MAX_ID]
     """
-    MAX_ID = 2500
+    MAX_ID = 3000
 
     @property
     @abstractmethod
@@ -98,8 +98,12 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
     @abstractmethod
     def id(self) -> int:
         """
-        Returns the capstone instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
-        The id is MAX_ID if there is no capstone instruction available.
+        Returns the instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
+        The value MAX_ID means that there is no ID available.
+
+        .. warning:: The backend is responsible for creating this value, different backends
+        should not be considered compatible between each other. (For example IDA relies on
+        IDA IDs while quokka relies on capstone IDs)
         """
         raise NotImplementedError()
 
