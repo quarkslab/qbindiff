@@ -117,19 +117,19 @@ class OperandBackendIDA(AbstractOperandBackend):
         """
 
         match self.ida_op.type:
-            case 1: # o_reg
+            case ida_ua.o_reg:
                 return OperandType.register
-            case 2: # o_mem
+            case ida_ua.o_mem:
                 return OperandType.memory
-            case 3: # o_phrase
+            case ida_ua.o_phrase:
                 return OperandType.phrase
-            case 4: # o_displ
+            case ida_ua.o_displ:
                 return OperandType.displacement
-            case 5: # o_imm
+            case ida_ua.o_imm:
                 return OperandType.immediate
-            case 6: # o_far
+            case ida_ua.o_far:
                 return OperandType.far
-            case 7: # o_near
+            case ida_ua.o_near:
                 return OperandType.near
             case _:
                 return OperandType.unknown
