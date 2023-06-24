@@ -20,7 +20,6 @@ from functools import cached_property
 
 from qbindiff.loader.backend import AbstractBasicBlockBackend
 from qbindiff.loader import Instruction
-from qbindiff.loader.types import LoaderType
 from qbindiff.types import Addr
 from typing import List
 
@@ -31,33 +30,10 @@ class BasicBlock(Iterable[Instruction]):
     This class is an Iterable of Instruction.
     """
 
-    def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
+    def __init__(self, backend: AbstractBasicBlockBackend):
         super(BasicBlock, self).__init__()
 
-        self._backend = None
-        if loader is None and (backend := kwargs.get("backend")) is not None:
-            self._backend = backend  # Load directly from instanciated backend
-        elif loader == LoaderType.binexport:
-            self.load_binexport(*args, **kwargs)
-        elif loader == LoaderType.ida:
-            self.load_ida(*args, **kwargs)
-        elif loader == LoaderType.quokka:
-            self.load_quokka(*args, **kwargs)
-        else:
-            raise NotImplementedError("Loader: %s not implemented" % loader)
-
-    def load_binexport(self, *args, **kwargs) -> None:
-        from qbindiff.loader.backend.binexport import BasicBlockBackendBinExport
-
-        self._backend = BasicBlockBackendBinExport(*args, **kwargs)
-
-    def load_ida(self, addr) -> None:
-        raise NotImplementedError("Ida backend loader is not yet fully implemented")
-
-    def load_quokka(self, *args, **kwargs) -> None:
-        from qbindiff.loader.backend.quokka import BasicBlockBackendQuokka
-
-        self._backend = BasicBlockBackendQuokka(*args, **kwargs)
+        self._backend = backend  # Load directly from instanciated backend
 
     @staticmethod
     def from_backend(backend: AbstractBasicBlockBackend) -> BasicBlock:
@@ -67,7 +43,7 @@ class BasicBlock(Iterable[Instruction]):
         :param backend: backend to use
         :return: the loaded basic block
         """
-        return BasicBlock(None, backend=backend)
+        return BasicBlock(backend)
 
     def __iter__(self):
         return self.instructions.__iter__()
