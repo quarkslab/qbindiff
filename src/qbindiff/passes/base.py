@@ -41,7 +41,7 @@ class GenericPass(metaclass=ABCMeta):
         primary: Program,
         secondary: Program,
         primary_mapping: Dict[Any, int],
-        secondary_mapping: Dict[Any, int]
+        secondary_mapping: Dict[Any, int],
     ) -> None:
         """Execute the pass that operates on the similarity matrix inplace"""
         raise NotImplementedError()
@@ -55,10 +55,10 @@ class FeaturePass(GenericPass):
 
     def __init__(self, distance: Distance):
         """
-    
+
         :param distance: distance to compute the similarity of type py:class:`qbindiff.types.Distance`
         """
-        
+
         self._default_distance = distance.name
         self._distances = {}
         self._visitor = ProgramVisitor()
@@ -154,7 +154,9 @@ class FeaturePass(GenericPass):
             (shape[0], dim),
             dtype,
         )
-        logging.debug(f"Sparse primary feature matrix computed, nnz element: {primary_feature_matrix.nnz}")
+        logging.debug(
+            f"Sparse primary feature matrix computed, nnz element: {primary_feature_matrix.nnz}"
+        )
         logging.debug(f"Building secondary feature matrix of size {(shape[1], dim)}")
         secondary_feature_matrix = self._create_feature_matrix(
             secondary_features,
@@ -163,7 +165,9 @@ class FeaturePass(GenericPass):
             (shape[1], dim),
             dtype,
         )
-        logging.debug(f"Sparse secondary feature matrix computed, nnz element: {secondary_feature_matrix.nnz}")
+        logging.debug(
+            f"Sparse secondary feature matrix computed, nnz element: {secondary_feature_matrix.nnz}"
+        )
         logging.debug(f"Calculating distance {distance}")
 
         # Generate the partial similarity matrix (only non empty rows and cols)
@@ -235,8 +239,8 @@ class FeaturePass(GenericPass):
         secondary.set_function_filter(lambda _: True)
 
         p_features = primary_features
-        s_features = secondary_features    
-        
+        s_features = secondary_features
+
         # Get the weights of each feature
         f_weights = {}
         for extractor in self._visitor.feature_extractors:

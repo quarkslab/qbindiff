@@ -133,7 +133,7 @@ class Distance(IntEnum):
     """
     Enum of different (supported) distances used to compute the similarity matrix based on chosen features.
     """
-    canberra = 0    # doc: canberra distance
+
+    canberra = 0  # doc: canberra distance
     euclidean = 1  # doc: euclidean distance
-    cosine = 2   # doc: cosine distance
- 
+    cosine = 2  # doc: cosine distance

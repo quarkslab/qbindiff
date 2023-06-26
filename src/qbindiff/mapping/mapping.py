@@ -25,7 +25,9 @@ class Mapping:
     Its interface is independent of the underlying objects / items manipulated.
     """
 
-    def __init__(self, mapping: ExtendedMapping, unmatched_primary: set[Item], unmatched_secondary: set[Item]):
+    def __init__(
+        self, mapping: ExtendedMapping, unmatched_primary: set[Item], unmatched_secondary: set[Item]
+    ):
         self._matches = [Match(*x) for x in mapping]
         self._primary_unmatched = unmatched_primary
         self._secondary_unmatched = unmatched_secondary
@@ -54,7 +56,14 @@ class Mapping:
         """
         return sum(x.squares for x in self._matches) / 2
 
-    def add_match(self, item1: Item, item2: Item, similarity: float = None, confidence: float = 0.0, squares: int = None) -> None:
+    def add_match(
+        self,
+        item1: Item,
+        item2: Item,
+        similarity: float = None,
+        confidence: float = 0.0,
+        squares: int = None,
+    ) -> None:
         """
         Add the given match between the two items.
 

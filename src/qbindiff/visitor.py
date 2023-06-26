@@ -47,7 +47,9 @@ class Visitor(metaclass=ABCMeta):
 
         raise NotImplementedError()
 
-    def visit(self, graph: Graph, key_fun: Callable = lambda _, i: i) -> Dict[Any, FeatureCollector]:
+    def visit(
+        self, graph: Graph, key_fun: Callable = lambda _, i: i
+    ) -> Dict[Any, FeatureCollector]:
         """
         Function performing the visit on a Graph object by calling visit_item with a
         FeatureCollector meant to be filled.
@@ -100,7 +102,9 @@ class NoVisitor(Visitor):
     def feature_extractors(self) -> List[FeatureExtractor]:
         return []
 
-    def visit(self, graph: Graph, key_fun: Callable = lambda _, i: i) -> Dict[Any, FeatureCollector]:
+    def visit(
+        self, graph: Graph, key_fun: Callable = lambda _, i: i
+    ) -> Dict[Any, FeatureCollector]:
         return {key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())}
 
     def register_feature_extractor(self, fte: FeatureExtractor) -> None:
@@ -208,7 +212,9 @@ class ProgramVisitor(Visitor):
         for bb in func:
             self.visit_basic_block(program, bb, collector)
 
-    def visit_basic_block(self, program: Program, basic_block: BasicBlock, collector: FeatureCollector) -> None:
+    def visit_basic_block(
+        self, program: Program, basic_block: BasicBlock, collector: FeatureCollector
+    ) -> None:
         """
         Visit the given basic block with the feature extractors registered beforehand.
 
@@ -225,7 +231,9 @@ class ProgramVisitor(Visitor):
         for inst in basic_block:
             self.visit_instruction(program, inst, collector)
 
-    def visit_instruction(self, program: Program, instruction: Instruction, collector: FeatureCollector) -> None:
+    def visit_instruction(
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
         """
         Visit the instruction with the feature extractor registered beforehand.
 
@@ -241,7 +249,9 @@ class ProgramVisitor(Visitor):
         for op in instruction.operands:
             self.visit_operand(program, op, collector)
 
-    def visit_operand(self, program: Program, operand: Operand, collector: FeatureCollector) -> None:
+    def visit_operand(
+        self, program: Program, operand: Operand, collector: FeatureCollector
+    ) -> None:
         """
         Visit the given operand with the feature extractor registered beforehand.
 

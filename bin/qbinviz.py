@@ -67,16 +67,12 @@ class Hooker(ida_kernwin.View_Hooks):
 
         # and that we show the right place (slightly zoomed out)
         widget_a_center_gli = ida_moves.graph_location_info_t()
-        if ida_graph.viewer_get_gli(
-            widget_a_center_gli, view_a, ida_graph.GLICTL_CENTER
-        ):
+        if ida_graph.viewer_get_gli(widget_a_center_gli, view_a, ida_graph.GLICTL_CENTER):
             widget_b_center_gli = ida_moves.graph_location_info_t()
             widget_b_center_gli.orgx = widget_a_center_gli.orgx
             widget_b_center_gli.orgy = widget_a_center_gli.orgy
             widget_b_center_gli.zoom = widget_a_center_gli.zoom  # * 0.5
-            ida_graph.viewer_set_gli(
-                view_b, widget_b_center_gli, ida_graph.GLICTL_CENTER
-            )
+            ida_graph.viewer_set_gli(view_b, widget_b_center_gli, ida_graph.GLICTL_CENTER)
 
     def view_loc_changed(self, view, now, was):
         name = ida_kernwin.get_widget_title(view)
@@ -98,9 +94,7 @@ class Hooker(ida_kernwin.View_Hooks):
                     self.mirror_widget.switch_to_unknown()
                 ida_graph.viewer_fit_window(view)  # Can't as it activate max recursion
                 self.switch_button = True
-                ida_graph.viewer_fit_window(
-                    ida_kernwin.find_widget(VIEW_B)
-                )  # Fit VIEW_B
+                ida_graph.viewer_fit_window(ida_kernwin.find_widget(VIEW_B))  # Fit VIEW_B
             else:
                 pass  # Just update the position of the view B
                 # print("Update widget B")

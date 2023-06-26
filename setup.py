@@ -107,10 +107,10 @@ setup(
         "networkx",
         "capstone",
         "datasketch",
-        "scikit-learn", 
+        "scikit-learn",
         "python-louvain",
         "enum_tools",
-        "python-bindiff"
+        "python-bindiff",
     ],
     scripts=["bin/qbindiff"],
     extras_require={

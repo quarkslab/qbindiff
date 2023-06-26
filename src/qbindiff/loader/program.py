@@ -125,7 +125,7 @@ class Program(dict, GenericGraph):
     def _load_functions(self) -> None:
         """
         Load the functions from the backend
-        
+
         :return: None
         """
 
@@ -146,7 +146,7 @@ class Program(dict, GenericGraph):
     def get_node(self, node_label: Addr) -> Function:
         """
         Returns the node identified by the `node_label`
-        
+
         :param node_label: the node_label or the address from which we want to recover the object
         :return: the function identified by its address
         """

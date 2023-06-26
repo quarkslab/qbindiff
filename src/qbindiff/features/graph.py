@@ -17,7 +17,12 @@ limitations under the License.
 import networkx
 import numpy as np
 import math
-from qbindiff.features.extractor import FunctionFeatureExtractor, InstructionFeatureExtractor, OperandFeatureExtractor, FeatureCollector
+from qbindiff.features.extractor import (
+    FunctionFeatureExtractor,
+    InstructionFeatureExtractor,
+    OperandFeatureExtractor,
+    FeatureCollector,
+)
 from qbindiff.loader import Program, Function, Instruction, Operand
 from qbindiff.loader.types import OperandType
 from typing import List
@@ -32,10 +37,11 @@ class BBlockNb(FunctionFeatureExtractor):
 
     key = "bnb"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = len(function.flowgraph.nodes)
         collector.add_feature(self.key, value)
-        
 
 
 class StronglyConnectedComponents(FunctionFeatureExtractor):
@@ -45,7 +51,9 @@ class StronglyConnectedComponents(FunctionFeatureExtractor):
 
     key = "scc"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = len(list(networkx.strongly_connected_components(function.flowgraph)))
         collector.add_feature(self.key, value)
 
@@ -57,9 +65,11 @@ class BytesHash(FunctionFeatureExtractor):
     """
 
     key = "bh"
-    
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        bytes_seq = b''
+
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
+        bytes_seq = b""
         for bba, bb in function.items():
             bytes_seq += bb.bytes
         value = float(int(hashlib.md5(bytes_seq).hexdigest(), 16))
@@ -72,13 +82,15 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
     Cyclomatic complexity of the function CFG.
     """
 
-    key = 'cc'
-    
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    key = "cc"
+
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         e = len(function.edges)
         n = len([n for n in function.flowgraph.nodes()])
         components = len([c for c in networkx.weakly_connected_components(function.flowgraph)])
-        value = e - n + 2*components
+        value = e - n + 2 * components
         collector.add_feature(self.key, value)
 
 
@@ -90,26 +102,44 @@ class MDIndex(FunctionFeatureExtractor):
     (which may not always be the case)
     """
 
-    key = 'mdidx'
+    key = "mdidx"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         try:
             topological_sort = list(networkx.topological_sort(function.flowgraph))
             sort_ok = True
         except networkx.NetworkXUnfeasible:
             sort_ok = False
-    
-        if sort_ok : 
-            value = np.sum([1/math.sqrt(topological_sort.index(src) +
-                            math.sqrt(2)*function.flowgraph.in_degree(src) +
-                            math.sqrt(3)*function.flowgraph.out_degree(src) +
-                            math.sqrt(5)*function.flowgraph.in_degree(dst) +
-                            math.sqrt(7)*function.flowgraph.out_degree(dst)) for (src, dst) in function.edges])
+
+        if sort_ok:
+            value = np.sum(
+                [
+                    1
+                    / math.sqrt(
+                        topological_sort.index(src)
+                        + math.sqrt(2) * function.flowgraph.in_degree(src)
+                        + math.sqrt(3) * function.flowgraph.out_degree(src)
+                        + math.sqrt(5) * function.flowgraph.in_degree(dst)
+                        + math.sqrt(7) * function.flowgraph.out_degree(dst)
+                    )
+                    for (src, dst) in function.edges
+                ]
+            )
         else:
-            value = np.sum([1/math.sqrt(math.sqrt(2)*function.flowgraph.in_degree(src) +
-                            math.sqrt(3)*function.flowgraph.out_degree(src) +
-                            math.sqrt(5)*function.flowgraph.in_degree(dst) +
-                            math.sqrt(7)*function.flowgraph.out_degree(dst)) for (src, dst) in function.edges])
+            value = np.sum(
+                [
+                    1
+                    / math.sqrt(
+                        math.sqrt(2) * function.flowgraph.in_degree(src)
+                        + math.sqrt(3) * function.flowgraph.out_degree(src)
+                        + math.sqrt(5) * function.flowgraph.in_degree(dst)
+                        + math.sqrt(7) * function.flowgraph.out_degree(dst)
+                    )
+                    for (src, dst) in function.edges
+                ]
+            )
 
         collector.add_feature(self.key, float(value))
 
@@ -121,9 +151,11 @@ class JumpNb(InstructionFeatureExtractor):
 
     key = "jnb"
 
-    def visit_instruction(self, program: Program, instruction: Instruction, collector: FeatureCollector) -> None:
-        if instruction.mnemonic == 'jmp':
-            collector.add_dict_feature(self.key, {'value': 1})
+    def visit_instruction(
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
+        if instruction.mnemonic == "jmp":
+            collector.add_dict_feature(self.key, {"value": 1})
 
 
 class SmallPrimeNumbers(FunctionFeatureExtractor):
@@ -147,18 +179,21 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
         """
 
         correction = n % 6 > 1
-        n = {0: n, 1: n-1, 2: n+4, 3: n+3, 4: n+2, 5: n+1}[n % 6]
+        n = {0: n, 1: n - 1, 2: n + 4, 3: n + 3, 4: n + 2, 5: n + 1}[n % 6]
         sieve = [True] * (n // 3)
         sieve[0] = False
-        for i in range(int(n ** .5) // 3 + 1):
+        for i in range(int(n**0.5) // 3 + 1):
             if sieve[i]:
                 k = (3 * i + 1) | 1
-                sieve[k*k // 3::2*k] = [False] * ((n//6 - (k*k)//6 - 1)//k + 1)
-                sieve[(k*k + 4*k - 2*k*(i % 2)) // 3::2*k] = [False] * ((n // 6 - (k*k + 4*k - 2*k*(i % 2))//6 - 1) // k + 1)
-        return [2, 3] + [(3 * i + 1) | 1 for i in range(1, n//3 - correction) if sieve[i]]
-        
-    
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+                sieve[k * k // 3 :: 2 * k] = [False] * ((n // 6 - (k * k) // 6 - 1) // k + 1)
+                sieve[(k * k + 4 * k - 2 * k * (i % 2)) // 3 :: 2 * k] = [False] * (
+                    (n // 6 - (k * k + 4 * k - 2 * k * (i % 2)) // 6 - 1) // k + 1
+                )
+        return [2, 3] + [(3 * i + 1) | 1 for i in range(1, n // 3 - correction) if sieve[i]]
+
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         mnemonics = set()
         for bb_addr, bb in function.items():
             for ins in bb.instructions:
@@ -166,12 +201,12 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
                     mnemonics.update({ins.mnemonic})
 
         mnemonics = list(mnemonics)
-        
+
         value = 1
         primes = self.primesbelow(4096)
         for bb_addr, bb in function.items():
             for ins in bb.instructions:
-                value *= primes[mnemonics.index(ins.mnemonic)] 
+                value *= primes[mnemonics.index(ins.mnemonic)]
                 value = value % (2**64)
         collector.add_feature(self.key, value)
 
@@ -184,9 +219,11 @@ class ReadWriteAccess(OperandFeatureExtractor):
 
     key = "rwa"
 
-    def visit_operand(self, program: Program, operand: Operand, collector: FeatureCollector) -> None:
-        if operand.type in (OperandType.memory, OperandType.displacement, OperandType.phrase): 
-            collector.add_dict_feature(self.key, {'value': 1})
+    def visit_operand(
+        self, program: Program, operand: Operand, collector: FeatureCollector
+    ) -> None:
+        if operand.type in (OperandType.memory, OperandType.displacement, OperandType.phrase):
+            collector.add_dict_feature(self.key, {"value": 1})
 
 
 class MaxParentNb(FunctionFeatureExtractor):
@@ -196,11 +233,12 @@ class MaxParentNb(FunctionFeatureExtractor):
 
     key = "maxp"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        try : 
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
+        try:
             value = max(
-                len(list(function.flowgraph.predecessors(bblock)))
-                for bblock in function.flowgraph
+                len(list(function.flowgraph.predecessors(bblock))) for bblock in function.flowgraph
             )
         except ValueError:
             value = 0
@@ -214,9 +252,10 @@ class MaxChildNb(FunctionFeatureExtractor):
 
     key = "maxc"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        
-        try :
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
+        try:
             value = max(
                 len(list(function.flowgraph.successors(bblock))) for bblock in function.flowgraph
             )
@@ -232,7 +271,9 @@ class MaxInsNB(FunctionFeatureExtractor):
 
     key = "maxins"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         try:
             value = max(len(bblock.instructions) for bblock in function)
         except ValueError:
@@ -247,8 +288,10 @@ class MeanInsNB(FunctionFeatureExtractor):
 
     key = "meanins"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-        try :
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
+        try:
             value = sum(len(bblock.instructions) for bblock in function) / len(function)
         except ValueError:
             value = 0
@@ -262,7 +305,9 @@ class InstNB(FunctionFeatureExtractor):
 
     key = "totins"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = sum(len(bblock.instructions) for bblock in function)
         collector.add_feature(self.key, value)
 
@@ -274,9 +319,11 @@ class GraphMeanDegree(FunctionFeatureExtractor):
 
     key = "Gmd"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         n_node = len(function.flowgraph)
-        value = (sum(d for _, d in function.flowgraph.degree) / n_node if n_node != 0 else 0)
+        value = sum(d for _, d in function.flowgraph.degree) / n_node if n_node != 0 else 0
         collector.add_feature(self.key, value)
 
 
@@ -287,7 +334,9 @@ class GraphDensity(FunctionFeatureExtractor):
 
     key = "Gd"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = networkx.density(function.flowgraph)
         collector.add_feature(self.key, value)
 
@@ -300,7 +349,9 @@ class GraphNbComponents(FunctionFeatureExtractor):
 
     key = "Gnc"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = len(list(networkx.connected_components(function.flowgraph.to_undirected())))
         collector.add_feature(self.key, value)
 
@@ -312,12 +363,16 @@ class GraphDiameter(FunctionFeatureExtractor):
 
     key = "Gdi"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         components = list(networkx.connected_components(function.flowgraph.to_undirected()))
 
         if components:
-            value = max(networkx.diameter(networkx.subgraph(function.flowgraph, x).to_undirected())
-                        for x in components)
+            value = max(
+                networkx.diameter(networkx.subgraph(function.flowgraph, x).to_undirected())
+                for x in components
+            )
         else:
             value = 0
         collector.add_feature(self.key, value)
@@ -330,7 +385,9 @@ class GraphTransitivity(FunctionFeatureExtractor):
 
     key = "Gt"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = networkx.transitivity(function.flowgraph)
         collector.add_feature(self.key, value)
 
@@ -342,12 +399,13 @@ class GraphCommunities(FunctionFeatureExtractor):
 
     key = "Gcom"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
-
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         partition = community.best_partition(function.flowgraph.to_undirected())
         if (len(function) > 1) and partition:
             p_list = [x for x in partition.values() if x != function.addr]
             value = max(p_list) if p_list else 0
-        else :
+        else:
             value = 0
         collector.add_feature(self.key, value)

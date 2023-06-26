@@ -23,10 +23,12 @@ from typing import List, Tuple
 from bindiff import BindiffFile
 
 # local imports
-#from qbindiff import VERSION
+# from qbindiff import VERSION
 from qbindiff.loader import Program, Function, BasicBlock
 from qbindiff.types import Addr
-#from qbindiff import Mapping
+
+# from qbindiff import Mapping
+
 
 @lru_cache
 def primes() -> List[int]:
@@ -83,7 +85,9 @@ def _compute_bb_prime_product(basic_block: BasicBlock) -> int:
     return tot
 
 
-def compute_basic_block_match(primary_func: Function, secondary_func: Function) -> Generator[Tuple[Addr, Addr]]:
+def compute_basic_block_match(
+    primary_func: Function, secondary_func: Function
+) -> Generator[Tuple[Addr, Addr]]:
     """
     Matches the basic blocks between the two functions
 
@@ -110,7 +114,9 @@ def compute_basic_block_match(primary_func: Function, secondary_func: Function) 
         yield from zip(primary_hash[h], secondary_hash[h])
 
 
-def compute_instruction_match(primary_bb: BasicBlock, secondary_bb: BasicBlock) -> Generator[Tuple[Addr, Addr]]:
+def compute_instruction_match(
+    primary_bb: BasicBlock, secondary_bb: BasicBlock
+) -> Generator[Tuple[Addr, Addr]]:
     """
     Matches the instructions between the two basic blocks
 
@@ -130,7 +136,9 @@ def compute_instruction_match(primary_bb: BasicBlock, secondary_bb: BasicBlock) 
         yield from zip(primary_instr[k], secondary_instr[k])
 
 
-def export_to_bindiff(filename: str, primary: Program, secondary: Program, mapping: "Mapping") -> None:
+def export_to_bindiff(
+    filename: str, primary: Program, secondary: Program, mapping: "Mapping"
+) -> None:
     """
     Exports diffing results inside the BinDiff format
 
@@ -140,7 +148,7 @@ def export_to_bindiff(filename: str, primary: Program, secondary: Program, mappi
     :param mapping: diffing mapping between the two programs
     """
     from qbindiff import VERSION  # import the version here to avoid circular definition
-    
+
     def count_items(program: Program) -> Tuple[int, int, int, int]:
         fp, flib, bbs, inst = 0, 0, 0, 0
         for f_addr, f in program.items():
@@ -150,13 +158,15 @@ def export_to_bindiff(filename: str, primary: Program, secondary: Program, mappi
             inst += sum(len(x) for x in f)
         return fp, flib, bbs, inst
 
-    binfile = BindiffFile.create(filename,
-                                 primary.exec_path,
-                                 secondary.exec_path,
-                                 f"Qbindiff {VERSION}",
-                                 "",
-                                 mapping.normalized_similarity,
-                                 0.0)
+    binfile = BindiffFile.create(
+        filename,
+        primary.exec_path,
+        secondary.exec_path,
+        f"Qbindiff {VERSION}",
+        "",
+        mapping.normalized_similarity,
+        0.0,
+    )
 
     for m in mapping:  # iterate all the matchs
         with m.primary, m.secondary:  # Do not unload basic blocks
@@ -176,9 +186,15 @@ def export_to_bindiff(filename: str, primary: Program, secondary: Program, mappi
                     binfile.add_instruction_match(entry_id, instr_addr1, instr_addr2)
 
             # Add the function match here to provide the same_bb_count
-            binfile.add_function_match(faddr1, faddr2, m.primary.name, m.secondary.name, float(m.similarity),
-                                       float(m.confidence), same_bb_count)
-
+            binfile.add_function_match(
+                faddr1,
+                faddr2,
+                m.primary.name,
+                m.secondary.name,
+                float(m.similarity),
+                float(m.confidence),
+                same_bb_count,
+            )
 
     # Update file infos about primary
     f, lib, bbs, insts = count_items(primary)

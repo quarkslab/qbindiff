@@ -23,6 +23,7 @@ from collections.abc import Generator
 # local imports
 from qbindiff.types import Positive, Ratio, RawMapping, SparseMatrix
 
+
 class BeliefMWM:
     """
     Computes the optimal solution to the **Maxmimum Weight Matching problem**.
@@ -39,10 +40,10 @@ class BeliefMWM:
 
         self._init_messages()
 
-        self.scores: List[float] = []         #: Scores list
-        self.max_avg_score: float = 0.0       #: Current maximum average score
+        self.scores: List[float] = []  #: Scores list
+        self.max_avg_score: float = 0.0  #: Current maximum average score
         self.best_mapping: RawMapping = None  #: Current best mapping
-        self.best_marginals = None           #: Current associated marginals as a SparseMatrix
+        self.best_marginals = None  #: Current associated marginals as a SparseMatrix
         self.epsilon = self._dtype(epsilon)  #: Current epsilon
         self._epsilonref = self.epsilon.copy()
 
@@ -241,10 +242,7 @@ class BeliefMWM:
         """
 
         rows = (
-            np.searchsorted(
-                self.weights.indptr, self.matches_mask.nonzero()[0], side="right"
-            )
-            - 1
+            np.searchsorted(self.weights.indptr, self.matches_mask.nonzero()[0], side="right") - 1
         )
         cols = self.weights.indices[self.matches_mask]
         mask = np.intersect1d(
@@ -279,7 +277,13 @@ class BeliefQAP(BeliefMWM):
     Computes an approximate solution to the **Quadratic Assignment problem**.
     """
 
-    def __init__(self, sim_matrix: SparseMatrix, squares: SparseMatrix, tradeoff: Ratio = 0.5, epsilon: Positive = 0.5):
+    def __init__(
+        self,
+        sim_matrix: SparseMatrix,
+        squares: SparseMatrix,
+        tradeoff: Ratio = 0.5,
+        epsilon: Positive = 0.5,
+    ):
         """
         :param sim_matrix: similarity matrix (sparse numpy matrix)
         :param squares: square matrix
@@ -313,7 +317,7 @@ class BeliefQAP(BeliefMWM):
 
         :param squares: square matrix
         """
-        
+
         #: Messages from square factor to node. m(h[ii`jj`] -> X[ii`])
         self.msg_h2n = squares.astype(self._dtype)
 
@@ -377,13 +381,13 @@ class BeliefQAP(BeliefMWM):
 
     def _update_square_factor_messages(self) -> None:
         """
-        
+
         Update the messages denoted by
         $$
         m_{h_{ii\\prime jj\\prime} \\rightarrow{} X_{ii\\prime}}
         $$
-        
-        The formula is the following one : 
+
+        The formula is the following one :
         $$
         m_{h_{ii\\prime j j\\prime} \\xrightarrow{} X_{ii\\prime}} = \\text{clip} (w_{ii\\prime jj\\prime} + m_{X_{jj\\prime}\\rightarrow{} h_{ii\\prime j j\\prime}}) - \\text{clip}(m_{X_{jj\\prime} \\xrightarrow{} h_{ii\\prime j j\\prime}})
         $$

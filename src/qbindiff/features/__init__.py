@@ -23,7 +23,7 @@ from qbindiff.features.graph import (
     CyclomaticComplexity,
     MDIndex,
     JumpNb,
-    SmallPrimeNumbers, 
+    SmallPrimeNumbers,
     ReadWriteAccess,
     MaxParentNb,
     MaxChildNb,

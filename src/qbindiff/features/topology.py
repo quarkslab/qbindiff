@@ -28,7 +28,9 @@ class ChildNb(FunctionFeatureExtractor):
 
     key = "cnb"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = len(function.children)
         collector.add_feature(self.key, value)
 
@@ -41,7 +43,9 @@ class ParentNb(FunctionFeatureExtractor):
 
     key = "pnb"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = len(function.parents)
         collector.add_feature(self.key, value)
 
@@ -54,7 +58,9 @@ class RelativeNb(FunctionFeatureExtractor):
 
     key = "rnb"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = len(function.parents) + len(function.children)
         collector.add_feature(self.key, value)
 
@@ -68,7 +74,9 @@ class LibName(FunctionFeatureExtractor):
 
     key = "lib"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = defaultdict(int)
         for addr in function.children:
             if program[addr].is_library():
@@ -85,7 +93,9 @@ class ImpName(FunctionFeatureExtractor):
 
     key = "imp"
 
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         value = defaultdict(int)
         for addr in function.children:
             if program[addr].is_import():

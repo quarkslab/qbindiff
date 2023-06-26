@@ -118,7 +118,7 @@ class Function(Mapping[Addr, BasicBlock]):
     def items(self) -> Generator[Addr, BasicBlock]:
         """
         Returns a generator of tuples with addresses of basic blocks and the corresponding basic blocks objects
-        
+
         :return: generator (addr, basicblock)
         """
 
@@ -143,7 +143,7 @@ class Function(Mapping[Addr, BasicBlock]):
     def _unload(self) -> None:
         """
         Unload from memory all the basic blocks
-        
+
         :return: None
         """
 
@@ -260,7 +260,7 @@ class Function(Mapping[Addr, BasicBlock]):
         """
         Name of the function
         """
-        
+
         return self._backend.name
 
     @name.setter

@@ -90,11 +90,15 @@ def is_same_mnemonic(mnemonic1: str, mnemonic2: str) -> bool:
         return True
 
     return False
+
+
 # =======================================
 
 
 class OperandBackendBinExport(AbstractOperandBackend):
-    def __init__(self, cs_instruction: capstone.CsInsn, cs_operand: capstoneOperand, cs_operand_position: int):
+    def __init__(
+        self, cs_instruction: capstone.CsInsn, cs_operand: capstoneOperand, cs_operand_position: int
+    ):
         super(OperandBackendBinExport, self).__init__()
 
         self.cs_instr = cs_instruction
@@ -120,7 +124,7 @@ class OperandBackendBinExport(AbstractOperandBackend):
         op = self.cs_operand
         typ = OperandType.unknown
         cs_op_type = self.cs_operand.type
-        
+
         if cs_op_type == capstone.CS_OP_REG:
             return OperandType.register
         elif cs_op_type == capstone.CS_OP_IMM:
@@ -173,7 +177,10 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         """Returns an iterator over backend operand objects"""
         if self.cs_instr is None:
             return iter([])
-        return (OperandBackendBinExport(self.cs_instr, o, i) for i, o in enumerate(self.cs_instr.operands))
+        return (
+            OperandBackendBinExport(self.cs_instr, o, i)
+            for i, o in enumerate(self.cs_instr.operands)
+        )
 
     @property
     def groups(self) -> List[str]:
@@ -195,7 +202,6 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
 
 
 class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
-
     def __init__(self, program: weakref.ref[ProgramBackendBinExport], be_block: beBasicBlock):
         super(BasicBlockBackendBinExport, self).__init__()
 
@@ -208,7 +214,9 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         """
         return len(self.be_block)
 
-    def _disassemble(self, bb_asm: bytes, correct_mnemonic: str, correct_size: int) -> list[capstone.CsInsn]:
+    def _disassemble(
+        self, bb_asm: bytes, correct_mnemonic: str, correct_size: int
+    ) -> list[capstone.CsInsn]:
         """
         Disassemble the basic block using capstone trying to guess the instruction set
         when unable to determine it from binexport.
@@ -243,7 +251,10 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                 if self.program._enable_cortexm:
                     capstone_mode |= capstone.CS_MODE_MCLASS
                 if arm_mode > 0b11:
-                    raise Exception(f"Cannot guess the instruction set of the instruction at address 0x{self.addr:x}")
+                    raise Exception(
+                        "Cannot guess the instruction set of the instruction "
+                        f"at address 0x{self.addr:x}"
+                    )
                 arm_mode += 1
 
             md = _get_capstone_disassembler(arch, capstone_mode)
@@ -275,7 +286,9 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
 
         # Generates the first instruction and use it to guess the context for capstone
         first_instr = next(iter(self.be_block.values()))
-        capstone_instructions = self._disassemble(self.be_block.bytes, first_instr.mnemonic, len(first_instr.bytes))
+        capstone_instructions = self._disassemble(
+            self.be_block.bytes, first_instr.mnemonic, len(first_instr.bytes)
+        )
 
         # Then iterate over the instructions
         return (InstructionBackendBinExport(instr) for instr in capstone_instructions)
@@ -294,7 +307,10 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
     @property
     def basic_blocks(self) -> Iterator[BasicBlockBackendBinExport]:
         """Returns an iterator over backend basic blocks objects"""
-        return (BasicBlockBackendBinExport(self._program, bb) for addr, bb in self.be_func.blocks.items())
+        return (
+            BasicBlockBackendBinExport(self._program, bb)
+            for addr, bb in self.be_func.blocks.items()
+        )
 
     @property
     def addr(self) -> Addr:

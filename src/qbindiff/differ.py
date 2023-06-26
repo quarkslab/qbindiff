@@ -27,7 +27,7 @@ from typing import Any, Callable, Optional, List, Type, Tuple, Dict
 from bindiff import BindiffFile
 
 # local imports
-#from qbindiff import VERSION
+# from qbindiff import VERSION
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher
@@ -35,12 +35,21 @@ from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
 from qbindiff.passes import FeaturePass, ZeroPass
 from qbindiff.utils import is_debug
-from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, SimMatrix, Addr, Idx, Distance
+from qbindiff.types import (
+    RawMapping,
+    Positive,
+    Ratio,
+    Graph,
+    AdjacencyMatrix,
+    SimMatrix,
+    Addr,
+    Idx,
+    Distance,
+)
 from qbindiff.mapping.bindiff import export_to_bindiff
 
 
 class Differ:
-
     DTYPE = np.float32
 
     def __init__(
@@ -90,9 +99,15 @@ class Differ:
             self.primary = self.normalize(primary)
             self.secondary = self.normalize(secondary)
 
-        self.primary_adj_matrix, self.primary_i2n, self.primary_n2i = self.extract_adjacency_matrix(primary)
+        self.primary_adj_matrix, self.primary_i2n, self.primary_n2i = self.extract_adjacency_matrix(
+            primary
+        )
 
-        self.secondary_adj_matrix, self.secondary_i2n, self.secondary_n2i = self.extract_adjacency_matrix(secondary)
+        (
+            self.secondary_adj_matrix,
+            self.secondary_i2n,
+            self.secondary_n2i,
+        ) = self.extract_adjacency_matrix(secondary)
 
         # Dimension of the graphs
         self.primary_dim: int = len(self.primary_i2n)
@@ -106,7 +121,7 @@ class Differ:
 
         self.p_features = None
         self.s_features = None
-        
+
     def get_similarities(self, primary_idx: List[Idx], secondary_idx: List[Idx]) -> List[float]:
         """
         Returns the similarity scores between the nodes specified as parameter.
@@ -162,9 +177,7 @@ class Differ:
         #    v           v
         #   (n3) <----> (n4) (ending pair)
         common_subgraph = self.primary_adj_matrix[np.ix_(primary_idx, primary_idx)]
-        common_subgraph &= self.secondary_adj_matrix[
-            np.ix_(secondary_idx, secondary_idx)
-        ]
+        common_subgraph &= self.secondary_adj_matrix[np.ix_(secondary_idx, secondary_idx)]
         squares = common_subgraph.sum(0) + common_subgraph.sum(1)
 
         return Mapping(
@@ -173,7 +186,9 @@ class Differ:
             secondary_unmatched,
         )
 
-    def extract_adjacency_matrix(self, graph: Graph) -> (AdjacencyMatrix, Dict[Addr, Idx], Dict[Idx, Addr]):
+    def extract_adjacency_matrix(
+        self, graph: Graph
+    ) -> (AdjacencyMatrix, Dict[Addr, Idx], Dict[Idx, Addr]):
         """
         Returns the adjacency matrix for the graph and the mappings
 
@@ -184,7 +199,8 @@ class Differ:
 
         map_i2l = {}  # Map index to label
         map_l2i = {}  # Map label to index
-        for i, node in enumerate(graph.node_labels):  # Node labels are node function addresses (in decimal)
+        # Node labels are node function addresses (in decimal)
+        for i, node in enumerate(graph.node_labels):
             map_l2i[node] = i
             map_i2l[i] = node
 
@@ -248,7 +264,7 @@ class Differ:
             )
         for pass_func, extra_args in self._post_passes:
             if isinstance(pass_func, FeaturePass):
-                self.p_features, self.s_features =  pass_func(
+                self.p_features, self.s_features = pass_func(
                     self.sim_matrix,
                     self.primary,
                     self.secondary,
@@ -256,7 +272,7 @@ class Differ:
                     self.secondary_n2i,
                     **extra_args,
                 )
-                
+
             else:
                 pass_func(
                     self.sim_matrix,
@@ -287,9 +303,7 @@ class Differ:
         :return: Mapping between items of the primary and items of the secondary
         """
 
-        for _ in tqdm.tqdm(
-            self._matching_iterator(), total=self.maxiter, disable=not is_debug()
-        ):
+        for _ in tqdm.tqdm(self._matching_iterator(), total=self.maxiter, disable=not is_debug()):
             pass
         return self.mapping
 
@@ -303,9 +317,7 @@ class Differ:
 
         self.process()
 
-        matcher = Matcher(
-            self.sim_matrix, self.primary_adj_matrix, self.secondary_adj_matrix
-        )
+        matcher = Matcher(self.sim_matrix, self.primary_adj_matrix, self.secondary_adj_matrix)
         matcher.process(self.sparsity_ratio, self.sparse_row)
 
         yield from matcher.compute(self.tradeoff, self.epsilon, self.maxiter)
@@ -319,7 +331,6 @@ class DiGraphDiffer(Differ):
     """
 
     class DiGraphWrapper(GenericGraph):
-
         def __init__(self, graph: DiGraph):
             """
             A wrapper for DiGraph. It has no distinction between node labels and nodes
@@ -364,7 +375,9 @@ class DiGraphDiffer(Differ):
             return self._graph.edges
 
     def __init__(self, primary: DiGraph, secondary: DiGraph, **kwargs):
-        super(DiGraphDiffer, self).__init__(self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs)
+        super(DiGraphDiffer, self).__init__(
+            self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs
+        )
 
         self.register_prepass(self.gen_sim_matrix)
 
@@ -380,7 +393,6 @@ class DiGraphDiffer(Differ):
 
 
 class QBinDiff(Differ):
-
     DTYPE = np.float32
 
     def __init__(self, primary: Program, secondary: Program, distance=Distance.canberra, **kwargs):
@@ -400,7 +412,7 @@ class QBinDiff(Differ):
         self.primary_i2f = self.primary_i2n
         self.secondary_f2i = self.secondary_n2i
         self.secondary_i2f = self.secondary_i2n
-        
+
         # Register the import function mapping and feature extraction pass
         self._feature_pass = FeaturePass(distance)
         self.register_postpass(self._feature_pass)

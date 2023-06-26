@@ -41,16 +41,24 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
-from qbindiff.loader.types import DataType, StructureType, FunctionType, ReferenceType, ReferenceTarget, OperandType
+from qbindiff.loader.types import (
+    DataType,
+    StructureType,
+    FunctionType,
+    ReferenceType,
+    ReferenceTarget,
+    OperandType,
+)
 from qbindiff.types import Addr
 
 
 # ===== General purpose utils functions =====
 
+
 def extract_data_type(ida_flag: int) -> DataType:
     """
     Extract from a IDA flag the correct DataType
-    
+
     :param ida_flag: the IDA flag
     :return: the corresponding qbindiff DataType
     """
@@ -74,6 +82,7 @@ def extract_data_type(ida_flag: int) -> DataType:
     else:
         return DataType.UNKNOWN
 
+
 # ===========================================
 
 
@@ -82,25 +91,26 @@ class ImportManager:
     Class responsible for identifying imported functions.
     This is needed as there is no direct IDA API to know if a function is external or not
     """
+
     def __init__(self):
         # { address : (name, ordinal) }
         self.imports: dict[Addr, tuple(str, int)] = {}
 
         for i in range(ida_nalt.get_import_module_qty()):
             ida_nalt.enum_import_names(i, lambda ea, name, ord: self.handle_import(ea, name, ord))
-    
+
     def handle_import(self, ea: Addr, name: str, ord: int) -> int:
         """Handle the imported function by adding it to the collection"""
-        
+
         if name == "":
             # IDA might know the name even though it is not reporting it now
             flags = ida_bytes.get_flags(ea)
             if ida_bytes.has_user_name(flags):
                 name = ida_name.get_short_name(ea)
-        
+
         self.imports[ea] = (name, ord)
         return 1
-    
+
     def is_import(self, addr: Addr) -> bool:
         """Returns True if the address specified refers to an imported function"""
 
@@ -154,7 +164,7 @@ class OperandBackendIDA(AbstractOperandBackend):
         """
         Returns whether the operand is an immediate value (not considering addresses)
         """
-        
+
         # Ignore jumps since the target is an immediate
         return self.type == OperandType.immediate
 
@@ -175,7 +185,7 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         """
         The address of the instruction
         """
-        
+
         return self._addr
 
     @property
@@ -183,7 +193,7 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         """
         Returns the instruction mnemonic as a string
         """
-        
+
         return ida_ua.ua_mnem(self.addr)
 
     @property
@@ -191,7 +201,7 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         """
         Returns all the references towards the instruction
         """
-        
+
         return {}  # TODO: to implement
 
     @property
@@ -199,15 +209,19 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         """
         Returns an iterator over backend operand objects
         """
-        
-        return (OperandBackendIDA(op, self.addr) for op in self.insn.ops if op.type != ida_ua.o_void and op.shown())
+
+        return (
+            OperandBackendIDA(op, self.addr)
+            for op in self.insn.ops
+            if op.type != ida_ua.o_void and op.shown()
+        )
 
     @property
     def groups(self) -> list[str]:
         """
         Returns a list of groups of this instruction
         """
-        
+
         return []  # Not implemented for IDA backend
 
     @property
@@ -216,7 +230,7 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         Returns the IDA instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
         The value MAX_ID means that there is no ID available.
         """
-        
+
         return self.insn.itype
 
     @property
@@ -224,9 +238,9 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         """
         Comment associated with the instruction
         """
-        
+
         return ida_bytes.get_cmt(self.addr, True) or ""  # return repeatable ones
-        
+
     @property
     def bytes(self) -> bytes:
         """
@@ -248,7 +262,7 @@ class BasicBlockBackendIDA(AbstractBasicBlockBackend):
         """
         The numbers of instructions in the basic block
         """
-        
+
         return self._size
 
     @property
@@ -256,7 +270,7 @@ class BasicBlockBackendIDA(AbstractBasicBlockBackend):
         """
         The address of the basic block
         """
-        
+
         return self._start_addr
 
     @property
@@ -264,22 +278,26 @@ class BasicBlockBackendIDA(AbstractBasicBlockBackend):
         """
         Returns an iterator over backend instruction objects
         """
-        
-        return (InstructionBackendIDA(addr) for addr in idautils.Heads(self._start_addr, self._end_addr))
+
+        return (
+            InstructionBackendIDA(addr) for addr in idautils.Heads(self._start_addr, self._end_addr)
+        )
 
     @property
     def bytes(self) -> bytes:
         """
         Returns the bytes representation of the basic block
         """
-        
+
         return ida_bytes.get_bytes(self._start_addr, self._end_addr - self._start_addr)
 
 
 class FunctionBackendIDA(AbstractFunctionBackend):
-    def __init__(self, program: weakref.ref["ProgramBackendIDA"], addr: Addr, import_manager: ImportManager):
+    def __init__(
+        self, program: weakref.ref["ProgramBackendIDA"], addr: Addr, import_manager: ImportManager
+    ):
         super(FunctionBackendIDA, self).__init__()
-        
+
         self._program = program
         self._addr = addr
         self.import_manager = import_manager
@@ -308,8 +326,11 @@ class FunctionBackendIDA(AbstractFunctionBackend):
 
         if self.is_import():
             return iter([])
-        
-        return (BasicBlockBackendIDA(block.start_ea, block.end_ea) for block in ida_gdl.FlowChart(self._ida_fun, flags=ida_gdl.FC_NOEXT))
+
+        return (
+            BasicBlockBackendIDA(block.start_ea, block.end_ea)
+            for block in ida_gdl.FlowChart(self._ida_fun, flags=ida_gdl.FC_NOEXT)
+        )
 
     @property
     def addr(self) -> Addr:
@@ -324,7 +345,7 @@ class FunctionBackendIDA(AbstractFunctionBackend):
         """
         The Control Flow Graph of the function.
         """
-        
+
         return self._cfg
 
     @cached_property
@@ -332,7 +353,7 @@ class FunctionBackendIDA(AbstractFunctionBackend):
         """
         Set of function parents in the call graph.
         """
-        
+
         return set(self._program().callgraph.predecessors(self.addr))
 
     @cached_property
@@ -348,7 +369,7 @@ class FunctionBackendIDA(AbstractFunctionBackend):
         """
         The type of the function.
         """
-        
+
         if self._ida_fun.flags & ida_funcs.FUNC_THUNK:
             return FunctionType.thunk
         elif self._ida_fun.flags & ida_funcs.FUNC_LIB:
@@ -363,7 +384,7 @@ class FunctionBackendIDA(AbstractFunctionBackend):
         """
         The name of the function.
         """
-        
+
         return ida_funcs.get_func_name(self.addr)
 
     def is_import(self) -> bool:
@@ -401,7 +422,7 @@ class ProgramBackendIDA(AbstractProgramBackend):
         for fun_addr in idautils.Functions():
             functions.append(FunctionBackendIDA(weakref.ref(self), fun_addr, self.import_manager))
             self._fun_names[ida_funcs.get_func_name(fun_addr)] = fun_addr
-            
+
             # Load the callgraph
             self._callgraph.add_node(fun_addr)
             for xref_addr in idautils.CodeRefsTo(fun_addr, 1):
@@ -431,7 +452,9 @@ class ProgramBackendIDA(AbstractProgramBackend):
             struct_id = ida_struct.get_struc_by_idx(idx)
             struct_name = ida_struct.get_struc_name(struct_id)
             struct_size = ida_struct.get_struc_size(struct_id)
-            struct_type = StructureType.UNION if ida_struct.is_union(struct_id) else StructureType.STRUCT
+            struct_type = (
+                StructureType.UNION if ida_struct.is_union(struct_id) else StructureType.STRUCT
+            )
 
             struct = Structure(struct_type, struct_name, struct_size)
             struct_list.append(struct)
@@ -443,7 +466,7 @@ class ProgramBackendIDA(AbstractProgramBackend):
 
                 while offset != ida_idaapi.BADADDR:
                     member_ida = ida_struct.get_member(struct_ida, offset)
-                    
+
                     # A None value might be the terminator of the struct
                     if member_ida is not None:
                         struct.add_member(
@@ -451,11 +474,11 @@ class ProgramBackendIDA(AbstractProgramBackend):
                             extract_data_type(member_ida.flag),
                             ida_struct.get_member_name(member_ida.id),
                             ida_struct.get_member_size(member_ida),
-                            None, # No default value
+                            None,  # No default value
                         )
 
                     offset = ida_struct.get_struc_next_offset(struct_ida, offset)
-        
+
         return struct_list
 
     @property
@@ -465,7 +488,10 @@ class ProgramBackendIDA(AbstractProgramBackend):
         """
 
         if self._callgraph is None:
-            raise ValueError("Callgraph not populated yet. You have to load the functions before accessing the callgraph")
+            raise ValueError(
+                "Callgraph not populated yet. You have to load the functions "
+                "before accessing the callgraph"
+            )
         return self._callgraph
 
     @property
@@ -473,7 +499,7 @@ class ProgramBackendIDA(AbstractProgramBackend):
         """
         Returns a dictionary with function name as key and the function address as value.
         """
-        
+
         return self._fun_names
 
     @property

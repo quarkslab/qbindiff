@@ -40,7 +40,7 @@ class FeatureCollector:
         """
         Add a feature value in the collector. Features are responsible to call
         this function to register a value with its own name.
-        
+
         :param key: name of the feature adding the value
         :param value: float value to be added in the collector
         """
@@ -60,18 +60,18 @@ class FeatureCollector:
         if value == {}:
             FeatureKeyManager.add(key)
             self._features[key] = 0
-        else :
+        else:
             for k, v in value.items():
                 FeatureKeyManager.add(key, k)
                 self._features[key][k] += v
-    
+
     def feature_vector(self) -> None:
-        """ Show the feature vector associated to the node """
+        """Show the feature vector associated to the node"""
         feature_vector = {}
         for main_key, feature in self._features.items():
             feature_vector[main_key] = feature
         return feature_vector
-        
+
     def full_keys(self) -> Dict[str, Set[str]]:
         """
         Returns a dict in which keys are the keys of the features and values are the subkeys.
@@ -85,8 +85,8 @@ class FeatureCollector:
         for main_key, feature in self._features.items():
             keys.setdefault(main_key, set())
             if isinstance(feature, dict):
-                keys[main_key].update(feature.keys())    
-                
+                keys[main_key].update(feature.keys())
+
         return keys
 
     def to_sparse_vector(self, dtype: type, main_key_list: List[str]) -> SparseVector:
@@ -154,7 +154,10 @@ class FunctionFeatureExtractor(FeatureExtractor):
     and defines the method :py:meth:`visit_function` that has
     to be implemented by all its inheriting classes.
     """
-    def visit_function(self, program: Program, function: Function, collector: FeatureCollector) -> None:
+
+    def visit_function(
+        self, program: Program, function: Function, collector: FeatureCollector
+    ) -> None:
         """
         Function being called by the visitor when encountering a function in the program.
         Inheriting classes of the implement the feature extraction in this method.
@@ -173,7 +176,9 @@ class BasicBlockFeatureExtractor(FeatureExtractor):
     to be implemented by all its inheriting classes.
     """
 
-    def visit_basic_block(self, program: Program, basicblock: BasicBlock, collector: FeatureCollector) -> None:
+    def visit_basic_block(
+        self, program: Program, basicblock: BasicBlock, collector: FeatureCollector
+    ) -> None:
         """
         Function being called by the visitor when encountering a basic block in the program.
         Classes inheriting have to implement this method.
@@ -191,7 +196,10 @@ class InstructionFeatureExtractor(FeatureExtractor):
     and defines the method :py:meth:`visit_instruction` that has to
     be implemented by all its inheriting classes.
     """
-    def visit_instruction(self, program: Program, instruction: Instruction, collector: FeatureCollector) -> None:
+
+    def visit_instruction(
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
         """
         Function being called by the visitor when encountering an instruction in the program.
         Classes inheriting have to implement this method.
@@ -210,7 +218,9 @@ class OperandFeatureExtractor(FeatureExtractor):
     implemented by all its inheriting classes.
     """
 
-    def visit_operand(self, program: Program, operand: Operand, collector: FeatureCollector) -> None:
+    def visit_operand(
+        self, program: Program, operand: Operand, collector: FeatureCollector
+    ) -> None:
         """
         Function being called by the visitor when encountering an operand in the program.
         Classes inheriting have to implement this method.

@@ -148,9 +148,7 @@ def jaccard_strong(X, Y, w=None):
             w = _validate_weights(w)
             if w.size != X.shape[1]:
                 ValueError("Weights size mismatch")
-        sparse_strong_jaccard(
-            X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, w
-        )
+        sparse_strong_jaccard(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, w)
         return D
 
     if w is None:
@@ -211,30 +209,31 @@ def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
         A distance matrix D such that D_{i, j} is the distance between the ith array
         from X and the jth array from Y.
     """
-    
-    if metric in CUSTOM_DISTANCES: # If we use the canberra distance, choose the custom version, that supports sparse matrix and weights 
-                                   # (not the case for scikit-learn (only sparse, no weights) and scipy (weights but no sparse matrix)
-                                   
-        # All the custom distances are guaranteed to make use of parallelism
+
+    # If we use the canberra distance, choose the custom version, that supports sparse matrix
+    # and weights (not the case for scikit-learn (only sparse, no weights) and scipy
+    # (weights but no sparse matrix).
+    # All the custom distances are guaranteed to make use of parallelism
+    if metric in CUSTOM_DISTANCES:
         dist = CUSTOM_DISTANCES[metric](X, Y, **kwargs)
-        
-    elif 'w' in kwargs: # If we include a weight vector w, we have to use the scipy implementation (scikit-learn does not support weights)
-                        # but scipy does not support sparse matrix. However, at this step, X and Y should be matrices of shape (n, 1) and (m, 1)
-                        # so it should be OK to use .todense() (no RAM explosion)
-                        # Be careful, some distance may return nan values (ex:correlation)
+
+    # If we include a weight vector w, we have to use the scipy implementation (scikit-learn
+    # does not support weights) but scipy does not support sparse matrix.
+    # However, at this step, X and Y should be matrices of shape (n, 1) and (m, 1)
+    # so it should be OK to use .todense() (no RAM explosion).
+    # Be careful, some distance may return nan values (ex:correlation)
+    elif "w" in kwargs:
         dist = distance.cdist(X.todense(), Y.todense(), metric, **kwargs)
-        
-    elif callable(metric): # other cases (not well understood)
-        dist = sklearn.metrics.pairwise._parallel_pairwise(
-            X, Y, metric, n_jobs, **kwargs
-        )
+
+    elif callable(metric):  # other cases (not well understood)
+        dist = sklearn.metrics.pairwise._parallel_pairwise(X, Y, metric, n_jobs, **kwargs)
     else:  # other cases (not well understood)
-        dist = sklearn.metrics.pairwise.pairwise_distances(
-            X, Y, metric, n_jobs=n_jobs, **kwargs
-        )
-        
+        dist = sklearn.metrics.pairwise.pairwise_distances(X, Y, metric, n_jobs=n_jobs, **kwargs)
+
     if np.isnan(dist).any():
-        raise ValueError("Similarity matrix contains nan values. Consider changing the distance for computing the similarity (check euclidean or canberra).")
-    else :
+        raise ValueError(
+            "Similarity matrix contains nan values. Consider changing the distance for "
+            "computing the similarity (check euclidean or canberra)."
+        )
+    else:
         return dist
-        

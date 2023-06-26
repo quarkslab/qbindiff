@@ -44,7 +44,6 @@ class Address(FunctionFeatureExtractor):
     key = "addr"
 
     def visit_function(self, _: Program, function: Function, collector: FeatureCollector) -> None:
-
         value = function.addr
         collector.add_feature(self.key, value)
 
@@ -58,7 +57,9 @@ class DatName(InstructionFeatureExtractor):
 
     key = "dat"
 
-    def visit_instruction(self, _: Program, instruction: Instruction, collector: FeatureCollector) -> None:
+    def visit_instruction(
+        self, _: Program, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
         for ref_type, references in instruction.references.items():
             for reference in references:
                 if (
@@ -70,12 +71,15 @@ class DatName(InstructionFeatureExtractor):
                     collector.add_dict_feature(self.key, {reference.value: 1})
 
                 elif ref_type == ReferenceType.STRUC:
-                    assert isinstance(reference, Structure | StructureMember
+                    assert isinstance(
+                        reference, Structure | StructureMember
                     ), "STRUC reference not referencing Structure nor StructureMember"
                     if isinstance(reference, Structure):
                         collector.add_dict_feature(self.key, {reference.name: 1})
                     elif isinstance(reference, StructureMember):
-                        collector.add_dict_feature(self.key, {reference.structure.name + "." + reference.name: 1})
+                        collector.add_dict_feature(
+                            self.key, {reference.structure.name + "." + reference.name: 1}
+                        )
 
                 else:  # Enum, calls
                     pass
@@ -89,7 +93,9 @@ class StrRef(InstructionFeatureExtractor):
 
     key = "strref"
 
-    def visit_instruction(self, _: Program, instruction: Instruction, collector: FeatureCollector) -> None:
+    def visit_instruction(
+        self, _: Program, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
         for data in instruction.data_references:
             if data.type == DataType.ASCII:
                 collector.add_dict_feature(self.key, {data.value: 1})
@@ -144,6 +150,8 @@ class FuncName(FunctionFeatureExtractor):
             # have a distance of zero (hence similarity of 1) with any other zero
             # feature vector. Hence, add a good enough random number to reduce the
             # chance of a collision
-            collector.add_dict_feature(self.key, {function.name + str(random.randrange(1000000000)): 1})
+            collector.add_dict_feature(
+                self.key, {function.name + str(random.randrange(1000000000)): 1}
+            )
         else:
             collector.add_dict_feature(self.key, {function.name: 1})

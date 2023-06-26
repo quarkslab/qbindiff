@@ -27,7 +27,15 @@ from typing import Tuple, List
 # Local imports
 from qbindiff.matcher.squares import find_squares
 from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefQAP
-from qbindiff.types import Positive, Ratio, RawMapping, AdjacencyMatrix, Matrix, SimMatrix, SparseMatrix
+from qbindiff.types import (
+    Positive,
+    Ratio,
+    RawMapping,
+    AdjacencyMatrix,
+    Matrix,
+    SimMatrix,
+    SparseMatrix,
+)
 
 
 def iter_csr_matrix(matrix: SparseMatrix) -> Generator[Tuple[np.ndarray, np.ndarray]]:
@@ -91,7 +99,7 @@ class Matcher:
         :param sparse_row: whether to use sparse rows
         :return: None
         """
-        
+
         ratio = round(sparsity_ratio * self.sim_matrix.size)
 
         if ratio == 0:
@@ -99,9 +107,12 @@ class Matcher:
             return
         elif ratio == self.sim_matrix.size:
             threshold = self.sim_matrix.max(1, keepdims=True)
-            self.sparse_sim_matrix = self.sim_matrix >= threshold  # Simply give a matrix filled with True and False, this is not a sparse similarity matrix
-            self.sparse_sim_matrix = self.sparse_sim_matrix.astype(np.float32)  # Convert True and False to float32 (for similarity, 0 or 1)
-            self.sparse_sim_matrix = csr_matrix(self.sparse_sim_matrix)  # Convert the matrix to a sparse one
+            # Start with a matrix with only True and False, this is not a sparse similarity matrix
+            self.sparse_sim_matrix = self.sim_matrix >= threshold
+            # Convert True and False to float32 (for similarity, 0 or 1)
+            self.sparse_sim_matrix = self.sparse_sim_matrix.astype(np.float32)
+            # Convert the matrix to a sparse one
+            self.sparse_sim_matrix = csr_matrix(self.sparse_sim_matrix)
 
             return
 
@@ -158,7 +169,9 @@ class Matcher:
         The time complexity is O(|sparse_sim_matrix| * average_graph_degree**2)
         """
 
-        squares = find_squares(self.primary_adj_matrix, self.secondary_adj_matrix, self.sparse_sim_matrix)
+        squares = find_squares(
+            self.primary_adj_matrix, self.secondary_adj_matrix, self.sparse_sim_matrix
+        )
 
         size = self.sparse_sim_matrix.nnz
         # Give each similarity edge a unique number
@@ -184,9 +197,7 @@ class Matcher:
         data = np.ones(squares_2n, dtype=np.uint8)
 
         # Build coo matrix and convert it to csr
-        coo_squares_matrix = coo_matrix(
-            (data, (rows, cols)), shape=(size, size), dtype=np.uint8
-        )
+        coo_squares_matrix = coo_matrix((data, (rows, cols)), shape=(size, size), dtype=np.uint8)
         self.squares_matrix = coo_squares_matrix.tocsr()
 
         # Sometimes a square is counted twice
@@ -208,7 +219,9 @@ class Matcher:
         """
         return [self._confidence[idx1, idx2] for idx1, idx2 in zip(*self.mapping)]
 
-    def process(self, sparsity_ratio: Ratio = 0.75, sparse_row: bool = False, compute_squares: bool = True):
+    def process(
+        self, sparsity_ratio: Ratio = 0.75, sparse_row: bool = False, compute_squares: bool = True
+    ):
         """
         Initialize the matching algorithm
 
@@ -222,7 +235,9 @@ class Matcher:
         :return: None
         """
 
-        logging.debug(f"Computing sparse similarity matrix (ratio {sparsity_ratio} sparse_row {sparse_row})")
+        logging.debug(
+            f"Computing sparse similarity matrix (ratio {sparsity_ratio} sparse_row {sparse_row})"
+        )
         self._compute_sparse_sim_matrix(sparsity_ratio, sparse_row)
         logging.debug(
             f"Sparse similarity matrix computed, shape: {self.sparse_sim_matrix.shape}"
@@ -268,7 +283,7 @@ class Matcher:
         :param score_matrix: similarity matrix
         :return: updated raw mapping
         """
-        
+
         primary, secondary = mapping
         assert len(primary) == len(secondary)
 

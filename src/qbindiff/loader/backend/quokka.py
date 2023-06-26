@@ -38,7 +38,14 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
-from qbindiff.loader.types import FunctionType, DataType, StructureType, ReferenceType, ReferenceTarget, OperandType
+from qbindiff.loader.types import (
+    FunctionType,
+    DataType,
+    StructureType,
+    ReferenceType,
+    ReferenceTarget,
+    OperandType,
+)
 from qbindiff.types import Addr
 
 
@@ -51,7 +58,7 @@ capstoneValue: TypeAlias = Any  # Relaxed typing
 def convert_data_type(qbe_data_type: quokka.types.DataType) -> DataType:
     """
     Convert a quokka DataType to qbindiff DataType
-    
+
     :param qbe_data_type: the Quokka datatype to convert
     :return: the corresponding qbindiff datatype
     """
@@ -111,6 +118,7 @@ def convert_ref_type(qbe_ref_type: quokka.types.ReferenceType) -> ReferenceType:
     else:
         return ReferenceType.UNKNOWN
 
+
 # ===========================================
 
 
@@ -119,7 +127,12 @@ class OperandBackendQuokka(AbstractOperandBackend):
     Backend loader of an Operand using Quokka
     """
 
-    def __init__(self, cs_instruction: "capstone.CsInsn", cs_operand: capstoneOperand, cs_operand_position: int):
+    def __init__(
+        self,
+        cs_instruction: "capstone.CsInsn",
+        cs_operand: capstoneOperand,
+        cs_operand_position: int,
+    ):
         super(OperandBackendQuokka, self).__init__()
 
         self.cs_instr = cs_instruction
@@ -145,7 +158,7 @@ class OperandBackendQuokka(AbstractOperandBackend):
         op = self.cs_operand
         typ = OperandType.unknown
         cs_op_type = self.cs_operand.type
-        
+
         if cs_op_type == capstone.CS_OP_REG:
             return OperandType.register
         elif cs_op_type == capstone.CS_OP_IMM:
@@ -179,7 +192,11 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
     Backend loader of a Instruction using Quokka
     """
 
-    def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_instruction: quokka.instruction.Instruction):
+    def __init__(
+        self,
+        program: weakref.ref[ProgramBackendQuokka],
+        qb_instruction: quokka.instruction.Instruction,
+    ):
         super(InstructionBackendQuokka, self).__init__()
 
         self.program = program
@@ -187,7 +204,8 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         self.cs_instr = qb_instruction.cs_inst
         if self.cs_instr is None:
             logging.error(
-                f"Capstone could not disassemble instruction at 0x{self.qb_instr.address:x} {self.qb_instr}")
+                f"Capstone could not disassemble instruction at 0x{self.qb_instr.address:x} {self.qb_instr}"
+            )
 
     def __del__(self):
         """
@@ -200,7 +218,9 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         block = self.qb_instr.parent
         block._raw_dict[self.qb_instr.address] = self.qb_instr.proto_index
 
-    def _cast_references(self, references: List[quokka.types.ReferenceTarget]) -> List[ReferenceTarget]:
+    def _cast_references(
+        self, references: List[quokka.types.ReferenceTarget]
+    ) -> List[ReferenceTarget]:
         """
         Cast the quokka references to qbindiff reference types
 
@@ -218,9 +238,7 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
                     ret_ref.append(self.program().get_structure(name))
                 case quokka.structure.StructureMember(structure=qbe_struct, name=name):
                     ret_ref.append(
-                        self.program()
-                        .get_structure(qbe_struct.name)
-                        .member_by_name(name)
+                        self.program().get_structure(qbe_struct.name).member_by_name(name)
                     )
                 case quokka.Instruction():  # Not implemented for now
                     logging.warning("Skipping instruction reference")
@@ -244,7 +262,7 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
     def references(self) -> Dict[ReferenceType, List[ReferenceTarget]]:
         """
         Returns all the references towards the instruction
-        
+
         :return: dictionary with reference type as key and the corresponding references list as values
         """
 
@@ -257,13 +275,15 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
     def operands(self) -> Iterator[OperandBackendQuokka]:
         """
         Returns an iterator over backend operand objects
-        
+
         :return: list of Quokka operands
         """
 
         if self.cs_instr is None:
             return iter([])
-        return (OperandBackendQuokka(self.cs_instr, o, i) for i, o in enumerate(self.cs_instr.operands))
+        return (
+            OperandBackendQuokka(self.cs_instr, o, i) for i, o in enumerate(self.cs_instr.operands)
+        )
 
     @property
     def groups(self) -> List[str]:
@@ -315,7 +335,7 @@ class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
     def __del__(self) -> None:
         """
         Clean quokka internal state by unloading from memory the Block object
-        
+
         :return: None
         """
 
@@ -343,7 +363,9 @@ class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
 
         :return: iterator over Quokka instructions
         """
-        return (InstructionBackendQuokka(self.program, instr) for instr in self.qb_block.instructions)
+        return (
+            InstructionBackendQuokka(self.program, instr) for instr in self.qb_block.instructions
+        )
 
     @property
     def bytes(self) -> bytes:
@@ -355,7 +377,9 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
     Backend loader of a Function using Quokka
     """
 
-    def __init__(self, program: weakref.ref[ProgramBackendQuokka], qb_func: quokka.function.Function):
+    def __init__(
+        self, program: weakref.ref[ProgramBackendQuokka], qb_func: quokka.function.Function
+    ):
         super(FunctionBackendQuokka, self).__init__()
 
         self.qb_prog = qb_func.program
@@ -456,7 +480,7 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
     def is_import(self) -> bool:
         """
         True if the function is imported
-        
+
         :return: whether the fonction is imported
         """
 
@@ -563,5 +587,5 @@ class ProgramBackendQuokka(AbstractProgramBackend):
         """
         Returns the executable path
         """
-        
+
         return self._exec_path

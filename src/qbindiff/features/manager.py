@@ -53,15 +53,14 @@ class FeatureKeyManagerClass:
         """
 
         return sum(
-            size if (size := len(self.subkeys[main_key])) > 0 else 1
-            for main_key in main_key_list
+            size if (size := len(self.subkeys[main_key])) > 0 else 1 for main_key in main_key_list
         )
 
     def get_size(self, main_key: str) -> int:
         """
         Returns the size of the main_key specified.
         """
-        
+
         if (size := len(self.subkeys[main_key])) > 0:
             return size
         else:
