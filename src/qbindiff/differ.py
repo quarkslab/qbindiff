@@ -395,7 +395,7 @@ class DiGraphDiffer(Differ):
 class QBinDiff(Differ):
     DTYPE = np.float32
 
-    def __init__(self, primary: Program, secondary: Program, distance=Distance.canberra, **kwargs):
+    def __init__(self, primary: Program, secondary: Program, distance: Distance = Distance.canberra, **kwargs):
         """
         QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
 
@@ -423,7 +423,7 @@ class QBinDiff(Differ):
         self,
         extractor_class: type[FeatureExtractor],
         weight: Optional[Positive] = 1.0,
-        distance: Optional[str] = None,
+        distance: Distance | None = None,
         **extra_args,
     ) -> None:
         """
@@ -432,7 +432,7 @@ class QBinDiff(Differ):
 
         :param extractor_class: A feature extractor of type py:class:`qbindiff.features.extractor`
         :param weight: Weight associated to the corresponding feature. Default is 1.
-        :param distance: Distance used only for specific features. It does not make sense to use it with bnb feature,
+        :param distance: Distance used only for this feature. It does not make sense to use it with bnb feature,
         but it can be useful for the WeisfeilerLehman feature.
         :return: None
         """
