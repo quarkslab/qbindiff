@@ -1,4 +1,3 @@
-import unittest
 import time
 import numpy as np
 import scipy
@@ -9,12 +8,21 @@ from qbindiff.matcher.squares import find_squares
 from qbindiff.utils import iter_csr_matrix
 
 
-class SquaresTest(unittest.TestCase):
+class TestSquares:
     """Regression tests for the squares matrix calculation"""
+
+    def gen_rand_adj(self, size: int, density: float = 0.17):
+        """Returns a square adjacency matrix with the specified density"""
+
+        density = int(density * 100)
+        mat = (np.random.randint(0, 100, size**2) < density).reshape((size, size))
+        return mat
 
     def control_squares(
         self, primary_adj_matrix, secondary_adj_matrix, sparse_sim_matrix
     ):
+        """Slow but correct implementation of the square algorithm"""
+
         squares = []
         primary_children = []
         for node in primary_adj_matrix:
@@ -57,10 +65,13 @@ class SquaresTest(unittest.TestCase):
             lil_squares_matrix[e2, e1] = 1
         return lil_squares_matrix.tocsr()
 
-    def base_test(self):
-        """Test the optimized algorithm against the slow but surely working one"""
+    def test_algorithm_internal(self):
+        """
+        Test the optimized algorithm internally used by QBinDiff against the
+        slow but surely working one.
+        This is testing the algorithm for finding the squares
+        """
 
-        # Test just the squares
         for k in range(10):
             primary_size = 30
             secondary_size = 50
@@ -79,11 +90,16 @@ class SquaresTest(unittest.TestCase):
                     primary_adj_matrix, secondary_adj_matrix, sim_matrix
                 )
             )
-            self.assertFalse(
-                ret1 ^ ret2, "The optimized algorithm for finding the squares is faulty"
-            )
+            assert not (
+                ret1 ^ ret2
+            ), "The optimized algorithm for finding the squares is faulty"
 
-        # Test the whole squares matrix
+    def test_qbindiff_algorithm(self):
+        """
+        Test the optimized algorithm against the slow but surely working one.
+        This is testing the whole sparse square matrix
+        """
+
         for k in range(10):
             primary_size = 30
             secondary_size = 50
@@ -102,18 +118,13 @@ class SquaresTest(unittest.TestCase):
                 primary_adj_matrix, secondary_adj_matrix, sim_matrix
             )
 
-            self.assertFalse(
-                (matcher.squares_matrix != correct).max(),
-                "The squares matrix is faulty",
-            )
+            assert not (
+                matcher.squares_matrix != correct
+            ).max(), "The squares matrix is faulty"
 
-    def gen_rand_adj(self, size, density=0.17):
-        density = int(density * 100)
-        mat = (np.random.randint(0, 100, size**2) < density).reshape((size, size))
-        return mat
-
-    def perf_test(self):
+    def test_performance(self):
         """Test the performance of the whole algorithm"""
+
         primary_size = 1000
         secondary_size = 1200
         time_limit = 10  # 10s
@@ -131,10 +142,4 @@ class SquaresTest(unittest.TestCase):
         matcher._compute_squares_matrix()
         end = time.time()
 
-        self.assertTrue(
-            end - start < time_limit, "Too slow to compute the squares matrix"
-        )
-
-    def test(self):
-        self.base_test()
-        self.perf_test()
+        assert end - start < time_limit, "Too slow to compute the squares matrix"
