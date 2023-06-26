@@ -14,10 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from dataclasses import dataclass
 from scipy.sparse import lil_array
 from collections import defaultdict
-from typing import Any, Callable, TypeVar, Dict, List, Set
 
 from qbindiff.features.manager import FeatureKeyManager
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
@@ -34,7 +32,7 @@ class FeatureCollector:
     """
 
     def __init__(self):
-        self._features: Dict[str, FeatureValue] = {}
+        self._features: dict[str, FeatureValue] = {}
 
     def add_feature(self, key: str, value: float) -> None:
         """
@@ -48,7 +46,7 @@ class FeatureCollector:
         self._features.setdefault(key, 0)
         self._features[key] += value
 
-    def add_dict_feature(self, key: str, value: Dict[str, float]) -> None:
+    def add_dict_feature(self, key: str, value: dict[str, float]) -> None:
         """
         Add a feature value in the collector if the value is a dictionary of string to float.
 
@@ -72,7 +70,7 @@ class FeatureCollector:
             feature_vector[main_key] = feature
         return feature_vector
 
-    def full_keys(self) -> Dict[str, Set[str]]:
+    def full_keys(self) -> dict[str, set[str]]:
         """
         Returns a dict in which keys are the keys of the features and values are the subkeys.
         If a Feature directly maps to a float value, the set will be empty.
@@ -89,7 +87,7 @@ class FeatureCollector:
 
         return keys
 
-    def to_sparse_vector(self, dtype: type, main_key_list: List[str]) -> SparseVector:
+    def to_sparse_vector(self, dtype: type, main_key_list: list[str]) -> SparseVector:
         """
         Transform the collection to a sparse feature vector.
 
@@ -108,7 +106,7 @@ class FeatureCollector:
                 offset += manager.get_size(main_key)
                 continue
 
-            if isinstance(self._features[main_key], Dict):  # with subkeys
+            if isinstance(self._features[main_key], dict):  # with subkeys
                 for subkey, value in self._features[main_key].items():
                     vector[0, offset + manager.get(main_key, subkey)] = value
             else:  # without subkeys

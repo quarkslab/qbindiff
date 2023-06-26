@@ -20,8 +20,8 @@ import tqdm
 import numpy as np
 from datasketch import MinHash
 from networkx import DiGraph
-from collections.abc import Generator, Iterator
-from typing import Any, Callable, Optional, List, Type, Tuple, Dict
+from collections.abc import Generator, Iterator, Callable
+from typing import Any
 
 # third-party imports
 from bindiff import BindiffFile
@@ -91,8 +91,8 @@ class Differ:
         self.primary = primary
         #: Secondary graph
         self.secondary = secondary
-        self._pre_passes: List = []
-        self._post_passes: List = []
+        self._pre_passes: list = []
+        self._post_passes: list = []
         self._already_processed: bool = False  # Flag to perform the processing only once
 
         if normalize:
@@ -122,7 +122,7 @@ class Differ:
         self.p_features = None
         self.s_features = None
 
-    def get_similarities(self, primary_idx: List[Idx], secondary_idx: List[Idx]) -> List[float]:
+    def get_similarities(self, primary_idx: list[Idx], secondary_idx: list[Idx]) -> list[float]:
         """
         Returns the similarity scores between the nodes specified as parameter.
         By default, it uses the similarity matrix.
@@ -135,7 +135,7 @@ class Differ:
         """
         return self.sim_matrix[primary_idx, secondary_idx]
 
-    def _convert_mapping(self, mapping: RawMapping, confidence: List[float]) -> Mapping:
+    def _convert_mapping(self, mapping: RawMapping, confidence: list[float]) -> Mapping:
         """
         Return the result of the diffing as a Mapping object.
 
@@ -188,7 +188,7 @@ class Differ:
 
     def extract_adjacency_matrix(
         self, graph: Graph
-    ) -> (AdjacencyMatrix, Dict[Addr, Idx], Dict[Idx, Addr]):
+    ) -> (AdjacencyMatrix, dict[Addr, Idx], dict[Idx, Addr]):
         """
         Returns the adjacency matrix for the graph and the mappings
 
@@ -339,7 +339,7 @@ class DiGraphDiffer(Differ):
             """
             self._graph = graph
 
-        def items(self) -> Iterator[Tuple[Addr, Any]]:
+        def items(self) -> Iterator[tuple[Addr, Any]]:
             """
             Return an iterator over the items. Each item is {node_label: node}
             """
@@ -367,7 +367,7 @@ class DiGraphDiffer(Differ):
             return self._graph.nodes
 
         @property
-        def edges(self) -> Iterator[Tuple[Any, Any]]:
+        def edges(self) -> Iterator[tuple[Any, Any]]:
             """
             Return an iterator over the edges.
             An edge is a pair (node_label_a, node_label_b)
@@ -445,8 +445,8 @@ class QBinDiff(Differ):
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: Dict,
-        secondary_mapping: Dict,
+        primary_mapping: dict,
+        secondary_mapping: dict,
     ) -> None:
         """
         Anchoring phase. This phase considers import functions as anchors to the matching and set these functions
@@ -496,7 +496,7 @@ class QBinDiff(Differ):
 
         return program
 
-    def get_similarities(self, primary_idx: List[int], secondary_idx: List[int]) -> List[float]:
+    def get_similarities(self, primary_idx: list[int], secondary_idx: list[int]) -> list[float]:
         """
         Returns the similarity scores between the nodes specified as parameter.
         Uses MinHash fuzzy hash at basic block level to give a similarity score.

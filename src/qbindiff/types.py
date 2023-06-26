@@ -15,7 +15,8 @@ limitations under the License.
 """
 
 from __future__ import annotations
-from typing import Any, Iterable, TypeAlias, List, Tuple, Dict
+from collections.abc import Iterable
+from typing import Any, TypeAlias
 
 import numpy
 from pathlib import Path
@@ -29,7 +30,7 @@ from qbindiff.abstract import GenericGraph
 """
 Type of a feature value.
 """
-FeatureValue: TypeAlias = float | Dict[str, float]
+FeatureValue: TypeAlias = float | dict[str, float]
 
 """
 Float greater than zero
@@ -59,12 +60,12 @@ Item: TypeAlias = Any
 """
 Pair of lists of user defined index correspondences. Default None.
 """
-Anchors: TypeAlias = List[Tuple[Item, Item]]
+Anchors: TypeAlias = list[tuple[Item, Item]]
 
 """
 Pair of lists of indexes that are mapped together.
 """
-RawMapping: TypeAlias = Tuple[List[Idx], List[Idx]]
+RawMapping: TypeAlias = tuple[list[Idx], list[Idx]]
 
 """
 Match represent the matching between two functions and can hold the similarity between the two
@@ -75,7 +76,7 @@ Match = namedtuple("Match", "primary secondary similarity confidence squares")
 """
 An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
 """
-ExtendedMapping: TypeAlias = Iterable[Tuple[Item, Item, float, int]]
+ExtendedMapping: TypeAlias = Iterable[tuple[Item, Item, float, int]]
 
 """
 Numpy data type

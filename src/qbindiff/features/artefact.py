@@ -16,7 +16,8 @@ limitations under the License.
 
 import re
 import random
-from typing import Optional, Any, Pattern
+from typing import Any
+from re import Pattern
 
 from qbindiff.features.extractor import (
     FeatureCollector,
@@ -123,7 +124,7 @@ class FuncName(FunctionFeatureExtractor):
 
     key = "fname"
 
-    def __init__(self, *args: Any, excluded_regex: Optional[Pattern[str]] = None, **kwargs: Any):
+    def __init__(self, *args: Any, excluded_regex: Pattern[str] | None = None, **kwargs: Any):
         """
         :param args: parameters of a feature extractor
         :param excluded_regex: regex to apply in order to exclude names
