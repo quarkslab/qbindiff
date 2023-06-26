@@ -51,6 +51,7 @@ def _validate_weights(w, dtype=np.double):
         raise ValueError("Input weights should be all non-negative")
     return w
 
+
 def _map_distance_to_scipy(metric: Distance) -> str:
     """Map a qbindiff.Distance to a scipy/scikit-learn compatible string"""
 
@@ -59,6 +60,7 @@ def _map_distance_to_scipy(metric: Distance) -> str:
             return metric.name
         case _:
             raise ValueError(f"Cannot find a correct mapping for {metric} to scipy")
+
 
 def canberra_distances(X, Y, w=None):
     """

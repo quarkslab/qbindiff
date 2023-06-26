@@ -18,9 +18,7 @@ class TestSquares:
         mat = (np.random.randint(0, 100, size**2) < density).reshape((size, size))
         return mat
 
-    def control_squares(
-        self, primary_adj_matrix, secondary_adj_matrix, sparse_sim_matrix
-    ):
+    def control_squares(self, primary_adj_matrix, secondary_adj_matrix, sparse_sim_matrix):
         """Slow but correct implementation of the square algorithm"""
 
         squares = []
@@ -29,9 +27,7 @@ class TestSquares:
             primary_children.append([n for n, is_child in enumerate(node) if is_child])
         secondary_children = []
         for node in secondary_adj_matrix:
-            secondary_children.append(
-                [n for n, is_child in enumerate(node) if is_child]
-            )
+            secondary_children.append([n for n, is_child in enumerate(node) if is_child])
 
         for nodeA, nodeB, _ in iter_csr_matrix(sparse_sim_matrix):
             if len(primary_children[nodeA]) == 0 or len(secondary_children[nodeB]) == 0:
@@ -43,12 +39,8 @@ class TestSquares:
 
         return squares
 
-    def control_squares_matrix(
-        self, primary_adj_matrix, secondary_adj_matrix, sim_matrix
-    ):
-        squares = self.control_squares(
-            primary_adj_matrix, secondary_adj_matrix, sim_matrix
-        )
+    def control_squares_matrix(self, primary_adj_matrix, secondary_adj_matrix, sim_matrix):
+        squares = self.control_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix)
 
         size = sim_matrix.nnz
         lil_squares_matrix = lil_matrix((size, size), dtype=np.uint8)
@@ -82,17 +74,9 @@ class TestSquares:
                 primary_size, secondary_size, density=0.1, dtype=np.float32
             ).tocsr()
 
-            ret1 = set(
-                find_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix)
-            )
-            ret2 = set(
-                self.control_squares(
-                    primary_adj_matrix, secondary_adj_matrix, sim_matrix
-                )
-            )
-            assert not (
-                ret1 ^ ret2
-            ), "The optimized algorithm for finding the squares is faulty"
+            ret1 = set(find_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix))
+            ret2 = set(self.control_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix))
+            assert not (ret1 ^ ret2), "The optimized algorithm for finding the squares is faulty"
 
     def test_qbindiff_algorithm(self):
         """
@@ -118,9 +102,7 @@ class TestSquares:
                 primary_adj_matrix, secondary_adj_matrix, sim_matrix
             )
 
-            assert not (
-                matcher.squares_matrix != correct
-            ).max(), "The squares matrix is faulty"
+            assert not (matcher.squares_matrix != correct).max(), "The squares matrix is faulty"
 
     def test_performance(self):
         """Test the performance of the whole algorithm"""

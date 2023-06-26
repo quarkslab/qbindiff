@@ -23,12 +23,8 @@ class TestQuokka:
         return self.base_path / p
 
     def test_x86_binary(self):
-        primary = Program.from_quokka(
-            self.path("test-bin.quokka"), self.path("test-bin")
-        )
-        secondary = Program.from_quokka(
-            self.path("test-bin2.quokka"), self.path("test-bin2")
-        )
+        primary = Program.from_quokka(self.path("test-bin.quokka"), self.path("test-bin"))
+        secondary = Program.from_quokka(self.path("test-bin2.quokka"), self.path("test-bin2"))
         differ = QBinDiff(
             primary,
             secondary,

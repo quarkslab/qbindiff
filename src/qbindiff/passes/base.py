@@ -68,7 +68,9 @@ class FeaturePass(GenericPass):
         """Returns the correct distance for the given feature key"""
         return self._distances.get(key, self._default_distance)
 
-    def register_extractor(self, extractor: FeatureExtractor, distance: Distance | None = None) -> None:
+    def register_extractor(
+        self, extractor: FeatureExtractor, distance: Distance | None = None
+    ) -> None:
         """
         Register a feature extractor optionally specifying a distance to use.
         The class will be called when the visitor will traverse the graph.

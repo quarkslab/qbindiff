@@ -19,9 +19,7 @@ class TestGraph:
     def test_no_sim_graphs(self):
         graph1 = networkx.read_gml(self.path("simple-graph.1"))
         graph2 = networkx.read_gml(self.path("simple-graph.2"))
-        differ = qbindiff.DiGraphDiffer(
-            graph1, graph2, sparsity_ratio=0, tradeoff=0, epsilon=0.5
-        )
+        differ = qbindiff.DiGraphDiffer(graph1, graph2, sparsity_ratio=0, tradeoff=0, epsilon=0.5)
 
         mapping = differ.compute_matching()
         output = {(match.primary, match.secondary) for match in mapping}
@@ -66,9 +64,7 @@ class TestGraphSim:
     def path(self, p: str) -> Path:
         return self.base_path / p
 
-    def test_sim_graphs(
-        self, primary: str, secondary: str, similarity: str, expected: str
-    ):
+    def test_sim_graphs(self, primary: str, secondary: str, similarity: str, expected: str):
         graph1 = networkx.read_gml(self.path(primary))
         graph2 = networkx.read_gml(self.path(secondary))
         differ = qbindiff.DiGraphDiffer(
