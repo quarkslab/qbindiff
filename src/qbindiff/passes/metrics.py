@@ -35,6 +35,7 @@ import sklearn.metrics
 from scipy.spatial import distance
 from scipy.sparse import issparse, csr_matrix
 from qbindiff.passes.fast_metrics import sparse_canberra, sparse_strong_jaccard
+from qbindiff.types import Distance
 
 
 def _validate_vector(u, dtype=None):
@@ -50,6 +51,14 @@ def _validate_weights(w, dtype=np.double):
         raise ValueError("Input weights should be all non-negative")
     return w
 
+def _map_distance_to_scipy(metric: Distance) -> str:
+    """Map a qbindiff.Distance to a scipy/scikit-learn compatible string"""
+
+    match metric:
+        case Distance.canberra | Distance.euclidean | Distance.cosine:
+            return metric.name
+        case _:
+            raise ValueError(f"Cannot find a correct mapping for {metric} to scipy")
 
 def canberra_distances(X, Y, w=None):
     """
@@ -159,12 +168,12 @@ def jaccard_strong(X, Y, w=None):
 
 
 CUSTOM_DISTANCES = {
-    "canberra": canberra_distances,
-    "jaccard-strong": jaccard_strong,
+    Distance.canberra: canberra_distances,
+    Distance.jaccard_strong: jaccard_strong,
 }
 
 
-def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
+def pairwise_distances(X, Y, metric: Distance = Distance.euclidean, *, n_jobs=None, **kwargs):
     """
     Compute the distance matrix from a vector array X and Y.
     The returned matrix is the pairwise distance between the arrays from both X and Y.
@@ -185,13 +194,9 @@ def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
 
     :param Y: ndarray of shape (n_samples_Y, n_features), The second feature matrix.
 
-    :param metric: str or callable, default='euclidean'
+    :param metric: qbindiff.Distance, default=Distance.euclidean
         The metric to use when calculating distance between instances in a feature
-        array. If metric is a string, it must be one of the supported metrics by
-        scikit-learn.
-        Alternatively, if metric is a callable function, it is called on the two input
-        feature matrix (or a submatrix if n_jobs > 1). The callable should take two
-        matrices as input and return a the resulting distance matrix.
+        array. The implementation of the metric might relybe provided by scikit-learn
 
     :param n_jobs: int, default=None
         The number of jobs to use for the computation. This works by breaking down
@@ -223,12 +228,12 @@ def pairwise_distances(X, Y, metric="euclidean", *, n_jobs=None, **kwargs):
     # so it should be OK to use .todense() (no RAM explosion).
     # Be careful, some distance may return nan values (ex:correlation)
     elif "w" in kwargs:
-        dist = distance.cdist(X.todense(), Y.todense(), metric, **kwargs)
+        dist = distance.cdist(X.todense(), Y.todense(), _map_distance_to_scipy(metric), **kwargs)
 
-    elif callable(metric):  # other cases (not well understood)
-        dist = sklearn.metrics.pairwise._parallel_pairwise(X, Y, metric, n_jobs, **kwargs)
-    else:  # other cases (not well understood)
-        dist = sklearn.metrics.pairwise.pairwise_distances(X, Y, metric, n_jobs=n_jobs, **kwargs)
+    else:  # Rely on scikit-learn implementation
+        dist = sklearn.metrics.pairwise.pairwise_distances(
+            X, Y, _map_distance_to_scipy(metric), n_jobs=n_jobs, **kwargs
+        )
 
     if np.isnan(dist).any():
         raise ValueError(
