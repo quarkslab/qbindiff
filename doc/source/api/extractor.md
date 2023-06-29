@@ -20,17 +20,6 @@
     :exclude-members:
 ```
 
-## FeatureOption
-
-```{eval-rst}
-.. autoclass:: qbindiff.features.extractor.FeatureOption
-    :members:
-    :show-inheritance:
-    :inherited-members:
-    :undoc-members:
-    :exclude-members:
-```
-
 ## FunctionFeatureExtractor
 
 ```{eval-rst}

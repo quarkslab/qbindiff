@@ -1,7 +1,5 @@
-(belief-propagation)=
+Belief Propagation
+==================
 
-# Belief Propagation
-
-```{warning}
-This section requires some math knowledge to be unsderstood
-```
+..  warning::
+    This section requires some math knowledge to be unsderstood

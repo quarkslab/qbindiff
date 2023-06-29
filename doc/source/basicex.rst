@@ -92,9 +92,9 @@ For Quokka :
                                   output_file='/path/to/output.quokka',                                      
                                   database_file='/path/to/db.i64')
                                   
-.. warning::         
+.. warning::
 
-To directly export the binary to Quokka using the method *from_binary*, the IDA plugin has to be installed. See `Quokka tutorial  <https://quarkslab.github.io/quokka/tutorials/qb-crackme/01_load/>`_. 
+   To directly export the binary to Quokka using the method *from_binary*, the IDA plugin has to be installed. See `Quokka tutorial  <https://quarkslab.github.io/quokka/tutorials/qb-crackme/01_load/>`_. 
 
 For BinExport : [TODO]
 
