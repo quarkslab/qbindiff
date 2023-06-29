@@ -60,21 +60,23 @@ class FeaturePass(GenericPass):
         :param distance: distance to compute the similarity of type py:class:`qbindiff.types.Distance`
         """
 
-        self._default_distance = distance.name
+        self._default_distance = distance
         self._distances = {}
         self._visitor = ProgramVisitor()
 
-    def distance(self, key: str) -> str:
+    def distance(self, key: str) -> Distance:
         """Returns the correct distance for the given feature key"""
         return self._distances.get(key, self._default_distance)
 
-    def register_extractor(self, extractor: FeatureExtractor, distance: str | None = None) -> None:
+    def register_extractor(
+        self, extractor: FeatureExtractor, distance: Distance | None = None
+    ) -> None:
         """
         Register a feature extractor optionally specifying a distance to use.
         The class will be called when the visitor will traverse the graph.
         """
         self._visitor.register_feature_extractor(extractor)
-        if distance:
+        if distance is not None:
             self._distances[extractor.key] = distance
 
     def _create_feature_matrix(
@@ -117,7 +119,7 @@ class FeaturePass(GenericPass):
         primary_mapping: dict[Any, int],
         secondary_mapping: dict[Any, int],
         features_main_keys: list[str],
-        distance: str,
+        distance: Distance,
         dtype: type,
         weights: Iterable[float] | None = None,
     ):

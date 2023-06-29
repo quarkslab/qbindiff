@@ -74,7 +74,7 @@ class Program(dict, GenericGraph):
         :return: Program instance
         """
 
-        return Program(LoaderType.binexport, file_path, enable_cortexm)
+        return Program(LoaderType.binexport, file_path, enable_cortexm=enable_cortexm)
 
     @staticmethod
     def from_quokka(file_path: str, exec_path: str) -> Program:

@@ -111,6 +111,7 @@ setup(
         "python-louvain",
         "enum_tools",
         "python-bindiff",
+        "tox",
     ],
     scripts=["bin/qbindiff"],
     extras_require={

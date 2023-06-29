@@ -1,4 +1,19 @@
-import unittest
+"""
+Copyright 2023 Quarkslab
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 import time
 import numpy as np
 import scipy
@@ -9,21 +24,26 @@ from qbindiff.matcher.squares import find_squares
 from qbindiff.utils import iter_csr_matrix
 
 
-class SquaresTest(unittest.TestCase):
+class TestSquares:
     """Regression tests for the squares matrix calculation"""
 
-    def control_squares(
-        self, primary_adj_matrix, secondary_adj_matrix, sparse_sim_matrix
-    ):
+    def gen_rand_adj(self, size: int, density: float = 0.17):
+        """Returns a square adjacency matrix with the specified density"""
+
+        density = int(density * 100)
+        mat = (np.random.randint(0, 100, size**2) < density).reshape((size, size))
+        return mat
+
+    def control_squares(self, primary_adj_matrix, secondary_adj_matrix, sparse_sim_matrix):
+        """Slow but correct implementation of the square algorithm"""
+
         squares = []
         primary_children = []
         for node in primary_adj_matrix:
             primary_children.append([n for n, is_child in enumerate(node) if is_child])
         secondary_children = []
         for node in secondary_adj_matrix:
-            secondary_children.append(
-                [n for n, is_child in enumerate(node) if is_child]
-            )
+            secondary_children.append([n for n, is_child in enumerate(node) if is_child])
 
         for nodeA, nodeB, _ in iter_csr_matrix(sparse_sim_matrix):
             if len(primary_children[nodeA]) == 0 or len(secondary_children[nodeB]) == 0:
@@ -35,12 +55,8 @@ class SquaresTest(unittest.TestCase):
 
         return squares
 
-    def control_squares_matrix(
-        self, primary_adj_matrix, secondary_adj_matrix, sim_matrix
-    ):
-        squares = self.control_squares(
-            primary_adj_matrix, secondary_adj_matrix, sim_matrix
-        )
+    def control_squares_matrix(self, primary_adj_matrix, secondary_adj_matrix, sim_matrix):
+        squares = self.control_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix)
 
         size = sim_matrix.nnz
         lil_squares_matrix = lil_matrix((size, size), dtype=np.uint8)
@@ -57,10 +73,13 @@ class SquaresTest(unittest.TestCase):
             lil_squares_matrix[e2, e1] = 1
         return lil_squares_matrix.tocsr()
 
-    def base_test(self):
-        """Test the optimized algorithm against the slow but surely working one"""
+    def test_algorithm_internal(self):
+        """
+        Test the optimized algorithm internally used by QBinDiff against the
+        slow but surely working one.
+        This is testing the algorithm for finding the squares
+        """
 
-        # Test just the squares
         for k in range(10):
             primary_size = 30
             secondary_size = 50
@@ -71,19 +90,16 @@ class SquaresTest(unittest.TestCase):
                 primary_size, secondary_size, density=0.1, dtype=np.float32
             ).tocsr()
 
-            ret1 = set(
-                find_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix)
-            )
-            ret2 = set(
-                self.control_squares(
-                    primary_adj_matrix, secondary_adj_matrix, sim_matrix
-                )
-            )
-            self.assertFalse(
-                ret1 ^ ret2, "The optimized algorithm for finding the squares is faulty"
-            )
+            ret1 = set(find_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix))
+            ret2 = set(self.control_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix))
+            assert not (ret1 ^ ret2), "The optimized algorithm for finding the squares is faulty"
 
-        # Test the whole squares matrix
+    def test_qbindiff_algorithm(self):
+        """
+        Test the optimized algorithm against the slow but surely working one.
+        This is testing the whole sparse square matrix
+        """
+
         for k in range(10):
             primary_size = 30
             secondary_size = 50
@@ -102,18 +118,11 @@ class SquaresTest(unittest.TestCase):
                 primary_adj_matrix, secondary_adj_matrix, sim_matrix
             )
 
-            self.assertFalse(
-                (matcher.squares_matrix != correct).max(),
-                "The squares matrix is faulty",
-            )
+            assert not (matcher.squares_matrix != correct).max(), "The squares matrix is faulty"
 
-    def gen_rand_adj(self, size, density=0.17):
-        density = int(density * 100)
-        mat = (np.random.randint(0, 100, size**2) < density).reshape((size, size))
-        return mat
-
-    def perf_test(self):
+    def test_performance(self):
         """Test the performance of the whole algorithm"""
+
         primary_size = 1000
         secondary_size = 1200
         time_limit = 10  # 10s
@@ -131,10 +140,4 @@ class SquaresTest(unittest.TestCase):
         matcher._compute_squares_matrix()
         end = time.time()
 
-        self.assertTrue(
-            end - start < time_limit, "Too slow to compute the squares matrix"
-        )
-
-    def test(self):
-        self.base_test()
-        self.perf_test()
+        assert end - start < time_limit, "Too slow to compute the squares matrix"
