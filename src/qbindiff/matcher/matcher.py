@@ -22,7 +22,6 @@ import numpy as np
 from lapjv import lapjv
 from scipy.sparse import csr_matrix, coo_matrix
 from collections.abc import Generator
-from typing import Tuple, List
 
 # Local imports
 from qbindiff.matcher.squares import find_squares
@@ -38,7 +37,7 @@ from qbindiff.types import (
 )
 
 
-def iter_csr_matrix(matrix: SparseMatrix) -> Generator[Tuple[np.ndarray, np.ndarray]]:
+def iter_csr_matrix(matrix: SparseMatrix) -> Generator[tuple[np.ndarray, np.ndarray]]:
     """
     Iter over non-null items in a CSR (Compressed Sparse Row) matrix.
     It returns a generator that, at each iteration, returns the tuple (row_index, column_index, value)
@@ -213,7 +212,7 @@ class Matcher:
         return self._mapping
 
     @property
-    def confidence_score(self) -> List[float]:
+    def confidence_score(self) -> list[float]:
         """
         Confidence score for each match in the nodes mapping
         """

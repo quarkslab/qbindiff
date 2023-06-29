@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Optional, Set
-
 from qbindiff.types import Match, ExtendedMapping, Item
 
 
@@ -86,28 +84,28 @@ class Mapping:
         self._matches.remove(match)
 
     @property
-    def primary_matched(self) -> Set[Item]:
+    def primary_matched(self) -> set[Item]:
         """
         Set of items matched in primary
         """
         return {x.primary for x in self._matches}
 
     @property
-    def primary_unmatched(self) -> Set[Item]:
+    def primary_unmatched(self) -> set[Item]:
         """
         Set of items unmatched in primary.
         """
         return self._primary_unmatched
 
     @property
-    def secondary_matched(self) -> Set[Item]:
+    def secondary_matched(self) -> set[Item]:
         """
         Set of items matched in the secondary object.
         """
         return {x.secondary for x in self._matches}
 
     @property
-    def secondary_unmatched(self) -> Set[Item]:
+    def secondary_unmatched(self) -> set[Item]:
         """
         Set of items unmatched in the secondary object.
         """
@@ -148,7 +146,7 @@ class Mapping:
         """
         return self.nb_match + self.nb_unmatched_secondary
 
-    def match_primary(self, item: Item) -> Optional[Match]:
+    def match_primary(self, item: Item) -> Match | None:
         """
         Returns the match associated with the given primary item (if any).
 
@@ -160,7 +158,7 @@ class Mapping:
                 return m
         return None
 
-    def match_secondary(self, item: Item) -> Optional[Match]:
+    def match_secondary(self, item: Item) -> Match | None:
         """
         Returns the match associated with the given secondary item (if any).
 

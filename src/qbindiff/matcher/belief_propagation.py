@@ -17,7 +17,7 @@ limitations under the License.
 import logging
 import math
 import numpy as np
-from typing import Any, List
+from typing import Any
 from collections.abc import Generator
 
 # local imports
@@ -40,7 +40,7 @@ class BeliefMWM:
 
         self._init_messages()
 
-        self.scores: List[float] = []  #: Scores list
+        self.scores: list[float] = []  #: Scores list
         self.max_avg_score: float = 0.0  #: Current maximum average score
         self.best_mapping: RawMapping = None  #: Current best mapping
         self.best_marginals = None  #: Current associated marginals as a SparseMatrix

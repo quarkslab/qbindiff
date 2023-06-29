@@ -25,7 +25,6 @@ from qbindiff.features.extractor import (
 )
 from qbindiff.loader import Program, Function, Instruction, Operand
 from qbindiff.loader.types import OperandType
-from typing import List
 import hashlib
 import community
 
@@ -169,7 +168,7 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
     key = "spp"
 
     @staticmethod
-    def primesbelow(n: int) -> List[int]:
+    def primesbelow(n: int) -> list[int]:
         """
         Utility function that returns a list of all the primes below n.
         This comes from `Diaphora <https://github.com/joxeankoret/diaphora/blob/master/jkutils/factor.py>`_

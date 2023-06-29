@@ -16,8 +16,7 @@ limitations under the License.
 
 from __future__ import annotations
 import networkx
-from typing import Callable, Tuple, Dict, List
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Function, Structure
@@ -172,7 +171,7 @@ class Program(dict, GenericGraph):
         yield from self.__iter__()
 
     @property
-    def edges(self) -> Iterator[Tuple[Addr, Addr]]:
+    def edges(self) -> Iterator[tuple[Addr, Addr]]:
         """
         Iterator over the edges.
         An edge is a pair (addr_a, addr_b)
@@ -189,7 +188,7 @@ class Program(dict, GenericGraph):
         return self._backend.name
 
     @property
-    def structures(self) -> List[Structure]:
+    def structures(self) -> list[Structure]:
         """
         Returns the list of structures defined in program
         """

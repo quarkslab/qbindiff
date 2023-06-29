@@ -20,7 +20,7 @@ import logging
 import weakref
 from functools import cached_property
 from collections.abc import Iterator
-from typing import Any, TypeAlias, Set, Dict, List
+from typing import Any, TypeAlias
 
 # third party imports
 import quokka
@@ -51,7 +51,6 @@ from qbindiff.types import Addr
 
 # Aliases
 capstoneOperand: TypeAlias = Any  # Relaxed typing
-capstoneValue: TypeAlias = Any  # Relaxed typing
 
 
 # ===== General purpose utils functions =====
@@ -219,8 +218,8 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         block._raw_dict[self.qb_instr.address] = self.qb_instr.proto_index
 
     def _cast_references(
-        self, references: List[quokka.types.ReferenceTarget]
-    ) -> List[ReferenceTarget]:
+        self, references: list[quokka.types.ReferenceTarget]
+    ) -> list[ReferenceTarget]:
         """
         Cast the quokka references to qbindiff reference types
 
@@ -259,7 +258,7 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         return self.qb_instr.mnemonic
 
     @cached_property
-    def references(self) -> Dict[ReferenceType, List[ReferenceTarget]]:
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
         """
         Returns all the references towards the instruction
 
@@ -286,7 +285,7 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         )
 
     @property
-    def groups(self) -> List[str]:
+    def groups(self) -> list[str]:
         """
         Returns a list of groups of this instruction. Groups are capstone based but enriched.
         """
@@ -420,7 +419,7 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
         return self.qb_func.graph
 
     @cached_property
-    def parents(self) -> Set[Addr]:
+    def parents(self) -> set[Addr]:
         """
         Set of function parents in the call graph
         """
@@ -434,7 +433,7 @@ class FunctionBackendQuokka(AbstractFunctionBackend):
         return parents
 
     @cached_property
-    def children(self) -> Set[Addr]:
+    def children(self) -> set[Addr]:
         """
         Set of function children in the call graph
         """
@@ -531,7 +530,7 @@ class ProgramBackendQuokka(AbstractProgramBackend):
         return self.qb_prog.executable.exec_file.name
 
     @cached_property
-    def structures(self) -> List[Structure]:
+    def structures(self) -> list[Structure]:
         """Returns the list of structures defined in program"""
 
         struct_list = []
@@ -551,7 +550,7 @@ class ProgramBackendQuokka(AbstractProgramBackend):
         return struct_list
 
     @cached_property
-    def structures_by_name(self) -> Dict[str, Structure]:
+    def structures_by_name(self) -> dict[str, Structure]:
         """
         Returns the dictionary {name: structure}
         """
@@ -575,7 +574,7 @@ class ProgramBackendQuokka(AbstractProgramBackend):
         return self._callgraph
 
     @property
-    def fun_names(self) -> Dict[str, int]:
+    def fun_names(self) -> dict[str, int]:
         """
         Returns a dictionary with function name as key and the function address as value
         """

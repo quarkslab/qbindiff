@@ -21,7 +21,6 @@ from functools import cached_property
 from qbindiff.loader.backend import AbstractBasicBlockBackend
 from qbindiff.loader import Instruction
 from qbindiff.types import Addr
-from typing import List
 
 
 class BasicBlock(Iterable[Instruction]):
@@ -59,7 +58,7 @@ class BasicBlock(Iterable[Instruction]):
         return self._backend.addr
 
     @cached_property
-    def instructions(self) -> List[Instruction]:
+    def instructions(self) -> list[Instruction]:
         """
         List of Instruction objects of the basic block
         """

@@ -18,7 +18,7 @@ limitations under the License.
 from __future__ import annotations
 import logging
 import weakref
-from typing import Any, TypeAlias, Dict, List, Set
+from typing import Any, TypeAlias
 from collections.abc import Iterator
 from functools import cached_property
 
@@ -43,7 +43,6 @@ from qbindiff.types import Addr
 # Type aliases
 beFunction: TypeAlias = binexport.function.FunctionBinExport
 beBasicBlock: TypeAlias = binexport.basic_block.BasicBlockBinExport
-beInstruction: TypeAlias = binexport.instruction.InstructionBinExport
 capstoneOperand: TypeAlias = Any  # Relaxed typing
 
 
@@ -165,7 +164,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         return self.cs_instr.mnemonic
 
     @property
-    def references(self) -> Dict[ReferenceType, List[ReferenceTarget]]:
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
         """
         Returns all the references towards the instruction
         BinExport only exports data references' address so no data type nor value.
@@ -183,7 +182,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         )
 
     @property
-    def groups(self) -> List[str]:
+    def groups(self) -> list[str]:
         return self.cs_instr.groups
 
     @property
@@ -323,12 +322,12 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
         return self.be_func.graph
 
     @property
-    def parents(self) -> Set[Addr]:
+    def parents(self) -> set[Addr]:
         """Set of function parents in the call graph"""
         return {func.addr for func in self.be_func.parents}
 
     @property
-    def children(self) -> Set[Addr]:
+    def children(self) -> set[Addr]:
         """Set of function children in the call graph"""
         return {func.addr for func in self.be_func.children}
 
@@ -399,7 +398,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         return self.be_prog.name
 
     @property
-    def structures(self) -> List[Structure]:
+    def structures(self) -> list[Structure]:
         """
         Returns the list of structures defined in program.
         WARNING: Not supported by BinExport
@@ -412,7 +411,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         return self.be_prog.callgraph
 
     @property
-    def fun_names(self) -> Dict[str, int]:
+    def fun_names(self) -> dict[str, int]:
         """
         Returns a dictionary with function name as key and the function address as value
         """

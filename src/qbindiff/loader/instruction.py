@@ -21,7 +21,6 @@ from qbindiff.loader.backend import AbstractInstructionBackend
 from qbindiff.loader import Data, Operand
 from qbindiff.loader.types import ReferenceType, ReferenceTarget
 from qbindiff.types import Addr
-from typing import List, Dict
 
 
 class Instruction:
@@ -57,7 +56,7 @@ class Instruction:
         return self._backend.mnemonic
 
     @cached_property
-    def references(self) -> Dict[ReferenceType, List[ReferenceTarget]]:
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
         """
         Returns all the references towards the instruction
         """
@@ -65,7 +64,7 @@ class Instruction:
         return self._backend.references
 
     @property
-    def data_references(self) -> List[Data]:
+    def data_references(self) -> list[Data]:
         """
         Returns the list of data that are referenced by the instruction
 
@@ -79,7 +78,7 @@ class Instruction:
             return []
 
     @cached_property
-    def operands(self) -> List[Operand]:
+    def operands(self) -> list[Operand]:
         """
         Returns the list of operands as Operand object.
         """
@@ -87,7 +86,7 @@ class Instruction:
         return [Operand.from_backend(o) for o in self._backend.operands]
 
     @property
-    def groups(self) -> List[int]:
+    def groups(self) -> list[int]:
         """
         Returns a list of groups of this instruction.
         """

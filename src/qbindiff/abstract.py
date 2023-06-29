@@ -16,7 +16,7 @@ limitations under the License.
 
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
-from typing import Any, Tuple
+from typing import Any
 
 
 class GenericGraph(metaclass=ABCMeta):
@@ -25,7 +25,7 @@ class GenericGraph(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def items(self) -> Iterator[Tuple[Any, Any]]:
+    def items(self) -> Iterator[tuple[Any, Any]]:
         """
         Return an iterator over the items. Each item is {node_label: node}
         """
@@ -56,7 +56,7 @@ class GenericGraph(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def edges(self) -> Iterator[Tuple[Any, Any]]:
+    def edges(self) -> Iterator[tuple[Any, Any]]:
         """
         Return an iterator over the edges.
         An edge is a pair (node_label_a, node_label_b)

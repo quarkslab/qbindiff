@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import List
-
-
 class FeatureKeyManagerClass:
     """
     Singleton class that assigns a unique number to each main_key/sub_key.
@@ -47,7 +44,7 @@ class FeatureKeyManagerClass:
         else:
             return self.mainkeys[main_key]
 
-    def get_cumulative_size(self, main_key_list: List[str]) -> int:
+    def get_cumulative_size(self, main_key_list: list[str]) -> int:
         """
         Returns the cumulative size of all the main_keys
         """

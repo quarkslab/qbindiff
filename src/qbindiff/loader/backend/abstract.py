@@ -21,7 +21,6 @@ from collections.abc import Iterator
 from qbindiff.loader import Structure
 from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
 from qbindiff.types import Addr
-from typing import Set, Dict, List
 
 
 class AbstractOperandBackend(metaclass=ABCMeta):
@@ -88,7 +87,7 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def references(self) -> Dict[ReferenceType, List[ReferenceTarget]]:
+    def references(self) -> dict[ReferenceType, list[ReferenceTarget]]:
         """
         Returns all the references towards the instruction
         """
@@ -104,7 +103,7 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def groups(self) -> List[str]:
+    def groups(self) -> list[str]:
         """
         Returns a list of groups of this instruction
         """
@@ -210,7 +209,7 @@ class AbstractFunctionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def parents(self) -> Set[Addr]:
+    def parents(self) -> set[Addr]:
         """
         Set of function parents in the call graph.
         """
@@ -218,7 +217,7 @@ class AbstractFunctionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def children(self) -> Set[Addr]:
+    def children(self) -> set[Addr]:
         """
         Set of function children in the call graph.
         """
@@ -271,7 +270,7 @@ class AbstractProgramBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def structures(self) -> List[Structure]:
+    def structures(self) -> list[Structure]:
         """
         Returns the list of structures defined in program.
         """
@@ -287,7 +286,7 @@ class AbstractProgramBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def fun_names(self) -> Dict[str, Addr]:
+    def fun_names(self) -> dict[str, Addr]:
         """
         Returns a dictionary with function name as key and the function address as value.
         """

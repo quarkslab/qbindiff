@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from collections.abc import Generator
 from collections import defaultdict
+from collections.abc import Generator
 from functools import lru_cache
-from typing import List, Tuple
 
 # third-party imports
 from bindiff import BindiffFile
@@ -31,7 +30,7 @@ from qbindiff.types import Addr
 
 
 @lru_cache
-def primes() -> List[int]:
+def primes() -> list[int]:
     """
     The primes up to 1'000'000 using the segmented sieve algorithm
     """
@@ -87,7 +86,7 @@ def _compute_bb_prime_product(basic_block: BasicBlock) -> int:
 
 def compute_basic_block_match(
     primary_func: Function, secondary_func: Function
-) -> Generator[Tuple[Addr, Addr]]:
+) -> Generator[tuple[Addr, Addr]]:
     """
     Matches the basic blocks between the two functions
 
@@ -116,7 +115,7 @@ def compute_basic_block_match(
 
 def compute_instruction_match(
     primary_bb: BasicBlock, secondary_bb: BasicBlock
-) -> Generator[Tuple[Addr, Addr]]:
+) -> Generator[tuple[Addr, Addr]]:
     """
     Matches the instructions between the two basic blocks
 
@@ -149,7 +148,7 @@ def export_to_bindiff(
     """
     from qbindiff import VERSION  # import the version here to avoid circular definition
 
-    def count_items(program: Program) -> Tuple[int, int, int, int]:
+    def count_items(program: Program) -> tuple[int, int, int, int]:
         fp, flib, bbs, inst = 0, 0, 0, 0
         for f_addr, f in program.items():
             fp += int(not (f.is_import()))

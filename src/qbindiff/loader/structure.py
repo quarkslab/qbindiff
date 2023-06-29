@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 from __future__ import annotations
-from typing import Any, Dict
+from typing import Any
 
 from qbindiff.loader.types import DataType, StructureType
 
@@ -49,7 +49,7 @@ class Structure:
         self.type = struct_type
         self.name = name
         self.size = size
-        self.members: Dict[int, StructureMember] = {}  # { offset: StructureMember }
+        self.members: dict[int, StructureMember] = {}  # { offset: StructureMember }
 
     def add_member(
         self, offset: int, data_type: DataType, name: str, size: int, value: Any

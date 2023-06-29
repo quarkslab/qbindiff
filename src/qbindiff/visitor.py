@@ -15,9 +15,10 @@ limitations under the License.
 """
 
 import tqdm
-from abc import ABCMeta, abstractmethod
 import logging
-from typing import Any, Callable, List, Dict
+from abc import ABCMeta, abstractmethod
+from collections.abc import Callable
+from typing import Any
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
 from qbindiff.features.extractor import (
@@ -40,7 +41,7 @@ class Visitor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def feature_extractors(self) -> List[FeatureExtractor]:
+    def feature_extractors(self) -> list[FeatureExtractor]:
         """
         Returns the list of registered features extractor
         """
@@ -49,7 +50,7 @@ class Visitor(metaclass=ABCMeta):
 
     def visit(
         self, graph: Graph, key_fun: Callable = lambda _, i: i
-    ) -> Dict[Any, FeatureCollector]:
+    ) -> dict[Any, FeatureCollector]:
         """
         Function performing the visit on a Graph object by calling visit_item with a
         FeatureCollector meant to be filled.
@@ -99,12 +100,12 @@ class NoVisitor(Visitor):
     """
 
     @property
-    def feature_extractors(self) -> List[FeatureExtractor]:
+    def feature_extractors(self) -> list[FeatureExtractor]:
         return []
 
     def visit(
         self, graph: Graph, key_fun: Callable = lambda _, i: i
-    ) -> Dict[Any, FeatureCollector]:
+    ) -> dict[Any, FeatureCollector]:
         return {key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())}
 
     def register_feature_extractor(self, fte: FeatureExtractor) -> None:

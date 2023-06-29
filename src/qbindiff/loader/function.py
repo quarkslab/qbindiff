@@ -17,7 +17,6 @@ limitations under the License.
 from __future__ import annotations
 import networkx
 from collections.abc import Mapping, Generator
-from typing import Set, List, Tuple
 
 from qbindiff.loader import BasicBlock
 from qbindiff.loader.types import FunctionType
@@ -152,7 +151,7 @@ class Function(Mapping[Addr, BasicBlock]):
             self._backend.unload_blocks()
 
     @property
-    def edges(self) -> List[Tuple[Addr, Addr]]:
+    def edges(self) -> list[tuple[Addr, Addr]]:
         """
         Edges of the function flowgraph as a list of tuples with basic block addresses
         """
@@ -177,7 +176,7 @@ class Function(Mapping[Addr, BasicBlock]):
         return self._backend.graph
 
     @property
-    def parents(self) -> Set[Addr]:
+    def parents(self) -> set[Addr]:
         """
         Set of function parents in the call graph.
         Thus functions that calls this function
@@ -186,7 +185,7 @@ class Function(Mapping[Addr, BasicBlock]):
         return self._backend.parents
 
     @property
-    def children(self) -> Set[Addr]:
+    def children(self) -> set[Addr]:
         """
         Set of functions called by this function in the call graph.
         """
