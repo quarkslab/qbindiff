@@ -118,7 +118,7 @@ class Matcher:
             mask = []
             for i in range(self.sim_matrix.shape[0]):
                 # Replace all the discarded values with zeros
-                self.sim_matrix[i, sorted_indexes[:sparsity_size]] = 0
+                self.sim_matrix[i, sorted_indexes[i, :sparsity_size]] = 0
 
                 # Append the mask for the current row
                 mask.append(self.sim_matrix[i] > 0)
