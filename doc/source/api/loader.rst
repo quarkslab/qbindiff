@@ -1,89 +1,82 @@
-# Binary loader interface
+Binary loader interface
+=======================
 
-## Program
+Program
+-------
 
-```{eval-rst}
 .. autoclass:: qbindiff.Program
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## Function
+Function
+--------
 
-```{eval-rst}
 .. autoclass:: qbindiff.Function
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## BasicBlock
+BasicBlock
+----------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.BasicBlock
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## Instruction
+Instruction
+-----------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.Instruction
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## Operand
+Operand
+-------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.Operand
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## Data
+Data
+----
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.Data
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## Structure
+Structure
+---------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.Structure
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## StructureMember
+StructureMember
+---------------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.StructureMember
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
