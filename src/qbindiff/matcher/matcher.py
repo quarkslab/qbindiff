@@ -99,44 +99,44 @@ class Matcher:
         :return: None
         """
 
-        ratio = round(sparsity_ratio * self.sim_matrix.size)
+        sparsity_size = round(sparsity_ratio * self.sim_matrix.size)
 
-        if ratio == 0:
+        if sparsity_size == 0:  # Keep the matrix as it is
             self.sparse_sim_matrix = csr_matrix(self.sim_matrix)
             return
-        elif ratio == self.sim_matrix.size:
-            threshold = self.sim_matrix.max(1, keepdims=True)
-            # Start with a matrix with only True and False, this is not a sparse similarity matrix
-            self.sparse_sim_matrix = self.sim_matrix >= threshold
-            # Convert True and False to float32 (for similarity, 0 or 1)
-            self.sparse_sim_matrix = self.sparse_sim_matrix.astype(np.float32)
-            # Convert the matrix to a sparse one
-            self.sparse_sim_matrix = csr_matrix(self.sparse_sim_matrix)
 
+        if sparsity_size == self.sim_matrix.size:  # Empty matrix
+            self.sparse_sim_matrix = csr_matrix(self.sim_matrix.shape, dtype=self.sim_matrix.dtype)
             return
 
         if sparse_row:
-            ratio = round(sparsity_ratio * self.sim_matrix.shape[1])
+            sparsity_size = round(sparsity_ratio * self.sim_matrix.shape[1])
+
+            # Sort the similarity matrix columns and keep indexes of the sorted values
+            sorted_indexes = np.argsort(self.sim_matrix, kind="stable")
+
             mask = []
             for i in range(self.sim_matrix.shape[0]):
-                threshold = np.partition(self.sim_matrix[i], ratio - 1)[ratio]
-                # We never want to match nodes with a similarity score of 0, even if
-                # it is the right threshold
-                if threshold == 0:
-                    threshold += 1e-8
-                mask.append(self.sim_matrix[i] >= threshold)
+                # Replace all the discarded values with zeros
+                self.sim_matrix[i, sorted_indexes[i, :sparsity_size]] = 0
+
+                # Append the mask for the current row
+                mask.append(self.sim_matrix[i] > 0)
 
             self.sparse_sim_matrix = csr_matrix(mask, dtype=self.sim_matrix.dtype)
             self.sparse_sim_matrix.data[:] = self.sim_matrix[mask]
         else:
-            threshold = np.partition(self.sim_matrix, ratio - 1, axis=None)[ratio]
-            # We never want to match nodes with a similarity score of 0, even if it is
-            # the right threshold
-            if threshold == 0:
-                threshold += 1e-8
-            mask = self.sim_matrix >= threshold
-            csr_data = self.sim_matrix[mask]
+            # Sort the flattened similarity matrix and keep the indexes of the sorted values
+            sorted_indexes = np.argsort(self.sim_matrix, axis=None, kind="stable")
 
+            # Replace all the discarded values with zeros
+            self.sim_matrix.flat[sorted_indexes[:sparsity_size]] = 0
+
+            # Create a mask
+            mask = self.sim_matrix > 0
+
+            # Create the sparse matrix
+            csr_data = self.sim_matrix[mask]
             self.sparse_sim_matrix = csr_matrix(mask, dtype=self.sim_matrix.dtype)
             self.sparse_sim_matrix.data[:] = csr_data
 
