@@ -80,3 +80,9 @@ StructureMember
     :inherited-members:
     :undoc-members:
     :exclude-members:
+
+ReferenceType
+-------------
+
+.. autoenum:: qbindiff.loader.types.ReferenceType
+    :members:
