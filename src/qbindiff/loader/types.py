@@ -14,10 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import annotations
 from enum import IntEnum
-from typing import TypeAlias
+from typing import TypeAlias, TYPE_CHECKING
 import enum_tools.documentation
 
+if TYPE_CHECKING:
+    from qbindiff.loader.data import Data
+    from qbindiff.loader.structure import Structure, StructureMember
 
 @enum_tools.documentation.document_enum
 class LoaderType(IntEnum):
