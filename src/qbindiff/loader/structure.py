@@ -59,7 +59,7 @@ class Structure:
 
         :param offset: offset where to add the member
         :param data_type: type of the member
-        :param name : its name
+        :param name: its name
         :param size: its size
         :param value: its value
         :return: None
