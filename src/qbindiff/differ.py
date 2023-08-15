@@ -70,14 +70,14 @@ class Differ:
         :param primary: primary graph
         :param secondary: secondary graph
         :param sparsity_ratio: the sparsity ratio enforced to the similarity matrix
-                        of type py:class:`qbindiff.types.Ratio`
+            of type py:class:`qbindiff.types.Ratio`
         :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0)
-                         and edge similarity (tradeoff=0.0) of type py:class:`qbindiff.types.Ratio`
+            and edge similarity (tradeoff=0.0) of type py:class:`qbindiff.types.Ratio`
         :param epsilon: perturbation parameter to enforce convergence and speed up computation,
-                        of type py:class:`qbindiff.types.Positive`. The greatest the fastest, but least accurate
+            of type py:class:`qbindiff.types.Positive`. The greatest the fastest, but least accurate
         :param maxiter: maximum number of message passing iterations
         :param sparse_row: Whether to build the sparse similarity matrix considering its
-                           entirety or processing it row per row
+            entirety or processing it row per row
         """
 
         # NAP parameters
@@ -188,13 +188,13 @@ class Differ:
 
     def extract_adjacency_matrix(
         self, graph: Graph
-    ) -> (AdjacencyMatrix, dict[Addr, Idx], dict[Idx, Addr]):
+    ) -> tuple[AdjacencyMatrix, dict[Addr, Idx], dict[Idx, Addr]]:
         """
         Returns the adjacency matrix for the graph and the mappings
 
         :param graph: Graph whose adjacency matrix should be extracted
-        :return matrix, map_i2l, map_l2i: the adjacency matrix of the graph, the map between index to label, the map
-        between label to index
+        :returns matrix, map_i2l, map_l2i: The adjacency matrix of the graph,
+            the map between index to label, the map between label to index
         """
 
         map_i2l = {}  # Map index to label
@@ -424,7 +424,7 @@ class QBinDiff(Differ):
     def register_feature_extractor(
         self,
         extractor_class: type[FeatureExtractor],
-        weight: Optional[Positive] = 1.0,
+        weight: Positive | None = 1.0,
         distance: Distance | None = None,
         **extra_args,
     ) -> None:
@@ -435,8 +435,7 @@ class QBinDiff(Differ):
         :param extractor_class: A feature extractor of type py:class:`qbindiff.features.extractor`
         :param weight: Weight associated to the corresponding feature. Default is 1.
         :param distance: Distance used only for this feature. It does not make sense to use it with bnb feature,
-        but it can be useful for the WeisfeilerLehman feature.
-        :return: None
+            but it can be useful for the WeisfeilerLehman feature.
         """
 
         extractor = extractor_class(weight, **extra_args)
@@ -505,7 +504,7 @@ class QBinDiff(Differ):
 
         :param primary_idx: List of node indexes inside the primary
         :param secondary_idx: List of node indexes inside the secondary
-        :return similarities : the list of corresponding similarities between the given nodes
+        :return: The list of corresponding similarities between the given nodes
         """
 
         # Utils functions

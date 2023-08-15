@@ -1,3 +1,11 @@
 .with-border {
     border: 1px solid #000000;
 }
+
+.boldlink a {
+    font-weight: bold;
+    font-size: 120%;
+}
+.boldlink a > code {
+    border-width: 0px;
+}

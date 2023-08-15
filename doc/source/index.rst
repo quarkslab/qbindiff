@@ -28,7 +28,7 @@ Getting Started
    :maxdepth: 2
    :caption: Getting Started:
    
-   diffing.rst
+.. diffing.rst
    basicex.rst
 
 QBinDiff algorithm
@@ -41,8 +41,7 @@ QBinDiff algorithm
    how
    features
    params
-   passes
-   belief
+   belief_propagation
    export
    
 

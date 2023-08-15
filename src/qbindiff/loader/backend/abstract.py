@@ -64,9 +64,7 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
     It represents a generic backend loader for a Instruction
     """
 
-    """
-    Max instruction ID. All the instruction IDs will be in the range [0, MAX_ID]
-    """
+    #: Max instruction ID. All the instruction IDs will be in the range [0, MAX_ID]
     MAX_ID = 3000
 
     @property
@@ -116,9 +114,10 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
         Returns the instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
         The value MAX_ID means that there is no ID available.
 
-        .. warning:: The backend is responsible for creating this value, different backends
-        should not be considered compatible between each other. (For example IDA relies on
-        IDA IDs while quokka relies on capstone IDs)
+        ..  warning::
+            The backend is responsible for creating this value, different backends
+            should not be considered compatible between each other. (For example IDA
+            relies on IDA IDs while quokka relies on capstone IDs)
         """
         raise NotImplementedError()
 

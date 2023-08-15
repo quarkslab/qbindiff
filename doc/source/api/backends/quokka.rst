@@ -1,56 +1,52 @@
-# Quokka
+Quokka
+======
 
-## ProgramBackendQuokka
+ProgramBackendQuokka
+--------------------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.backend.quokka.ProgramBackendQuokka
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## FunctionBackendQuokka
+FunctionBackendQuokka
+---------------------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.backend.quokka.FunctionBackendQuokka
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## BasicBlockBackendQuokka
+BasicBlockBackendQuokka
+-----------------------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.backend.quokka.BasicBlockBackendQuokka
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## InstructionBackendQuokka
+InstructionBackendQuokka
+------------------------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.backend.quokka.InstructionBackendQuokka
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## OperandBackendQuokka
+OperandBackendQuokka
+--------------------
 
-```{eval-rst}
 .. autoclass:: qbindiff.loader.backend.quokka.OperandBackendQuokka
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```

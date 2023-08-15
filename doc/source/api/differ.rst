@@ -1,43 +1,40 @@
-# Differs
+Differs
+=======
 
-## GenericGraph
-```{eval-rst}
+GenericGraph
+------------
+
 .. autoclass:: qbindiff.GenericGraph
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## Differ
+Differ
+------
 
-```{eval-rst}
 .. autoclass:: qbindiff.Differ
     :members:
     :show-inheritance:
     :inherited-members:
     :undoc-members:
     :exclude-members:
-```
 
-## QBinDiff
+QBinDiff
+--------
 
-```{eval-rst}
 .. autoclass:: qbindiff.QBinDiff
     :members:
     :show-inheritance:
     :undoc-members:
     :exclude-members:
-```
 
-## DiGraphDiffer
+DiGraphDiffer
+-------------
 
-```{eval-rst}
 .. autoclass:: qbindiff.DiGraphDiffer
     :members:
     :show-inheritance:
     :undoc-members:
     :exclude-members: DiGraphWrapper
-```
-
