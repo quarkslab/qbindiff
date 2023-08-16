@@ -117,7 +117,13 @@ setup(
     extras_require={
         "binexport": ["python-binexport"],
         "quokka": ["quokka-project"],
-        "doc": ["sphinx", "sphinx-rtd-theme", "myst-parser", "sphinx-design"],
+        "doc": [
+            "sphinx",
+            "sphinx-design",
+            "sphinx-rtd-theme",
+            "enum-tools[sphinx]",
+            "sphinx_autodoc_typehints",
+        ],
         "community": ["python-louvain"],
     },
 )

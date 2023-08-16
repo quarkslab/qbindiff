@@ -167,12 +167,17 @@ Custom Backend
 If you want to load the binaries with your own custom backend you can implement your own backend loader.
 
 You have to code an implementation for all the classes that are found in `src/qbindiff/loader/backend/abstract.py`: [TODO:make a link or anchor?]
+
+
 * `AbstractOperandBackend`
+
   * `__str__(self) -> str`
   * `@property immutable_value(self) -> int | None`
   * `@property type(self) -> int`
   * `is_immutable(self) -> bool`
+
 * `AbstractInstructionBackend`
+
   * `@property addr(self) -> Addr`
   * `@property mnemonic(self) -> str`
   * `@property references(self) -> dict[ReferenceType, list[ReferenceTarget]]`
@@ -181,10 +186,14 @@ You have to code an implementation for all the classes that are found in `src/qb
   * `@property id(self) -> int`
   * `@property comment(self) -> str`
   * `@property bytes(self) -> bytes`
+
 * `AbstractBasicBlockBackend`
+
   * `@property addr(self) -> Addr`
   * `@property instructions(self) -> Iterator[AbstractInstructionBackend]`
+
 * `AbstractFunctionBackend`
+
   * `@property basic_blocks(self) -> Iterator[AbstractBasicBlockBackend]`
   * `@property addr(self) -> Addr`
   * `@property graph(self) -> networkx.DiGraph`
@@ -192,7 +201,9 @@ You have to code an implementation for all the classes that are found in `src/qb
   * `@property children(self) -> set[Addr]`
   * `@property type(self) -> FunctionType`
   * `@property name(self) -> str`
+
 * `AbstractProgramBackend`
+
   * `@property functions(self) -> Iterator[AbstractFunctionBackend]`
   * `@property name(self) -> str`
   * `@property structures(self) -> list[Structure]`
@@ -204,9 +215,9 @@ Most of the methods are self-explanatory but if you want to know more look at th
 Once you have your own implementation of the aforementioned classes you can create your qbindiff `Program` [TODO: make a link or anchor?] instance using your backend loader like this:
 
 ..  code-block:: python
+
    import qbindiff
    import MyCustomProgramBackend
    
    my_custom_backend_obj = MyCustomProgramBackend('my-program.exe')
    program = qbindiff.Program.from_backend(my_custom_backend_obj)
-
