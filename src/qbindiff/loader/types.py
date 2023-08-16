@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from qbindiff.loader.data import Data
     from qbindiff.loader.structure import Structure, StructureMember
 
+
 @enum_tools.documentation.document_enum
 class LoaderType(IntEnum):
     """

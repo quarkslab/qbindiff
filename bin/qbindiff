@@ -58,18 +58,13 @@ def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
         "Score: {:.4f} | "
         "Similarity: {:.4f} | "
         "Squares: {:.0f} | "
-        "Nb matches: {}\n".format(
-            similarity + nb_squares, similarity, nb_squares, nb_matches
-        )
+        "Nb matches: {}\n".format(similarity + nb_squares, similarity, nb_squares, nb_matches)
     )
-    output += (
-        "Node cover:  {:.3f}% / {:.3f}% | "
-        "Edge cover:  {:.3f}% / {:.3f}%\n".format(
-            100 * nb_matches / len(differ.primary_adj_matrix),
-            100 * nb_matches / len(differ.secondary_adj_matrix),
-            100 * nb_squares / differ.primary_adj_matrix.sum(),
-            100 * nb_squares / differ.secondary_adj_matrix.sum(),
-        )
+    output += "Node cover:  {:.3f}% / {:.3f}% | " "Edge cover:  {:.3f}% / {:.3f}%\n".format(
+        100 * nb_matches / len(differ.primary_adj_matrix),
+        100 * nb_matches / len(differ.secondary_adj_matrix),
+        100 * nb_squares / differ.primary_adj_matrix.sum(),
+        100 * nb_squares / differ.secondary_adj_matrix.sum(),
     )
     print(output)
 
@@ -87,10 +82,10 @@ DEFAULT_MAXITER = 1000
 
 LOADERS_KEYS = list(LOADERS.keys())
 
-help_formats = f"The file format of the output file. Supported formats are [bindiff]. [default: bindiff]"
-help_loaders = (
-    f"Loader type to be used. Must be one of these {LOADERS_KEYS}. [default: binexport]"
+help_formats = (
+    f"The file format of the output file. Supported formats are [bindiff]. [default: bindiff]"
 )
+help_loaders = f"Loader type to be used. Must be one of these {LOADERS_KEYS}. [default: binexport]"
 help_features = """\b
 The following features are available:
 {}
@@ -170,16 +165,14 @@ The following distances are available {[d.name for d in Distance]}
     "--epsilon",
     type=float,
     default=DEFAULT_EPSILON,
-    help="Relaxation parameter to enforce convergence [default: %.02f]"
-    % DEFAULT_EPSILON,
+    help="Relaxation parameter to enforce convergence [default: %.02f]" % DEFAULT_EPSILON,
 )
 @click.option(
     "-i",
     "--maxiter",
     type=int,
     default=DEFAULT_MAXITER,
-    help="Maximum number of iteration for belief propagation [default: %d]"
-    % DEFAULT_MAXITER,
+    help="Maximum number of iteration for belief propagation [default: %d]" % DEFAULT_MAXITER,
 )
 @click.option(
     "-e1",
@@ -250,22 +243,19 @@ def main(
 
     if 0.0 > sparsity_ratio > 1:
         logging.warning(
-            "[-] Sparsity ratio should be within 0..1 (set it to %.2f)"
-            % DEFAULT_SPARSITY_RATIO
+            "[-] Sparsity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SPARSITY_RATIO
         )
         sparsity_ratio = DEFAULT_SPARSITY_RATIO
 
     if 0.0 > tradeoff > 1:
         logging.warning(
-            "[-] Trade-off parameter should be within 0..1 (set it to %.2f)"
-            % DEFAULT_TRADEOFF
+            "[-] Trade-off parameter should be within 0..1 (set it to %.2f)" % DEFAULT_TRADEOFF
         )
         tradeoff = DEFAULT_TRADEOFF
 
     if 0.0 > epsilon:
         logging.warning(
-            "[-] Epsilon parameter should be positive (set it to %.3f)"
-            % DEFAULT_EPSILON
+            "[-] Epsilon parameter should be positive (set it to %.3f)" % DEFAULT_EPSILON
         )
         epsilon = DEFAULT_EPSILON
 
@@ -287,9 +277,7 @@ def main(
             and os.path.exists(exec_primary)
             and os.path.exists(exec_secondary)
         ):
-            logging.error(
-                "When using the quokka loader you have to provide the raw binaries"
-            )
+            logging.error("When using the quokka loader you have to provide the raw binaries")
             exit(1)
         logging.info(f"[+] Loading primary: {primary.name}")
         primary = Program(loader, primary, exec_primary)
@@ -337,8 +325,7 @@ def main(
             continue
         extractor_class = FEATURES_KEYS[feature]
         feature_opts = {
-            k: extractor_class.options[k].parser(v)
-            for k, v in feature_option_dict[feature].items()
+            k: extractor_class.options[k].parser(v) for k, v in feature_option_dict[feature].items()
         }
         qbindiff.register_feature_extractor(
             extractor_class, float(weight), distance=distance, **feature_opts
