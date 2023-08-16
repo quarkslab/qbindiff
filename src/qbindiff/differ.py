@@ -404,7 +404,7 @@ class QBinDiff(Differ):
         :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param distance: the distance function used when comparing the feature vector
-                         extracted from the graphs. Default is a py:class:`qbindiff.types.Distance` initialized to 'canberra'.
+            extracted from the graphs. Default is a py:class:`qbindiff.types.Distance` initialized to 'canberra'.
         """
 
         super(QBinDiff, self).__init__(primary, secondary, **kwargs)
