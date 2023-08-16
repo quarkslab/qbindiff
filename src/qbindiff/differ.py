@@ -454,7 +454,7 @@ class QBinDiff(Differ):
         similarity to 1. This anchoring phase is necessary to obtain a good match.
 
         :param sim_matrix: The similarity matrix of between the primary and secondary, of
-        type py:class:`qbindiff.types:SimMatrix`
+            type py:class:`qbindiff.types:SimMatrix`
         :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param primary_mapping: Mapping between the primary function addresses and their corresponding index
