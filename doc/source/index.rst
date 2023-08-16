@@ -18,7 +18,6 @@ Install QBinDiff
 
 .. toctree::
    :maxdepth: 1
-   :caption: Install QBinDiff:
    
    install.rst
 
@@ -26,9 +25,8 @@ Getting Started
 ---------------
 .. toctree::
    :maxdepth: 2
-   :caption: Getting Started:
    
-.. diffing.rst
+   intro.rst
    basicex.rst
 
 QBinDiff algorithm
@@ -36,27 +34,26 @@ QBinDiff algorithm
 
 .. toctree::
    :maxdepth: 6
-   :caption: QBinDIff algorithm:
    
    how
    features
    params
    belief_propagation
    export
-   
 
 Tutorials
 ---------
 .. toctree::
    :maxdepth: 1
-   :caption: Tutorials:
    
    tutorial
 
 Python API
 ----------
-
-TODO (autodoc ?)
+.. toctree::
+   :maxdepth: 1
+   
+   api/qbindiff
 
 Indices and tables
 ==================

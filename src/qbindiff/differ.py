@@ -193,8 +193,8 @@ class Differ:
         Returns the adjacency matrix for the graph and the mappings
 
         :param graph: Graph whose adjacency matrix should be extracted
-        :returns matrix, map_i2l, map_l2i: The adjacency matrix of the graph,
-            the map between index to label, the map between label to index
+        :returns: A tuple containing in this order: the adjacency matrix of the
+            graph, the map between index to label, the map between label to index.
         """
 
         map_i2l = {}  # Map index to label
@@ -404,7 +404,7 @@ class QBinDiff(Differ):
         :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param distance: the distance function used when comparing the feature vector
-                         extracted from the graphs. Default is a py:class:`qbindiff.types.Distance` initialized to 'canberra'.
+            extracted from the graphs. Default is a py:class:`qbindiff.types.Distance` initialized to 'canberra'.
         """
 
         super(QBinDiff, self).__init__(primary, secondary, **kwargs)
@@ -454,12 +454,12 @@ class QBinDiff(Differ):
         similarity to 1. This anchoring phase is necessary to obtain a good match.
 
         :param sim_matrix: The similarity matrix of between the primary and secondary, of
-        type py:class:`qbindiff.types:SimMatrix`
+            type py:class:`qbindiff.types:SimMatrix`
         :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param primary_mapping: Mapping between the primary function addresses and their corresponding index
         :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
-        :return: None
+        :returns: None
         """
 
         primary_import = {}

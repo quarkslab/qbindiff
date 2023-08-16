@@ -38,17 +38,20 @@ pygments_style = "monokai"  # also monokai, friendly, colorful
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "myst_parser",
     "sphinx_design",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.imgmath",
+    "enum_tools.autoenum",
+    "sphinx_autodoc_typehints",
 ]
 
 myst_enable_extensions = ["colon_fence", "dollarmath"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
+
+source_suffix = [".rst"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -57,14 +60,10 @@ exclude_patterns = []
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "networkx": ("https://networkx.org/documentation/stable/", None),
+    "quokka": ("https://quarkslab.github.io/quokka/", None),
 }
-
-# ~ autodoc_type_aliases = {
-# ~ 'Graph': 'qbindiff.abstract.GenericGraph',
-# ~ 'qbindiff.types.Graph': 'qbindiff.abstract.GenericGraph',
-# ~ 'qbindiff.Graph': 'qbindiff.abstract.GenericGraph',
-# ~ }
-
 
 # -- Options for HTML output -------------------------------------------------
 
