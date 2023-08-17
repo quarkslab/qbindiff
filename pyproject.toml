@@ -44,9 +44,9 @@ Documentation = "https://github.com/quarkslab/qbindiff"
 binexport = ["python-binexport"]
 quokka = ["quokka-project"]
 doc = [
-    "sphinx>=7.2.0",
+    "sphinx>=7,<7.2.0",
     "sphinx-design",
-    "sphinx-rtd-theme",
+    "sphinx-rtd-theme==1.3.0rc1", # Temporary measure
     "enum-tools[sphinx]",
     "sphinx_autodoc_typehints",
     "quokka-project",
