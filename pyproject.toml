@@ -26,6 +26,9 @@ Homepage = "https://github.com/quarkslab/qbindiff"
 Repository = "https://github.com/quarkslab/qbindiff"
 Documentation = "https://github.com/quarkslab/qbindiff"
 
+[tool.cibuildwheel]
+skip = "cp312-*"
+
 [tool.black]
 line-length = 100
 target-version = ['py310']
