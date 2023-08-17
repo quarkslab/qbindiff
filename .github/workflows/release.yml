@@ -6,55 +6,78 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheel
-    runs-on: ubuntu-latest
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Ensure that a wheel builder finishes even if another fails
+      fail-fast: false
+
+      matrix:
+        os: [ubuntu-22.04]
 
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
-      - name: Install dependencies
-        run: pip install wheel
-      - name: Build wheel
-        run: pip wheel -w wheels .
-      - uses: actions/upload-artifact@v3
+          python-version: '3.11'
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel
+
+      - name: Set CIBW_PLATFORM environment variable
+        run: |
+          if startsWith(${{matrix.os}}, 'ubuntu'); then
+            export CIBW_PLATFORM=linux
+          elif startsWith(${{matrix.os}}, 'windows'); then
+            export CIBW_PLATFORM=windows
+          else
+            export CIBW_PLATFORM=mac
+          fi
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse-${{ matrix.os }}
         with:
-          name: artifact
-          path: ./wheels/qbindiff*.whl
+          name: ${{ matrix.os }}-wheels
+          path: ./wheelhouse-${{ matrix.os }}/*.whl
 
   build_sdist:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+
       - name: Build sdist
-        run: python setup.py sdist
+        run: |
+          python -m pip install -U pip build
+          python -m build --sdist
+
       - uses: actions/upload-artifact@v3
         with:
-          name: artifact
-          path: dist/*.tar.gz
+          name: sdist
+          path: ./dist/*
 
-  upload_pypi:
-    needs: [build_wheels, build_sdist]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          # unpacks default artifact into dist/
-          # if `name: artifact` is omitted, the action will create extra parent dir
-          name: artifact
-          path: dist
+  # upload_pypi:
+  #   needs: [build_wheels, build_sdist]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         # unpacks default artifact into dist/
+  #         # if `name: artifact` is omitted, the action will create extra parent dir
+  #         name: artifact
+  #         path: dist
 
-      - name: Publish a Python distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.2
-        with:
-          password: ${{ secrets.PYPI_DEPLOY_TOKEN }}
+  #     - name: Publish a Python distribution to PyPI
+  #       uses: pypa/gh-action-pypi-publish@v1.8.2
+  #       with:
+  #         password: ${{ secrets.PYPI_DEPLOY_TOKEN }}
 
-      - name: Upload Python packages for release notes
-        uses: softprops/action-gh-release@v0.1.15
-        with:
-          files: |
-            dist/*
+  #     - name: Upload Python packages for release notes
+  #       uses: softprops/action-gh-release@v0.1.15
+  #       with:
+  #         files: |
+  #           dist/*
