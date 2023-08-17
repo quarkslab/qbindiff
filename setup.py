@@ -62,7 +62,7 @@ setup(
     description="QBindiff binary diffing tool based on a Network Alignment problem",
     author="Quarkslab",
     author_email="diffing@quarkslab.com",
-    url="https://gitlab.qb/machine_learning/qbindiff",
+    url="https://github.com/quarkslab/qbindiff",
     packages=find_packages(
         where="src",
         include=["qbindiff*"],
