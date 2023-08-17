@@ -27,9 +27,9 @@ jobs:
 
       - name: Set CIBW_PLATFORM environment variable
         run: |
-          if startsWith(${{matrix.os}}, 'ubuntu'); then
+          if ${{ startsWith(matrix.os, 'ubuntu') }}; then
             export CIBW_PLATFORM=linux
-          elif startsWith(${{matrix.os}}, 'windows'); then
+          elif ${{ startsWith(matrix.os, 'windows') }}; then
             export CIBW_PLATFORM=windows
           else
             export CIBW_PLATFORM=mac
@@ -39,6 +39,11 @@ jobs:
         run: python -m cibuildwheel --output-dir wheelhouse-${{ matrix.os }}
         with:
           name: ${{ matrix.os }}-wheels
+          path: ./wheelhouse-${{ matrix.os }}/*.whl
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: wheelhouse-${{ matrix.os }}
           path: ./wheelhouse-${{ matrix.os }}/*.whl
 
   build_sdist:
@@ -60,24 +65,25 @@ jobs:
           name: sdist
           path: ./dist/*
 
-  # upload_pypi:
-  #   needs: [build_wheels, build_sdist]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         # unpacks default artifact into dist/
-  #         # if `name: artifact` is omitted, the action will create extra parent dir
-  #         name: artifact
-  #         path: dist
+  upload_pypi:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          # unpacks default artifact into dist/
+          # if `name: artifact` is omitted, the action will create extra parent dir
+          name: wheelhouse-${{ matrix.os }}
+          path: ./dist/
 
-  #     - name: Publish a Python distribution to PyPI
-  #       uses: pypa/gh-action-pypi-publish@v1.8.2
-  #       with:
-  #         password: ${{ secrets.PYPI_DEPLOY_TOKEN }}
+      - name: Publish a Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TEST_DEPLOY_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
 
-  #     - name: Upload Python packages for release notes
-  #       uses: softprops/action-gh-release@v0.1.15
-  #       with:
-  #         files: |
-  #           dist/*
+      - name: Upload Python packages for release notes
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*
