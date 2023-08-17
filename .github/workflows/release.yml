@@ -40,9 +40,6 @@ jobs:
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse-${{ matrix.os }}
-        with:
-          name: ${{ matrix.os }}-wheels
-          path: ./wheelhouse-${{ matrix.os }}/*.whl
 
       - uses: actions/upload-artifact@v3
         with:
