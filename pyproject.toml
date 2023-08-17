@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools",
+    "setuptools<65.5.2",
     "cython",
     "packaging",
 
@@ -15,11 +15,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qbindiff"
 description = "QBindiff binary diffing tool based on a Network Alignment problem"
-version = "0.2"
 authors = [{ name = "Quarkslab", email = "diffing@quarkslab.com" }]
 license = { text = "Apache Software License (Apache License, Version 2)" }
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/quarkslab/qbindiff"

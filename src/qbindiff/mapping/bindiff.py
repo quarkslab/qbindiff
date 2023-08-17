@@ -22,7 +22,7 @@ from functools import lru_cache
 from bindiff import BindiffFile
 
 # local imports
-# from qbindiff import VERSION
+# from qbindiff import __version__
 from qbindiff.loader import Program, Function, BasicBlock
 from qbindiff.types import Addr
 
@@ -146,7 +146,7 @@ def export_to_bindiff(
     :param secondary: secondary program
     :param mapping: diffing mapping between the two programs
     """
-    from qbindiff import VERSION  # import the version here to avoid circular definition
+    from qbindiff import __version__  # import the version here to avoid circular definition
 
     def count_items(program: Program) -> tuple[int, int, int, int]:
         fp, flib, bbs, inst = 0, 0, 0, 0
@@ -161,7 +161,7 @@ def export_to_bindiff(
         filename,
         primary.exec_path,
         secondary.exec_path,
-        f"Qbindiff {VERSION}",
+        f"Qbindiff {__version__}",
         "",
         mapping.normalized_similarity,
         0.0,
