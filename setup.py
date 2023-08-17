@@ -93,32 +93,5 @@ setup(
             ),
         ]
     ),
-    install_requires=[
-        "click",
-        "tqdm",
-        "numpy",
-        "scipy",
-        "lapjv",
-        "networkx",
-        "capstone",
-        "datasketch",
-        "scikit-learn",
-        "python-louvain",
-        "enum_tools",
-        "python-bindiff",
-    ],
     scripts=["bin/qbindiff"],
-    extras_require={
-        "binexport": ["python-binexport"],
-        "quokka": ["quokka-project"],
-        "doc": [
-            "sphinx>=7.2.0",
-            "sphinx-design",
-            "sphinx-rtd-theme",
-            "enum-tools[sphinx]",
-            "sphinx_autodoc_typehints",
-        ],
-        "community": ["python-louvain"],
-        "dev": ["tox"],
-    },
 )
