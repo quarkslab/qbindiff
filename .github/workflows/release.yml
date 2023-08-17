@@ -71,9 +71,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v3
         with:
-          # unpacks default artifact into dist/
-          # if `name: artifact` is omitted, the action will create extra parent dir
-          name: wheelhouse-*
+          # By omitting the name we are downloading all the artifacts
           path: ./dist/
 
       - name: Publish a Python distribution to PyPI
@@ -86,4 +84,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/*
+            dist/wheelhouse-*/*
