@@ -73,7 +73,7 @@ jobs:
         with:
           # unpacks default artifact into dist/
           # if `name: artifact` is omitted, the action will create extra parent dir
-          name: wheelhouse-${{ matrix.os }}
+          name: wheelhouse-*
           path: ./dist/
 
       - name: Publish a Python distribution to PyPI
