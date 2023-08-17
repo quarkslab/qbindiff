@@ -57,17 +57,10 @@ def cythonize_extensions(extensions):
 
 
 setup(
-    name="qbindiff",
-    version="0.2",
-    description="QBindiff binary diffing tool based on a Network Alignment problem",
-    author="Quarkslab",
-    author_email="diffing@quarkslab.com",
-    url="https://github.com/quarkslab/qbindiff",
     packages=find_packages(
         where="src",
         include=["qbindiff*"],
     ),
-    python_requires=">=3.10",
     package_dir={"": "src"},
     ext_modules=cythonize_extensions(
         [
@@ -107,7 +100,6 @@ setup(
         "python-louvain",
         "enum_tools",
         "python-bindiff",
-        "tox",
     ],
     scripts=["bin/qbindiff"],
     extras_require={
@@ -121,5 +113,6 @@ setup(
             "sphinx_autodoc_typehints",
         ],
         "community": ["python-louvain"],
+        "dev": ["tox"],
     },
 )
