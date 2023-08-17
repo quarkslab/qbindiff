@@ -60,12 +60,8 @@ setup(
     name="qbindiff",
     version="0.2",
     description="QBindiff binary diffing tool based on a Network Alignment problem",
-    author=["Elie Mengin", "Robin David", "Riccardo Mori", "Alexis Challande"],
-    author_email=[
-        "rmori@quarkslab.com",
-        "rdavid@quarkslab.com",
-        "achallande@quarkslab.com",
-    ],
+    author="Quarkslab",
+    author_email="diffing@quarkslab.com",
     url="https://gitlab.qb/machine_learning/qbindiff",
     packages=find_packages(
         where="src",
@@ -118,7 +114,7 @@ setup(
         "binexport": ["python-binexport"],
         "quokka": ["quokka-project"],
         "doc": [
-            "sphinx",
+            "sphinx>=7.2.0",
             "sphinx-design",
             "sphinx-rtd-theme",
             "enum-tools[sphinx]",
