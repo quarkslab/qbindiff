@@ -69,7 +69,7 @@ jobs:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     permissions:
-      contents: read|write
+      contents: write
     steps:
       - uses: actions/download-artifact@v3
         with:
