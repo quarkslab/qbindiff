@@ -79,7 +79,6 @@ jobs:
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_TEST_DEPLOY_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
           packages-dir: ./dist/wheelhouse-*
 
