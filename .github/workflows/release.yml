@@ -68,6 +68,10 @@ jobs:
   upload_pypi:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
+    permissions:
+      contents:
+        - read
+        - write
     steps:
       - uses: actions/download-artifact@v3
         with:
