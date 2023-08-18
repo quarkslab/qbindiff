@@ -79,6 +79,7 @@ jobs:
         with:
           password: ${{ secrets.PYPI_TEST_DEPLOY_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
+          packages-dir: ./dist/wheelhouse-*
 
       - name: Upload Python packages for release notes
         uses: softprops/action-gh-release@v1
