@@ -74,15 +74,20 @@ jobs:
           # By omitting the name we are downloading all the artifacts
           path: ./dist/
 
+      - name: Unpack artifacts
+        run: |
+          mkdir ./dist/wheels
+          unzip -d ./dist/wheels ./dist/wheelhouse-*
+
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_TEST_DEPLOY_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
-          packages-dir: ./dist/wheelhouse-*
+          packages-dir: ./dist/wheels
 
       - name: Upload Python packages for release notes
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/wheelhouse-*/*
+            dist/wheelhouse-*
