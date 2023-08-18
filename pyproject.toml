@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools",
+    "setuptools<65.5.2",
     "cython",
     "packaging",
 
@@ -12,11 +12,53 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "qbindiff"
+description = "QBindiff binary diffing tool based on a Network Alignment problem"
+authors = [{ name = "Quarkslab", email = "diffing@quarkslab.com" }]
+license = { text = "Apache Software License (Apache License, Version 2)" }
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.10"
+dependencies = [
+    "click",
+    "tqdm",
+    "numpy",
+    "scipy",
+    "lapjv",
+    "networkx",
+    "capstone",
+    "datasketch",
+    "scikit-learn",
+    "python-louvain",
+    "enum_tools",
+    "python-bindiff",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/quarkslab/qbindiff"
+Repository = "https://github.com/quarkslab/qbindiff"
+Documentation = "https://github.com/quarkslab/qbindiff"
+
+[project.optional-dependencies]
+binexport = ["python-binexport"]
+quokka = ["quokka-project"]
+doc = [
+    "sphinx>=7,<7.2.0",
+    "sphinx-design",
+    "sphinx-rtd-theme==1.3.0rc1", # Temporary measure
+    "enum-tools[sphinx]",
+    "sphinx_autodoc_typehints",
+    "quokka-project",
+]
+dev = ["tox"]
+
+[tool.cibuildwheel]
+skip = "cp312-*"
+
 [tool.black]
 line-length = 100
 target-version = ['py310']
 
 [tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
-]
+addopts = ["--import-mode=importlib"]

@@ -27,7 +27,7 @@ from typing import Any
 from bindiff import BindiffFile
 
 # local imports
-# from qbindiff import VERSION
+# from qbindiff import __version__
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Program, Function
 from qbindiff.matcher import Matcher

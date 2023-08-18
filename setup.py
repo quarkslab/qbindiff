@@ -1,5 +1,6 @@
 import contextlib
 import numpy as np
+from os.path import normpath
 from setuptools import setup, Extension, find_packages
 from packaging.version import Version
 
@@ -55,23 +56,17 @@ def cythonize_extensions(extensions):
         annotate=debug,
     )
 
+main_ns = {}
+ver_path = normpath('src/qbindiff/version.py')
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
 
 setup(
-    name="qbindiff",
-    version="0.2",
-    description="QBindiff binary diffing tool based on a Network Alignment problem",
-    author=["Elie Mengin", "Robin David", "Riccardo Mori", "Alexis Challande"],
-    author_email=[
-        "rmori@quarkslab.com",
-        "rdavid@quarkslab.com",
-        "achallande@quarkslab.com",
-    ],
-    url="https://gitlab.qb/machine_learning/qbindiff",
     packages=find_packages(
         where="src",
         include=["qbindiff*"],
     ),
-    python_requires=">=3.10",
+    version=main_ns['__version__'],
     package_dir={"": "src"},
     ext_modules=cythonize_extensions(
         [
@@ -98,32 +93,5 @@ setup(
             ),
         ]
     ),
-    install_requires=[
-        "click",
-        "tqdm",
-        "numpy",
-        "scipy",
-        "lapjv",
-        "networkx",
-        "capstone",
-        "datasketch",
-        "scikit-learn",
-        "python-louvain",
-        "enum_tools",
-        "python-bindiff",
-        "tox",
-    ],
     scripts=["bin/qbindiff"],
-    extras_require={
-        "binexport": ["python-binexport"],
-        "quokka": ["quokka-project"],
-        "doc": [
-            "sphinx",
-            "sphinx-design",
-            "sphinx-rtd-theme",
-            "enum-tools[sphinx]",
-            "sphinx_autodoc_typehints",
-        ],
-        "community": ["python-louvain"],
-    },
 )

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from quokka.version import __version__
 from qbindiff.abstract import GenericGraph
 from qbindiff.differ import QBinDiff, DiGraphDiffer, Differ
 from qbindiff.mapping import Mapping
@@ -21,5 +22,3 @@ from qbindiff.loader import Program, Function
 from qbindiff.loader.types import LoaderType
 from qbindiff.matcher import Matcher
 from qbindiff.types import Distance
-
-VERSION = "0.2"  # should match version in setup.py
