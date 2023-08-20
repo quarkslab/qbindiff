@@ -62,7 +62,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: sdist
+          name: wheelhouse-sdist
           path: ./dist/*
 
   upload_pypi:
