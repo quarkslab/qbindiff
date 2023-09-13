@@ -111,3 +111,4 @@ class ReferenceType(IntEnum):
 
 
 ReferenceTarget: TypeAlias = "Data | Structure | StructureMember"
+"""Data reference target"""

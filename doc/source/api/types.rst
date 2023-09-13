@@ -3,7 +3,7 @@ Types
 
 .. automodule:: qbindiff.types
     :members:
-    :show-inheritance:
-    :inherited-members:
-    :undoc-members:
-    :exclude-members:
+    :exclude-members: Distance
+
+.. autoenum:: qbindiff.types.Distance
+    :members:

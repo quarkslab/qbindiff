@@ -86,3 +86,38 @@ ReferenceType
 
 .. autoenum:: qbindiff.loader.types.ReferenceType
     :members:
+
+LoaderType
+----------
+
+.. autoenum:: qbindiff.loader.types.LoaderType
+    :members:
+
+OperandType
+-----------
+
+.. autoenum:: qbindiff.loader.types.OperandType
+    :members:
+
+FunctionType
+------------
+
+.. autoenum:: qbindiff.loader.types.FunctionType
+    :members:
+
+DataType
+--------
+
+.. autoenum:: qbindiff.loader.types.DataType
+    :members:
+
+StructureType
+-------------
+
+.. autoenum:: qbindiff.loader.types.StructureType
+    :members:
+
+ReferenceTarget
+---------------
+
+..  autodata:: qbindiff.loader.types.ReferenceTarget

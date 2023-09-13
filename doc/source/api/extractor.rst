@@ -1,5 +1,10 @@
+Feature extraction API
+======================
+
+Describes the interface to the objects that each feature must use to store the data.
+
 FeatureCollector
-================
+----------------
 
 .. autoclass:: qbindiff.features.extractor.FeatureCollector
     :members:
@@ -9,7 +14,7 @@ FeatureCollector
     :exclude-members:
 
 FeatureExtractor
-================
+----------------
 
 .. autoclass:: qbindiff.features.extractor.FeatureExtractor
     :members:
@@ -19,7 +24,7 @@ FeatureExtractor
     :exclude-members:
 
 FunctionFeatureExtractor
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: qbindiff.features.extractor.FunctionFeatureExtractor
     :members:
@@ -29,7 +34,7 @@ FunctionFeatureExtractor
     :exclude-members:
 
 BasicBlockFeatureExtractor
---------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: qbindiff.features.extractor.BasicBlockFeatureExtractor
     :members:
@@ -39,7 +44,7 @@ BasicBlockFeatureExtractor
     :exclude-members:
 
 InstructionFeatureExtractor
----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: qbindiff.features.extractor.InstructionFeatureExtractor
     :members:
@@ -49,7 +54,7 @@ InstructionFeatureExtractor
     :exclude-members:
 
 OperandFeatureExtractor
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: qbindiff.features.extractor.OperandFeatureExtractor
     :members:
