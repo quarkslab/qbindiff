@@ -49,7 +49,7 @@ class Visitor(metaclass=ABCMeta):
         raise NotImplementedError()
 
     def visit(
-        self, graph: Graph, key_fun: Callable = lambda _, i: i
+        self, graph: Graph, key_fun: Callable[[Any, int], Any] = None
     ) -> dict[Any, FeatureCollector]:
         """
         Function performing the visit on a Graph object by calling visit_item with a
@@ -58,9 +58,13 @@ class Visitor(metaclass=ABCMeta):
         :param graph: the Graph to be visited.
         :param key_fun: a function that takes 2 input arguments, namely the current item and
                         the current iteration number, and returns a unique key for that item.
-                        By default, the iteration number is used.
+                        If not specified, the iteration number is used.
         :return: A dict in which keys are key_fun(item, i) and values are the FeatureCollector
         """
+
+        # By default use the iteration counter as a unique key
+        if not key_fun:
+            key_fun = lambda _, i: i
 
         obj_features = {}
         for i, item in tqdm.tqdm(
@@ -104,8 +108,12 @@ class NoVisitor(Visitor):
         return []
 
     def visit(
-        self, graph: Graph, key_fun: Callable = lambda _, i: i
+        self, graph: Graph, key_fun: Callable[[Any, int], Any] = None
     ) -> dict[Any, FeatureCollector]:
+        # By default use the iteration counter as a unique key
+        if not key_fun:
+            key_fun = lambda _, i: i
+
         return {key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())}
 
     def register_feature_extractor(self, fte: FeatureExtractor) -> None:
