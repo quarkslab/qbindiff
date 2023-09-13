@@ -21,8 +21,6 @@ All the QBinDiff features are listed here, from the larger granularity to the sm
 Outside function-level features
 -------------------------------
 
-.. cssclass:: boldlink
-
 * :py:class:`~qbindiff.features.ChildNb`: Number of function child of the current function inside the Function Call Graph. 
 * :py:class:`~qbindiff.features.ParentNb`: Number of function parents of the current function inside the Function Call Graph.
 * :py:class:`~qbindiff.features.RelativeNb`: Sum of the features ChildNb and ParentNb
@@ -32,8 +30,6 @@ Outside function-level features
 
 Inside function-level features
 ------------------------------
-
-.. cssclass:: boldlink
 
 * :py:class:`~qbindiff.features.BBlockNb`: Number of basic blocks inside the function. Two functions that come from the same source code but that are compiled differently may have a different number of basic blocks.
 
@@ -45,11 +41,7 @@ Inside function-level features
 
 * :py:class:`~qbindiff.features.MDIndex`: This feature is based on previous work of `Dullien et al. <https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_. It is slightly modified : indeed, the topological sort is only available for Directed Acyclic Graphs (DAG).
 
-* :py:class:`~qbindiff.features.JumpNb`: Number of jump in the whole function.
-
 * :py:class:`~qbindiff.features.SmallPrimeNumbers`: Small-Prime-Number hash, based on mnemonics, based on previous work of `Dullien et al. <https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_. It is slightly modified from the theoretical implementation. The modulo is made at each round for computational reasons, not only at the end. [TODO:check the validity of the formula with Z3 (again)]
-
-* :py:class:`~qbindiff.features.ReadWriteAccess`: Number of Read and Write Access to the memory. This feature should be resistant to some obfuscation techniques and compilation options.
 
 * :py:class:`~qbindiff.features.MaxParentNb`: Maximum number of predecessors per basic block in the flowgraph.
 
@@ -89,17 +81,17 @@ Basic-block level features
 Instruction level features
 --------------------------
 
-.. cssclass:: boldlink
-
 * :py:class:`~qbindiff.features.MnemonicSimple`: TODO write description
 * :py:class:`~qbindiff.features.MnemonicTyped`: TODO write description
 * :py:class:`~qbindiff.features.GroupsCategory`: TODO write description
 * :py:class:`~qbindiff.features.DatName`: TODO write description
 * :py:class:`~qbindiff.features.StrRef`: TODO write description
+* :py:class:`~qbindiff.features.JumpNb`: Number of jump in the whole function.
+
 
 Operand level features
 ----------------------
 
-.. cssclass:: boldlink
-
 * :py:class:`~qbindiff.features.Constant`: TODO write description
+
+* :py:class:`~qbindiff.features.ReadWriteAccess`: Number of Read and Write Access to the memory. This feature should be resistant to some obfuscation techniques and compilation options.
