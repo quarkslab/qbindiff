@@ -27,106 +27,106 @@ from enum import IntEnum
 
 from qbindiff.abstract import GenericGraph
 
+FeatureValue: TypeAlias = float | dict[str, float]
 """
 Type of a feature value.
 """
-FeatureValue: TypeAlias = float | dict[str, float]
 
+Positive: TypeAlias = float
 """
 Float greater than zero
 """
-Positive: TypeAlias = float
 
+Ratio: TypeAlias = float
 """
 Float bewteen 0 and 1
 """
-Ratio: TypeAlias = float
 
+Idx: TypeAlias = int
 """
 An integer representing an index in a matrix.
 """
-Idx: TypeAlias = int
 
+Addr: TypeAlias = int
 """
 An integer representing an address within a program
 """
-Addr: TypeAlias = int
 
+Item: TypeAlias = Any
 """
 Item, entity being matched. The only constraint is to be hashable
 """
-Item: TypeAlias = Any
 
+Anchors: TypeAlias = list[tuple[Item, Item]]
 """
 Pair of lists of user defined index correspondences. Default None.
 """
-Anchors: TypeAlias = list[tuple[Item, Item]]
 
+RawMapping: TypeAlias = tuple[list[Idx], list[Idx]]
 """
 Pair of lists of indexes that are mapped together.
 """
-RawMapping: TypeAlias = tuple[list[Idx], list[Idx]]
 
+Match = namedtuple("Match", "primary secondary similarity confidence squares")
 """
 Match represent the matching between two functions and can hold the similarity between the two
 """
-Match = namedtuple("Match", "primary secondary similarity confidence squares")
 
 
+ExtendedMapping: TypeAlias = Iterable[tuple[Item, Item, float, int]]
 """
 An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
 """
-ExtendedMapping: TypeAlias = Iterable[tuple[Item, Item, float, int]]
 
+Dtype: TypeAlias = numpy.dtype
 """
 Numpy data type
 """
-Dtype: TypeAlias = numpy.dtype
 
+Vector: TypeAlias = numpy.ndarray
 """
 Arbitrary d-Dimensional array. Used to represent a vector.
 """
-Vector: TypeAlias = numpy.array
 
+Matrix: TypeAlias = numpy.ndarray
 """
 Arbitrary nxd-Dimensional array. Used to represent a matrix.
 """
-Matrix: TypeAlias = numpy.array
 
+FeatureVectors: TypeAlias = numpy.ndarray
 """
 Float nxd-Dimensional array. Each n rows is represented as a dimensionnal feature vector.
 """
-FeatureVectors: TypeAlias = numpy.array
 
+AdjacencyMatrix: TypeAlias = numpy.ndarray
 """
 Boolean nxn-Dimensional array. It's the adjacency matrix representation of the graph.
 """
-AdjacencyMatrix: TypeAlias = numpy.array
 
+SimMatrix: TypeAlias = numpy.ndarray
 """
 Float nxm-Dimensional array. Records the pairwise similarity scores between nodes of both graphs to diff.
 """
-SimMatrix: TypeAlias = numpy.array
 
+SparseMatrix: TypeAlias = csr_matrix
 """
 Float nxm-Dimensional array. A sparse version of the above SimMatrix
 """
-SparseMatrix: TypeAlias = csr_matrix
 
-"""
-Float n-Dimensional sparse array.
-"""
-SparseVector: TypeAlias = csr_array
-
-"""
-Path
-"""
-PathLike: TypeAlias = str | Path
-
+Graph: TypeAlias = GenericGraph
 """
 A generic Graph, iterable over the nodes
 """
-Graph: TypeAlias = GenericGraph
+
+SparseVector: TypeAlias = csr_array
+"""
+Float n-Dimensional sparse array.
+"""
+
+PathLike: TypeAlias = str | Path
+"""
+Path
+"""
 
 
 @enum_tools.documentation.document_enum
