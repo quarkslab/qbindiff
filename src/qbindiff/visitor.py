@@ -1,17 +1,21 @@
-"""
-Copyright 2023 Quarkslab
+# Copyright 2023 Quarkslab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+"""Visitor pattern module
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+This module contains the base abstract class that defines the visitor access
+pattern to a GenericGraph as well as its standard implementations.
 """
 
 import tqdm
@@ -49,7 +53,7 @@ class Visitor(metaclass=ABCMeta):
         raise NotImplementedError()
 
     def visit(
-        self, graph: Graph, key_fun: Callable = lambda _, i: i
+        self, graph: Graph, key_fun: Callable[[Any, int], Any] = None
     ) -> dict[Any, FeatureCollector]:
         """
         Function performing the visit on a Graph object by calling visit_item with a
@@ -58,9 +62,13 @@ class Visitor(metaclass=ABCMeta):
         :param graph: the Graph to be visited.
         :param key_fun: a function that takes 2 input arguments, namely the current item and
                         the current iteration number, and returns a unique key for that item.
-                        By default, the iteration number is used.
+                        If not specified, the iteration number is used.
         :return: A dict in which keys are key_fun(item, i) and values are the FeatureCollector
         """
+
+        # By default use the iteration counter as a unique key
+        if not key_fun:
+            key_fun = lambda _, i: i
 
         obj_features = {}
         for i, item in tqdm.tqdm(
@@ -104,8 +112,12 @@ class NoVisitor(Visitor):
         return []
 
     def visit(
-        self, graph: Graph, key_fun: Callable = lambda _, i: i
+        self, graph: Graph, key_fun: Callable[[Any, int], Any] = None
     ) -> dict[Any, FeatureCollector]:
+        # By default use the iteration counter as a unique key
+        if not key_fun:
+            key_fun = lambda _, i: i
+
         return {key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())}
 
     def register_feature_extractor(self, fte: FeatureExtractor) -> None:

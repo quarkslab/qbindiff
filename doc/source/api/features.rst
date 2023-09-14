@@ -64,7 +64,7 @@ BBlockNb
 JumpNb
 ------
 
-.. autoclass:: qbindiff.features.graph.JumpNb
+.. autoclass:: qbindiff.features.JumpNb
     :members:
     :show-inheritance:
     :inherited-members:
@@ -74,7 +74,7 @@ JumpNb
 MaxParentNb
 -----------
 
-.. autoclass:: qbindiff.features.graph.MaxParentNb
+.. autoclass:: qbindiff.features.MaxParentNb
     :members:
     :show-inheritance:
     :inherited-members:
@@ -84,7 +84,7 @@ MaxParentNb
 MaxChildNb
 ----------
 
-.. autoclass:: qbindiff.features.graph.MaxChildNb
+.. autoclass:: qbindiff.features.MaxChildNb
     :members:
     :show-inheritance:
     :inherited-members:
@@ -94,7 +94,7 @@ MaxChildNb
 MaxInsNB
 --------
 
-.. autoclass:: qbindiff.features.graph.MaxInsNB
+.. autoclass:: qbindiff.features.MaxInsNB
     :members:
     :show-inheritance:
     :inherited-members:
@@ -114,7 +114,7 @@ MeanInsNB
 InstNB
 ------
 
-.. autoclass:: qbindiff.features.graph.InstNB
+.. autoclass:: qbindiff.features.InstNB
     :members:
     :show-inheritance:
     :inherited-members:
@@ -285,6 +285,66 @@ LSH
 ~~~
 
 .. autoclass:: qbindiff.features.wlgk.LSH
+    :members:
+    :show-inheritance:
+    :inherited-members:
+    :undoc-members:
+    :exclude-members:
+
+StronglyConnectedComponents
+---------------------------
+
+.. autoclass:: qbindiff.features.StronglyConnectedComponents
+    :members:
+    :show-inheritance:
+    :inherited-members:
+    :undoc-members:
+    :exclude-members:
+
+BytesHash
+---------
+
+.. autoclass:: qbindiff.features.BytesHash
+    :members:
+    :show-inheritance:
+    :inherited-members:
+    :undoc-members:
+    :exclude-members:
+
+CyclomaticComplexity
+--------------------
+
+.. autoclass:: qbindiff.features.CyclomaticComplexity
+    :members:
+    :show-inheritance:
+    :inherited-members:
+    :undoc-members:
+    :exclude-members:
+
+MDIndex
+-------
+
+.. autoclass:: qbindiff.features.MDIndex
+    :members:
+    :show-inheritance:
+    :inherited-members:
+    :undoc-members:
+    :exclude-members:
+
+SmallPrimeNumbers
+-----------------
+
+.. autoclass:: qbindiff.features.SmallPrimeNumbers
+    :members:
+    :show-inheritance:
+    :inherited-members:
+    :undoc-members:
+    :exclude-members:
+
+ReadWriteAccess
+---------------
+
+.. autoclass:: qbindiff.features.ReadWriteAccess
     :members:
     :show-inheritance:
     :inherited-members:

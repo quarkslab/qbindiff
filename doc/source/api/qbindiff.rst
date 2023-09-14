@@ -2,7 +2,7 @@ QBinDiff API
 ============
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
     differ
     distances
@@ -15,3 +15,4 @@ QBinDiff API
     matcher
     passes
     metrics
+    types
