@@ -49,7 +49,7 @@ Note: QBinDiff is an experimental tool for power-user where many parameters,
 thresholds or weights can be adjusted. Use it at your own risks.
 """
 
-from quokka.version import __version__
+from qbindiff.version import __version__
 from qbindiff.abstract import GenericGraph
 from qbindiff.differ import QBinDiff, DiGraphDiffer, GraphDiffer, Differ
 from qbindiff.mapping import Mapping
