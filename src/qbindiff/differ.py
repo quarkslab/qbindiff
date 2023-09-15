@@ -24,6 +24,7 @@ from __future__ import annotations
 import logging
 import tqdm
 import numpy as np
+import networkx
 from datasketch import MinHash
 from collections.abc import Generator, Iterator
 from typing import Any, TYPE_CHECKING
@@ -331,13 +332,77 @@ class Differ:
         self.mapping = self._convert_mapping(matcher.mapping, matcher.confidence_score)
 
 
+class GraphDiffer(Differ):
+    """
+    Differ implementation for two generic networkx.Graph instances (undirected graphs)
+    """
+
+    class GraphWrapper(GenericGraph):
+        def __init__(self, graph: networkx.Graph):
+            """
+            A wrapper for networkx.Graph. It has no distinction between node labels and nodes
+            """
+            self._graph = graph
+
+        def items(self) -> Iterator[tuple[Addr, Any]]:
+            """
+            Return a iterator over the items. Each item is {node_label: node}
+            """
+            for node in self._graph.nodes:
+                yield node, node
+
+        def get_node(self, node_label: Any) -> Any:
+            """
+            Returns the node identified by the `node_label`
+            """
+            return node_label
+
+        @property
+        def node_labels(self) -> Iterator[Any]:
+            """
+            Return an iterator over the node labels
+            """
+            yield from self._graph.nodes
+
+        @property
+        def nodes(self) -> Iterator[Any]:
+            """
+            Return an iterator over the nodes
+            """
+            yield from self._graph.nodes
+
+        @property
+        def edges(self) -> Iterator[tuple[Any, Any]]:
+            """
+            Return an iterator over the edges.
+            An edge is a pair (node_label_a, node_label_b)
+            """
+            yield from self._graph.edges
+
+    def __init__(self, primary: networkx.Graph, secondary: networkx.Graph, **kwargs):
+        super(GraphDiffer, self).__init__(
+            self.GraphWrapper(primary), self.GraphWrapper(secondary), **kwargs
+        )
+
+        self.register_prepass(self.gen_sim_matrix)
+
+    def gen_sim_matrix(self, sim_matrix: SimMatrix, *args, **kwargs) -> None:
+        """
+        Initialize the similarity matrix
+
+        :param sim_matrix: The similarity matrix of type py:class:`qbindiff.types.SimMatrix`
+        """
+
+        sim_matrix[:] = 1
+
+
 class DiGraphDiffer(Differ):
     """
     Differ implementation for two generic networkx.DiGraph
     """
 
     class DiGraphWrapper(GenericGraph):
-        def __init__(self, graph: DiGraph):
+        def __init__(self, graph: networkx.DiGraph):
             """
             A wrapper for DiGraph. It has no distinction between node labels and nodes
 
@@ -363,7 +428,7 @@ class DiGraphDiffer(Differ):
             """
             Return an iterator over the node labels
             """
-            return self._graph.nodes
+            yield from self._graph.nodes
 
         @property
         def nodes(self) -> Iterator[Any]:
@@ -378,9 +443,9 @@ class DiGraphDiffer(Differ):
             Return an iterator over the edges.
             An edge is a pair (node_label_a, node_label_b)
             """
-            return self._graph.edges
+            yield from self._graph.edges
 
-    def __init__(self, primary: DiGraph, secondary: DiGraph, **kwargs):
+    def __init__(self, primary: networkx.DiGraph, secondary: networkx.DiGraph, **kwargs):
         super(DiGraphDiffer, self).__init__(
             self.DiGraphWrapper(primary), self.DiGraphWrapper(secondary), **kwargs
         )
