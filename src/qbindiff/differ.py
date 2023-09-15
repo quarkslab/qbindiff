@@ -25,9 +25,8 @@ import logging
 import tqdm
 import numpy as np
 from datasketch import MinHash
-from networkx import DiGraph
-from collections.abc import Generator, Iterator, Callable
-from typing import Any
+from collections.abc import Generator, Iterator
+from typing import Any, TYPE_CHECKING
 
 # third-party imports
 from bindiff import BindiffFile
@@ -53,6 +52,9 @@ from qbindiff.types import (
     Distance,
 )
 from qbindiff.mapping.bindiff import export_to_bindiff
+
+if TYPE_CHECKING:
+    from qbindiff.types import GenericPass
 
 
 class Differ:
@@ -216,7 +218,7 @@ class Differ:
 
         return matrix, map_i2l, map_l2i
 
-    def register_prepass(self, pass_func: Callable, **extra_args) -> None:
+    def register_prepass(self, pass_func: GenericPass, **extra_args) -> None:
         """
         Register a new pre-pass that will operate on the similarity matrix.
         The passes will be called in the same order as they are registered and each one
@@ -226,19 +228,17 @@ class Differ:
 
         :param pass_func: Pass method to apply on the similarity matrix. Example : a Pass that first matches import
             functions.
-        :return: None
         """
 
         self._pre_passes.append((pass_func, extra_args))
 
-    def register_postpass(self, pass_func: Callable, **extra_args) -> None:
+    def register_postpass(self, pass_func: GenericPass, **extra_args) -> None:
         """
         Register a new post-pass that will operate on the similarity matrix.
         The passes will be called in the same order as they are registered and each one
         of them will operate on the output of the previous one.
 
         :param pass_func: Pass method to apply on the similarity matrix. Example : a Pass that extracts graph features.
-        :return: None
         """
 
         self._post_passes.append((pass_func, extra_args))

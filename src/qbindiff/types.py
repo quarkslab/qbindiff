@@ -20,7 +20,7 @@ used by qbindiff.
 
 from __future__ import annotations
 from collections.abc import Iterable
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, Protocol, TYPE_CHECKING
 
 import numpy
 from pathlib import Path
@@ -30,6 +30,9 @@ import enum_tools.documentation
 from enum import IntEnum
 
 from qbindiff.abstract import GenericGraph
+
+if TYPE_CHECKING:
+    from qbindiff import Program
 
 FeatureValue: TypeAlias = float | dict[str, float]
 """
@@ -131,6 +134,22 @@ PathLike: TypeAlias = str | Path
 """
 Path
 """
+
+
+class GenericPass(Protocol):
+    """Callback function type for Passes"""
+
+    def __call__(
+        self,
+        sim_matrix: SimMatrix,
+        primary: Program,
+        secondary: Program,
+        primary_mapping: dict[Any, int],
+        secondary_mapping: dict[Any, int],
+        **kwargs,
+    ) -> None:
+        """Execute the pass that operates on the similarity matrix inplace"""
+        raise NotImplementedError()
 
 
 @enum_tools.documentation.document_enum
