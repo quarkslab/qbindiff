@@ -22,7 +22,6 @@ import numpy as np
 from scipy.sparse import lil_matrix
 from collections import defaultdict
 from collections.abc import Iterable
-from abc import ABCMeta, abstractmethod
 from typing import Any
 
 from qbindiff.loader import Program
@@ -34,23 +33,7 @@ from qbindiff.utils import is_debug
 from qbindiff.types import SimMatrix, Distance
 
 
-class GenericPass(metaclass=ABCMeta):
-    """Class to define a interface to Passes"""
-
-    @abstractmethod
-    def __call__(
-        self,
-        sim_matrix: SimMatrix,
-        primary: Program,
-        secondary: Program,
-        primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int],
-    ) -> None:
-        """Execute the pass that operates on the similarity matrix inplace"""
-        raise NotImplementedError()
-
-
-class FeaturePass(GenericPass):
+class FeaturePass:
     """
     Run all the feature extractors previously registered and compute the similarity
     matrix

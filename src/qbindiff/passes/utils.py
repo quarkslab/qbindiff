@@ -27,7 +27,7 @@ def ZeroPass(
     secondary: Program,
     primary_mapping: dict[Any, int],
     secondary_mapping: dict[Any, int],
-):
+) -> None:
     """Set to zero all the -1 entries in the similarity matrix"""
     mask = sim_matrix == -1
     sim_matrix[mask] = 0

@@ -21,5 +21,5 @@ notably the FeaturePass that uses the result of the features to populate the
 content of the similarity matrix.
 """
 
-from qbindiff.passes.base import GenericPass, FeaturePass
+from qbindiff.passes.base import FeaturePass
 from qbindiff.passes.utils import ZeroPass
