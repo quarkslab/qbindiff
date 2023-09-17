@@ -3,13 +3,13 @@
 Features
 ========
 
-Consider two binaries, one *primary* with :math:`n_{1}` functions and one *secondary* with :math:`n_{2}` functions. QBinDiff uses a similarity matrix of shape :math:`(n_{1}, n_{2})` that encodes the similarity between each function of the *primary* and each function of the *secondary*. 
+Let's consider two binaries, a *primary* with :math:`n_{1}` functions and a *secondary* with :math:`n_{2}` functions. QBinDiff uses a similarity matrix of shape :math:`(n_{1}, n_{2})` that encodes the similarity between each function of the *primary* and each function of the *secondary*.
 
-The similarity is computed using different features per function. *Features* are heuristics that operate at specific level inside the function (operand, instruction, basic block, function) to extract a *feature vector*. You can also think of *feature vectors* as a way of compressing the information that was extracted in a mathematical object. This information should help to characterize the function.
+The similarity is computed using different features per function. *Features* are heuristics that operate at specific level inside the function (operand, instruction, basic block, function) to compute a *feature vector*. You can also think of *feature vectors* as a way of compressing the information that was extracted in a mathematical object. This information should help to characterize the function. It is an embedding of the function.
 
 An example of a feature heuristic can be counting how many basic blocks are there in the function Control Flow Graph (CFG), we can arguably say that similar functions should have more or less the same number of blocks and by using that heuristic (or feature) we can give a score on how similar two functions are.
 
-QBinDiff provides a lot of features an user can choose to compute the similarity. Indeed, relevant features for diffing is task-dependent and a feature may be very useful for specific diffing and useless in others. For example, the "basic blocks number" feature is useful only when we assume similar functions have the same number of blocks. If our assumption is false, namely, that two functions have been compiled with different optimization techniques or that have been obfuscated, then the heuristic will produce useless results. 
+QBinDiff provides a lot of features an user can choose to compute the similarity. Indeed, relevant features for diffing is task-dependent and a feature may be very useful for specific diffing and useless in others. For example, the "basic blocks number" feature is useful only when we assume similar functions have the same number of blocks. If our assumption is false, namely, that two functions have been compiled with different optimization techniques or that have been obfuscated, then the heuristic will produce irrelevant results.
 
 Some of these features comes from or are inspired by other differs, such as `BinDiff <https://www.zynamics.com/bindiff.html>`_ or `Diaphora <https://github.com/joxeankoret/diaphora>`_.
 
@@ -72,11 +72,15 @@ Inside function-level features
 * :py:class:`~qbindiff.features.WeisfeilerLehman`: This feature applies a Weisfeiler Lehman kernel combined with a Local Sensitive Hashing as labeling function. This feature derives from a `Quarkslab blogpost <https://blog.quarkslab.com/weisfeiler-lehman-graph-kernel-for-binary-function-analysis.html>`_.
 
 .. warning::
-   The WeisfeilerLehman feature suffers from several drawbacks, both theoretically and in term of implementation. It may caused some numerical instability errors depending on your binaries. This feature may be refactor in a near future.
+   The WeisfeilerLehman feature suffers from several drawbacks, both theoretically and in term of implementation.
+   It may cause some numerical instability errors depending on your binaries. This feature may be refactor in a
+   near future.
 
 
 Basic-block level features
 --------------------------
+
+/
 
 Instruction level features
 --------------------------
