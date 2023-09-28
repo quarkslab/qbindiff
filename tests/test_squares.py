@@ -90,9 +90,13 @@ class TestSquares:
                 primary_size, secondary_size, density=0.1, dtype=np.float32
             ).tocsr()
 
-            ret1 = set(find_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix))
-            ret2 = set(self.control_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix))
-            assert not (ret1 ^ ret2), "The optimized algorithm for finding the squares is faulty"
+            fast_csr = find_squares(primary_adj_matrix, secondary_adj_matrix, sim_matrix)
+            correct_csr = self.control_squares_matrix(
+                primary_adj_matrix, secondary_adj_matrix, sim_matrix
+            )
+            assert (
+                fast_csr != correct_csr
+            ).nnz == 0, "The optimized algorithm for finding the squares is faulty"
 
     def test_qbindiff_algorithm(self):
         """
