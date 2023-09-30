@@ -22,7 +22,6 @@ import logging
 import numpy as np
 from lapjv import lapjv
 from scipy.sparse import csr_matrix, coo_matrix
-from collections.abc import Generator
 
 # Local imports
 from qbindiff.matcher.squares import find_squares
@@ -34,22 +33,7 @@ from qbindiff.types import (
     AdjacencyMatrix,
     Matrix,
     SimMatrix,
-    SparseMatrix,
 )
-
-
-def iter_csr_matrix(matrix: SparseMatrix) -> Generator[tuple[np.ndarray, np.ndarray]]:
-    """
-    Iter over non-null items in a CSR (Compressed Sparse Row) matrix.
-    It returns a generator that, at each iteration, returns the tuple (row_index, column_index, value)
-
-    :param matrix: CSR matrix
-    :return: generator (row_idx, column_idx, val)
-    """
-
-    coo_matrix = matrix.tocoo()
-    for x, y, v in zip(coo_matrix.row, coo_matrix.col, coo_matrix.data):
-        yield x, y, v
 
 
 def solve_linear_assignment(cost_matrix: Matrix) -> RawMapping:
@@ -169,41 +153,10 @@ class Matcher:
         The time complexity is O(|sparse_sim_matrix| * average_graph_degree**2)
         """
 
-        squares = find_squares(
+        # Use the fast Cython algorithm for efficiency
+        self.squares_matrix = find_squares(
             self.primary_adj_matrix, self.secondary_adj_matrix, self.sparse_sim_matrix
         )
-
-        size = self.sparse_sim_matrix.nnz
-        # Give each similarity edge a unique number
-        bipartite = self.sparse_sim_matrix.astype(np.uint32)
-        bipartite.data[:] = np.arange(0, size, dtype=np.uint32)
-
-        get_edge = {}  # Fast lookup
-        C = bipartite.shape[1]
-        for i, j, v in iter_csr_matrix(bipartite):
-            get_edge[i * C + j] = v
-
-        # Populate the sparse squares matrix
-        squares_2n = len(squares) * 2
-        rows = np.zeros(squares_2n, dtype=np.uint32)
-        cols = np.zeros(squares_2n, dtype=np.uint32)
-        for i, (nodeA, nodeB, nodeC, nodeD) in enumerate(squares):
-            e1 = get_edge[nodeA * C + nodeB]
-            e2 = get_edge[nodeD * C + nodeC]
-            rows[2 * i] = e1
-            rows[2 * i + 1] = e2
-            cols[2 * i] = e2
-            cols[2 * i + 1] = e1
-        data = np.ones(squares_2n, dtype=np.uint8)
-
-        # Build coo matrix and convert it to csr
-        coo_squares_matrix = coo_matrix((data, (rows, cols)), shape=(size, size), dtype=np.uint8)
-        self.squares_matrix = coo_squares_matrix.tocsr()
-
-        # Sometimes a square is counted twice
-        # ex: (nodeA, nodeB, nodeC, nodeD) == (nodeC, nodeD, nodeA, nodeB)
-        # Set the data to ones to count all the squares only once
-        self.squares_matrix.data[:] = 1
 
     @property
     def mapping(self) -> RawMapping:

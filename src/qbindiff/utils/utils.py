@@ -17,7 +17,14 @@
 Collection of utilities used internally.
 """
 
+from __future__ import annotations
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from typing import Any
+    from qbindiff.types import SparseMatrix
 
 
 def is_debug() -> bool:
@@ -25,12 +32,16 @@ def is_debug() -> bool:
     return logging.root.level <= logging.DEBUG
 
 
-def iter_csr_matrix(matrix):
+def iter_csr_matrix(matrix: SparseMatrix) -> Generator[tuple[int, int, Any]]:
     """
-    Iter over non-null items in a CSR (Compressed Sparse Row) matrix.
+    Iterate over non-null items in a CSR (Compressed Sparse Row) matrix.
     It returns a generator that, at each iteration, returns the tuple
     (row_index, column_index, value)
+
+    :param matrix: CSR matrix
+    :return: generator (row_idx, column_idx, val)
     """
+
     coo_matrix = matrix.tocoo()
     for x, y, v in zip(coo_matrix.row, coo_matrix.col, coo_matrix.data):
         yield (x, y, v)
