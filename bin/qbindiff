@@ -34,11 +34,7 @@ from qbindiff.types import Distance
 
 
 def configure_logging(verbose: int):
-    # first desactivate matplotlib logging
-    logger = logging.getLogger("matplotlib")
-    logger.setLevel(logging.WARNING)
     logging.basicConfig(format="[%(levelname)s] %(message)s", level=logging.INFO)
-    np.warnings.filterwarnings("ignore")
 
     logger = logging.getLogger()
     if verbose >= 2:
@@ -295,7 +291,7 @@ def main(
         sparsity_ratio=sparsity_ratio,
         tradeoff=tradeoff,
         epsilon=epsilon,
-        distance=distance,
+        distance=Distance[distance],
         maxiter=maxiter,
         normalize=normalize,
         sparse_row=sparse_row,
@@ -324,6 +320,8 @@ def main(
             logging.warning(f"Feature '{feature}' not recognized - ignored.")
             continue
         extractor_class = FEATURES_KEYS[feature]
+        if distance is not None:
+            distance = Distance[distance]
         feature_opts = {
             k: extractor_class.options[k].parser(v) for k, v in feature_option_dict[feature].items()
         }
@@ -335,8 +333,7 @@ def main(
     qbindiff.process()
 
     logging.info("[+] Computing NAP")
-    for _ in tqdm(qbindiff.matching_iterator(), total=maxiter):
-        pass
+    qbindiff.compute_matching()
 
     display_statistics(qbindiff, qbindiff.mapping)
 
