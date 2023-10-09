@@ -56,8 +56,9 @@ def cythonize_extensions(extensions):
         annotate=debug,
     )
 
+
 main_ns = {}
-ver_path = normpath('src/qbindiff/version.py')
+ver_path = normpath("src/qbindiff/version.py")
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
@@ -66,7 +67,7 @@ setup(
         where="src",
         include=["qbindiff*"],
     ),
-    version=main_ns['__version__'],
+    version=main_ns["__version__"],
     package_dir={"": "src"},
     ext_modules=cythonize_extensions(
         [
