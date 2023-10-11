@@ -33,7 +33,6 @@ As such, the bottleneck for a new architecture will likely originates from the b
 disassembler. Supported and tested architecures are x86, x86_64, ARMv7 and Aarch64.
 
 
-
 QBinDiff Algorithm Overview
 ---------------------------
 
@@ -49,18 +48,19 @@ being able fine tuning the parameters in order to obtain better result.
 
 From a high-level perspective, QBinDiff operates in the following steps:
 
-1. **Differ instanciation** with several parameters**. [TODO: add link to parameters]
-2. **Core Diffing**
+1. **Attributed graph loading**. Loading the primary and secondary attributed graphs. In case of binary instance this is called **Backend loader**.
+2. **Differ instanciation** with several parameters. [TODO: add link to parameters]
+3. **Similarity computation**
    1. Anchoring step (between functions sure to be a match)
    2. Feature extraction: Extract various artifacts from functions
    3. Similarity matrix computation: Computes a similarity score between all functions using a linear distance function. [TODO:add link to feat]
-   3. Optionally performs user-defined similarity matrix refinements
-   4. Combining the similarity matrix and the topology of the CG with a state-of-the-art machine learning algorithm, called Belief Propagation, [TODO:add link]to produce the functions mapping
-3. Export the result (in various formats)
+   4. Optionally performs user-defined similarity matrix refinements
+4. **Belief propagation** (leveraging the *graph topology*)
+   1. Combining the similarity matrix and the topology of the CG with a state-of-the-art machine learning algorithm, called Belief Propagation, [TODO:add link]to produce the functions mapping
+5. **Export the result** (in various formats)
 
-.. notes:: A key step, is the anchoring phase, only available for binaries. Indeed, binaries often contain imported
-           functions. These functions can be common to primary and secondary. Using them as anchors greatly help
-           the differ to obtain good matches.
+.. note:: A key step, is the anchoring phase, only available for binaries. Indeed, binaries often contain imported
+          functions. These functions can be common to primary and secondary. Using them as anchors greatly help
+          the differ to obtain good matches.
 
-The following pages, describes the different features available, how to parameterize the differ and how
-the belief propagation algorithm work.
+The following pages will describe each step in details.
