@@ -6,7 +6,7 @@ program representation used.
 
 **Control-Flow Graph**
 
-A function usually consists of several basic blocks which transition between blocks is the result of a jump,
+A function usually consists of several basic blocks, with transitions between these blocks occurring as a result of actions such as jumps, conditional jumps, loops, etc.
 a conditional jump, loop etc. A basic block is made of instructions that are consecutively executed.
 A Control-Flow Graph (CFG) represents the intra-procedural "control" relationships between basic blocks inside
 a function.
