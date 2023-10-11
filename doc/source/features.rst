@@ -6,25 +6,24 @@ Similarity computation
 Let's consider two binaries (or attributed graphs), a *primary* with :math:`n_{1}` functions
 (or nodes) and a *secondary* with :math:`n_{2}` functions (or nodes).
 
-As we described previously the similarity between the nodes of the two input graphs is one of the
+As we described previously, the similarity between the nodes of the two input graphs is one of the
 two required information for QBinDiff. We can think of it as a function that takes in input two
 nodes, one belonging to the *primary* and the other belonging to the *secondary*, and returns
 a normalized value between :math:`[0, 1]` that represents how similar the two nodes are, **only**
 considering the node attributes.
 
 .. math::
-    f\\colon G_1 \\bigtimes G_2 \\longrightarrow [0, 1]
+    f \colon G_1 \times G_2 \longrightarrow [0, 1]
 
 
-In practice, the function is implemented as a matrix (**S**) of shape :math:`(n_{1}, n_{2})` where
+In practice, the function is implemented as a matrix :math:`S` of shape :math:`(n_{1}, n_{2})` where
 the value :math:`f(i_1, i_2) = s` is stored at position :math:`[i_1, i_2]` in the matrix :math:`S`.
 
-From now on, without loss of generality, we are going to refer only to the similarity matrix,
-without ever mentioning the function :math:`f`.
+.. note:: From now on, without loss of generality, we are going to refer only to the similarity matrix, without ever mentioning the function :math:`f`.
 
 .. figure:: _static/node_similarity.png
 
-In order to keep the most versatility, in QBinDiff the similarity matrix can be partially or totally
+In order to keep the most versatility, in QBinDiff, the similarity matrix can be partially or totally
 user supplied through the **pass refinement system**. This is a system of callbacks that the user
 can register with the aim of refining the values in the similarity matrix by using any kind of user
 defined property. This becomes particularly useful when dealing with a problem instance that is not
