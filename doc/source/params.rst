@@ -98,7 +98,7 @@ subset of candidates. Hence, to save memory and to make QBinDiff run faster it's
 You can set the required *density* of the similarity matrix with the **sparsity ratio** that goes from 0 to 1:
 
 - The closer to 0, the more information are kept. The matrix will be bigger, the matching slower but more accurate
-- The closer to 1 the less information are kept. The matrix will be smaller, the computation faster but results might
+- The closer to 1 the less information is kept. The matrix will be smaller, the computation faster but results might
   be less accurate.
 
 ..  warning::
