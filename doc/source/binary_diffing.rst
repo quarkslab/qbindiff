@@ -20,7 +20,7 @@ functions of a program by means of performing a call to one another.
 
     Disassembly steps
 
-As depicted on the figure, the disassembly segregate data and code. It then disassemble code portion to recover
+As depicted on the figure, the disassembly separates data and code. It then disassembles code portion to recover
 disassmbled functions with the theirs CFG. The Call Graph (CG), is then another refinement representing relationships
 between functions.
 
