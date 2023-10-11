@@ -15,7 +15,7 @@ Manual Installation
 
 For installing it manually, one should first clone the official repository:
 
-TODO: There are probably APT prerequisites (to build the native part)
+.. TODO Check the prerequisites for building it manually (gcc, cython, etc...)
 
 ..  code-block:: bash
     
@@ -48,12 +48,21 @@ Available backends are:
 
 ..  code-block:: bash
 
-    pip install quokka-project
+    pip install qbindiff[quokka]
 
 - `BinExport <https://github.com/google/binexport>`_ , developed by Google. Through the python bindings provided by Quarkslab with `python-binexport <https://github.com/quarkslab/python-binexport>`_
 
 ..  code-block:: bash
 
-    pip install python-binexport
+    pip install qbindiff[binexport]
 
-- IDA Pro (to be used directly within IDA).
+- IDA Pro (to be used directly within IDA) through `idascript <https://github.com/quarkslab/idascript>`_.
+
+..  code-block:: bash
+
+    pip install qbindiff[ida]
+
+You can install multiple backend loaders by using a comma to separate them. Ex:
+
+.. code-block:: bash
+    pip install qbindiff[quokka,binexport,ida]
