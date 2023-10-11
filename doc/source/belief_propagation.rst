@@ -6,6 +6,8 @@ Belief Propagation
 ..  warning::
     This section requires some math knowledge to be unsderstood
 
-.. Graph Edit Distance -> Network alignment problem
-.. Belief propagation framework
-.. epsilon relaxation
+.. TODO Graph Edit Distance -> Network alignment problem
+.. TODO Belief propagation framework
+.. TODO epsilon relaxation
+
+Refer to Elie Mengin's :download:`thesis <_static/thesis.pdf>`.
