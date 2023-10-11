@@ -1,3 +1,5 @@
+.. _beliefpropagation:
+
 Belief Propagation
 ==================
 

@@ -49,14 +49,18 @@ to be able to fine-tune the parameters in order to obtain better results.
 From a high-level perspective, QBinDiff operates in the following steps:
 
 1. **Attributed graph loading**. Loading the primary and secondary attributed graphs. In case of binary instance this is called **Backend loader**.
-2. **Differ instanciation** with several parameters. [TODO: add link to parameters]
+2. **Differ instanciation** with several parameters. See the :py:class:`documentation <qbindiff.QBinDiff>`
 3. **Similarity computation**
+
    1. Anchoring step (between functions sure to be a match)
    2. Feature extraction: Extract various artifacts from functions
-   3. Similarity matrix computation: Computes a similarity score between all functions using a linear distance function. [TODO:add link to feat]
+   3. Similarity matrix computation: Computes a similarity score between all functions using a linear distance function. Refer to the :ref:`feature <features>` chapter to know more.
    4. Optionally performs user-defined similarity matrix refinements
+
 4. **Belief propagation** (leveraging the *graph topology*)
-   1. Combining the similarity matrix and the topology of the CG with a state-of-the-art machine learning algorithm, called Belief Propagation, [TODO:add link]to produce the functions mapping
+
+   1. Combining the similarity matrix and the topology of the CG with a state-of-the-art machine learning algorithm, called :ref:`Belief Propagation <beliefpropagation>`, to produce the functions mapping
+
 5. **Export the result** (in various formats)
 
 .. note:: A key step, is the anchoring phase, only available for binaries. Indeed, binaries often contain imported
