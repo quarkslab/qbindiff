@@ -43,7 +43,7 @@ also enables performing the diff at basic block level.
 .. note:: QBinDiff operates both on binaries and generic graphs. Indeed, diffing is not limited to executable binaries..
           In this context, binaries and graphs can be considered interchangeably.
 
-While it is not required understanding the different algorithms used internally. It might be helpful
+While it is not required to understand the different algorithms used internally, it might be helpful
 to be able to fine-tune the parameters in order to obtain better results.
 
 From a high-level perspective, QBinDiff operates in the following steps:
