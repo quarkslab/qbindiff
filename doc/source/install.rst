@@ -64,5 +64,6 @@ Available backends are:
 
 You can install multiple backend loaders by using a comma to separate them. Ex:
 
-..  code-block:: bash
+.. code-block:: bash
+
     pip install qbindiff[quokka,binexport,ida]
