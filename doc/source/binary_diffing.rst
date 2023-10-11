@@ -53,7 +53,7 @@ From a high-level perspective, QBinDiff operates in the following steps:
 
    1. Anchoring step (between functions sure to be a match, as imported ones)
    2. Feature extraction: Extracts various artifacts from functions
-   3. Similarity matrix computation: Computes a similarity score between all functions using a linear distance function. Refer to the :ref:`feature <features>` chapter to know more.
+   3. Similarity matrix computation: Computes a similarity score between all functions using a distance function. Refer to the :ref:`feature <features>` chapter to know more.
    4. Optionally performs user-defined similarity matrix refinements
 
 4. **Belief propagation** (leveraging the *graph topology*)
