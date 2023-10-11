@@ -1,7 +1,9 @@
+.. _parameters_chap:
+
 Parameters
 ==========
 
-The :py:class:`differ object <qbindiff.QBinDiff>` requires several parameters to compute the matches. These parameters are chosen by the user, which makes QBinDiff highly modular.
+The :py:class:`differ object <qbindiff.QBinDiff>` requires several parameters to compute the matching. These parameters are chosen by the user, which makes QBinDiff highly modular.
 
 Distances
 ---------
@@ -25,7 +27,7 @@ Most of the distance functions that QBinDiff uses come from `Scipy <https://docs
 
 However, some distance are unique in QBinDiff, such as the jaccard-strong distance.
 This is a experminetal new metric that combines the jaccard index and the canberra distance.
-0
+
 Jaccard-strong
 ~~~~~~~~~~~~~~
 
@@ -47,20 +49,24 @@ where the function `f` is defined like this:
     \end{cases}
 
 
-
 Epsilon
 -------
-[TODO]
+
+.. TODO write the section ^^
+
+This is epsilon relaxation. Refer to the Elie Mengin's :download:`thesis <_static/thesis.pdf>` to know more about it.
 
 
 Tradeoff
 --------
 
-QBinDiff relies on two aspects of a binary/graph: either the **similarity** (between functions or nodes) or the **structure** provided by the *Function Call Graph*, also known as the **topology** of the binary.
+QBinDiff relies on two aspects of a binary/graph: either the **similarity** (between functions or nodes) or the **structure** provided by the *Call Graph*, also known as the **topology** of the binary.
 
 The **similarity** is computed with a distance over a linear combination of several :ref:`features <features>` that usually depend on the function attributes. On the contrary, the **structure** is directly linked on the underlying graphs that come from the binary.
 
-The *tradeoff parameter* is the weight associated to the importance we give to the similarity or the structure. If the tradeoff is equal to 0, then we rely exclusively on the structure to diff our binaries, if instead it's equal to 1, then we rely exclusively on the similarity.
+The *tradeoff parameter* is the weight associated to the importance to give to the similarity or the structure.
+If the tradeoff is equal to 0, then the algorithm relies exclusively on the topology to diff the binaries. If instead
+it's equal to 1, then solely the similarity is used.
 
 ..  warning::
 
@@ -75,9 +81,9 @@ It simplify the graph by removing thunk functions, i.e. functions that are just 
 
 Removing thunk functions has the benefit of reducing the size of the binary, hence improving the efficiency and the accuracy.
 
-As a reverser you are usually interested in matching more interesting functions other than thunk functions, that's why you might want to enable the normalization pass.
+Reverse-engineers are usually interested in matching more interesting functions rather than thunk functions, that's why enabling the normalization pass might be beneficial.
 
-You can also set a custom normalization pass by subclassing :py:class:`QBinDiff <qbindiff.QBinDiff>` and overriding the method :py:meth:`~qbindiff.QBinDiff.normalize`
+A custom normalization pass can also be set by subclassing :py:class:`QBinDiff <qbindiff.QBinDiff>` and overriding the method :py:meth:`~qbindiff.QBinDiff.normalize`.
 
 ..  warning::
     In some cases, the normalization may lead to a bug with the BinExport backend. This is due to some specificities of BinExport protobuf file. This may be fixed in the future. 
@@ -85,16 +91,19 @@ You can also set a custom normalization pass by subclassing :py:class:`QBinDiff 
 Sparsity
 --------
 
-TODO: add sparsity matrix image for clarification
+.. TODO: add sparsity matrix image for clarification
 
-During its computation QBinDiff builds a similarity matrix between the functions of the two input binaries, if the binaries contain a large number of functions the resulting matrix will be huge and it will require too much memory.
+If both programs have a larger number of functions, the combinatorial between functions for the similarity
+might be troublesome (time and memory-wise).
 
-However usually there's no need to use the entire similarity matrix as each function will be `similar` only to a small group of candidates, hence to save memory and to make QBinDiff run faster it's often better to delete part of that matrix.
+There is usually no need to use the entire similarity matrix as each function will only be `similar` to a small
+subset of candidates. Hence, to save memory and to make QBinDiff run faster it's better to emptying part of that matrix.
 
 You can set the required *density* of the similarity matrix with the **sparsity ratio** that goes from 0 to 1:
 
-- The closer it gets to 0 the more information we are keeping, the bigger the matrix will be, the slower the algorithm, the more accurate it will be
-- The closer it gets to 1 the less information we are keeping, the smaller the matrix will be, the faster and less accurate the algorithm
+- The closer to 0, the more information is kept. The matrix will be bigger, the matching slower but more accurate
+- The closer to 1 the less information is kept. The matrix will be smaller, the computation faster but results might
+  be less accurate.
 
 ..  warning::
-    If your binaries are really large (~10k functions) and your RAM is limited, running QBinDiff with a low sparsity ratio may lead to a out-of-memory error. In that case, consider increasing the sparsity ratio (even values like 0.9 or 0.99 might be fine).
+    If your binaries are large (~10k functions) and your RAM is limited, running QBinDiff with a low sparsity ratio may lead to a out-of-memory error. In that case, consider increasing the sparsity ratio (even values like 0.9 or 0.99 are usually perfectly fine).
