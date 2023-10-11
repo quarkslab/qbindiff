@@ -40,8 +40,7 @@ QBinDiff computes a 1-to-1 mapping between matched components. While the diff ca
 e.g between basic blocks or between functions, QBinDiff does it on function by default. Notwithstanding, the API
 also enables performing the diff at basic block level.
 
-.. note:: QBinDiff operates both on binaries and generic graphs. Indeed, diffing is not limited to executable binaries. When using generic graph, we do graph matching. For the specific case of binaries, we call of binary diffing..
-          In this context, binaries and graphs can be considered interchangeably.
+.. note:: QBinDiff operates both on binaries and generic graphs: in the first case it is called *binary diffing* while on the other it is called *graph matching*. In this context, binaries and graphs can be considered interchangeably.
 
 While it is not required to understand the different algorithms used internally, it might be helpful
 to be able to fine-tune the parameters in order to obtain better results.
