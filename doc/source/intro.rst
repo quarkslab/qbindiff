@@ -9,17 +9,17 @@ Bindiff is great, no doubt about it, but we have no control on the diffing proce
 
 A key idea of QBinDiff is enabling tuning the diffing programmatically by:
 
-- writing its own feature
+- writing its own features
 - being able to enforce some matches
 - emphasizing either on the content of functions (similarity) or the links between them (callgraph)
 
 In essence, the idea is to be able to diff by defining its own criteria which sometimes, is not the control-flow and instructions but could for instance, be data-oriented.
 
-Last, QBinDiff as primarily been designed with the binary-diffing use-case in mind, but it can be applied to various other use-cases like social-networks. Indeed, diffing two programs boils down to determining the best alignment of the call graph following some similarity criterion.
+Last, QBinDiff has primarily been designed with the binary-diffing use-case in mind, but it can be applied to various other use-cases like social-networks. Indeed, diffing two programs boils down to determining the best alignment of the call graph following some similarity criterion.
 
 Indeed, solving this problem is APX-hard, that why QBinDiff uses a machine learning approach (more precisely optimization) to approximate the best match.
 
-Like Bindiff, QBinDiff also works using an exported disassembly of program obtained from IDA. Originally using `BinExport <https://github.com/google/binexport>`_, it now also support `Quokka <https://github.com/quarkslab/quokka>`_ as backend, which extracted files, are more exhaustive and also more compact on disk (good for large binary dataset).
+Like Bindiff, QBinDiff also works using an exported disassembly of program obtained from IDA. Originally using `BinExport <https://github.com/google/binexport>`_, it now also supports `Quokka <https://github.com/quarkslab/quokka>`_ as backend, which extracted files, are more exhaustive and also more compact on disk (good for large binary dataset).
 
 .. warning:: QBinDiff is an experimental tool for power-user where many parameters, features, thresholds or weights can be adjusted. Obtaining good results usually requires tuning these parameters.
 
@@ -35,11 +35,11 @@ directed graphs, where the term *align* means finding the **best mapping** betwe
 first graph (called *primary*) to the the nodes of the second one (called *secondary*). In this
 case what exactly characterizes the **best** mapping is intentionally left undefined as there are
 multiple ways of defining what a good match (between two nodes) is. It usually depends on the nature
-of the underlying problem instance solved. For example, in binary diffing we might consider a match between
+of the underlying problem instance solved. For example, in binary diffing, we might consider a match between
 two functions to be good (aka valuable) if the two functions are in fact semantically equal or
 similar enough, although on the other hand we might also be interested in evaluating how much they
 syntactically differ, hence, a good alignment has to leverage the similarity between the nodes.
-In other scenarios, instead, we might be more focused in the topological similarity of the two nodes,
+In other scenarios, instead, we might be more focused on the topological similarity of the two nodes,
 that means relying less on the nodes attributes and more on the call graph (i.e.: graph topology).
 
 ..  figure:: _static/graph_alignment.png

@@ -1,7 +1,7 @@
 Match Results
 =============
 
-The diffing result is 1-to-1 match that can be saved in various file formats for
+The diffing result is 1-to-1 matching that can be saved in various file formats for
 further usage and processing. Namely, it can be saved in CSV or using BinDiff
 SQLite format.
 
