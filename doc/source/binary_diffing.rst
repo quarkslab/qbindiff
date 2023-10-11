@@ -49,7 +49,7 @@ to be able to fine-tune the parameters in order to obtain better results.
 From a high-level perspective, QBinDiff operates in the following steps:
 
 1. **Attributed graph loading**. Loading the primary and secondary attributed graphs. In case of binary instance this is called **Backend loader**.
-2. **Differ instanciation** with several parameters. See the :py:class:`documentation <qbindiff.QBinDiff>`
+2. **Differ instanciation** with several parameters. See the :ref:`parameter chapter <parameters_chap>` to know more.
 3. **Similarity computation**
 
    1. Anchoring step (between functions sure to be a match, as imported ones)
