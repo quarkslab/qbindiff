@@ -44,7 +44,7 @@ also enables performing the diff at basic block level.
           In this context, binaries and graphs can be considered interchangeably.
 
 While it is not required understanding the different algorithms used internally. It might be helpful
-being able fine tuning the parameters in order to obtain better result.
+to be able to fine-tune the parameters in order to obtain better results.
 
 From a high-level perspective, QBinDiff operates in the following steps:
 
