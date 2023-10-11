@@ -49,10 +49,12 @@ where the function `f` is defined like this:
     \end{cases}
 
 
-
 Epsilon
 -------
-[TODO]
+
+.. TODO write the section ^^
+
+This is epsilon relaxation. Refer to the Elie Mengin's :download:`thesis <_static/thesis.pdf>` to know more about it.
 
 
 Tradeoff
@@ -89,7 +91,7 @@ A custom normalization pass can also be set by subclassing :py:class:`QBinDiff <
 Sparsity
 --------
 
-TODO: add sparsity matrix image for clarification
+.. TODO: add sparsity matrix image for clarification
 
 If both programs have a larger number of functions, the combinatorial between functions for the similarity
 might be troublesome (time and memory-wise).

@@ -3,6 +3,17 @@ Introduction
 
 QBinDiff is an experimental binary-diffing tool addressing the diffing as a `Network Alignement Quadratic Problem <https://www.sciencedirect.com/science/article/abs/pii/0377221784900936>`_.
 
+.. note:: For an in-depth description of the algorithm read Elie Mengin’s PhD thesis
+
+
+.. figure:: _static/thesis.png
+    :width: 40%
+    :align: center
+    :alt: Technical Documentation
+    :class: with-border no-scaled-link
+
+    :download:`download thesis <_static/thesis.pdf>`
+
 > But why developing yet another differ while Bindiff works well?
 
 Bindiff is great, no doubt about it, but we have no control on the diffing process. Also, it works great on standard binaries but it lacks flexibility on some corner-cases (embedded firmwares, diffing two portions of the same binary etc).
