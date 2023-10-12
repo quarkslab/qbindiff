@@ -32,6 +32,9 @@ dependencies = [
     "python-louvain",
     "enum_tools",
     "python-bindiff",
+    "python-binexport",
+    "quokka-project",
+    "idascript",
 ]
 dynamic = ["version"]
 
@@ -41,9 +44,6 @@ Repository = "https://github.com/quarkslab/qbindiff"
 Documentation = "https://github.com/quarkslab/qbindiff"
 
 [project.optional-dependencies]
-binexport = ["python-binexport"]
-quokka = ["quokka-project"]
-ida = ["idascript"]
 doc = [
     "sphinx>=7,<7.2.0",
     "sphinx-design",
