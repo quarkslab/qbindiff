@@ -40,11 +40,15 @@ Originally using [BinExport](https://github.com/google/binexport), it now also s
 [Quokka](https://github.com/quarkslab/quokka) as backend, which extracted files, are
 more exhaustive and also more compact on disk (good for large binary dataset).
 
-> Note: QBinDiff is an experimental tool for power-user where many parameters, features, thresholds
+> [!NOTE]
+> QBinDiff is an experimental tool for power-user where many parameters, features, thresholds
 > or weights can be adjusted. Obtaining good results usually requires tuning these parameters.
 
 *(Please note that QBinDiff does not intend to be faster than other differs, but rather being more flexible.)*
 
+> [!WARNING]
+> QBinDiff graph alignment is very memory intensive (compute large matrices), it can fill RAM if not cautious. 
+> Try not diffing binaries larger than +10k functions. For large program use very high sparsity ratio (0.99). 
 
 ## Documentation
 
