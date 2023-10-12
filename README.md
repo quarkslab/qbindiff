@@ -52,7 +52,7 @@ more exhaustive and also more compact on disk (good for large binary dataset).
 
 ## Documentation
 
-The documentation can be found on the [diffing portal](https://diffing.quarkslab.com/qbindiff)
+The documentation can be found on the [diffing portal](https://diffing.quarkslab.com/qbindiff/doc/source/intro.html)
 or can be manually built with
 
     pip install .[doc]
