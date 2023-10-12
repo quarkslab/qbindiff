@@ -1,16 +1,6 @@
 Passes
 ======
 
-GenericPass
------------
-
-.. autoclass:: qbindiff.passes.GenericPass
-    :members:
-    :show-inheritance:
-    :inherited-members:
-    :undoc-members:
-    :exclude-members:
-
 FeaturePass
 -----------
 
