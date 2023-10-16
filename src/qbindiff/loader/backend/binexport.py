@@ -312,7 +312,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
             capstone_mode |= capstone.CS_MODE_MCLASS
 
         # No need to guess the context for these arch
-        if arch in ("x86", "x86-64", "MIPS-32", "MIPS-64"):
+        if arch in ("x86", "x86-64", "MIPS-32", "MIPS-64", "ARM-64"):
             pass
 
         # For arm thumb use appropriate context guessing heuristics
