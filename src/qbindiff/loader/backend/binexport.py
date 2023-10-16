@@ -19,7 +19,7 @@
 from __future__ import annotations
 import logging
 import weakref
-from typing import Any, TypeAlias
+from typing import TypeAlias, TYPE_CHECKING
 from collections.abc import Iterator
 from functools import cached_property
 
@@ -39,8 +39,12 @@ from qbindiff.loader.backend import (
 )
 from qbindiff.loader.backend.utils import convert_operand_type
 from qbindiff.loader import Structure
+from qbindiff.utils import log_once
 from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
-from qbindiff.types import Addr
+
+if TYPE_CHECKING:
+    from typing import Any
+    from qbindiff.types import Addr
 
 # Type aliases
 beFunction: TypeAlias = binexport.function.FunctionBinExport
@@ -66,7 +70,7 @@ def _get_capstone_disassembler(binexport_arch: str, mode: int = 0):
     elif binexport_arch == "MIPS-32":
         return capstone_context(capstone.CS_ARCH_MIPS, capstone.CS_MODE_32 | mode)
     elif binexport_arch == "MIPS-64":
-        return capstone_context(capstone.CS_ARCH_MIPS, capstone.CS_MODE_32 | mode)
+        return capstone_context(capstone.CS_ARCH_MIPS, capstone.CS_MODE_64 | mode)
 
     raise NotImplementedError(f"Architecture {binexport_arch} has not be implemented")
 
@@ -234,6 +238,53 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         """
         return len(self.be_block)
 
+    def _guess_thumb_context(self, instr_bytes: bytes, mnemonic: str, base_mode: int) -> int | None:
+        """Guess wether the instruction is thumb or not"""
+
+        if len(instr_bytes) < 2:  # Must be an error
+            raise ValueError(f"Instruction malformed of size {len(instr_bytes)} bytes.")
+
+        if len(instr_bytes) == 2:  # Must be thumb
+            return base_mode | capstone.CS_MODE_THUMB
+
+        # Might be either thumb or normal arm.
+        # There is no easy way of knowing whether a 4/8 bytes instruction is thumb or not
+        # and IDA sometimes likes to merge two instructions together (so two 4bytes thumb
+        # instructions might become a single 8bytes thumb instruction from IDA perspective).
+        # The only way of checking if the context is correct is by comparing the mnemonic
+        # of the capstone instruction with the one in BinExport.
+        # Of course we have to rely on heuristics to know whether the two mnemonics are the
+        # same or not.
+        log_once(
+            logging.WARNING,
+            f"Relying on heuristics to guess the context mode of the binary (thumb or not)",
+        )
+
+        # Save the original mode
+        orig_capstone_mode = base_mode
+        arch = self.program.architecture_name
+
+        # Bruteforce-guessing the context
+        for i in range(2):
+            if i == 0:  # Try with regular arm
+                capstone_mode = orig_capstone_mode | capstone.CS_MODE_ARM
+            elif i == 1:  # Try with thumb
+                capstone_mode = orig_capstone_mode | capstone.CS_MODE_THUMB
+
+            # Disassemble the instruction and check the mnemonic
+            disassembler = _get_capstone_disassembler(arch, capstone_mode)
+            disasm = disassembler.disasm(instr_bytes, self.addr)
+            try:
+                instr = next(disasm)
+                # Check if the mnemonic is the same
+                if is_same_mnemonic(instr.mnemonic, mnemonic):
+                    return capstone_mode
+            except StopIteration:
+                pass
+
+        # We have not being lucky
+        return None
+
     def _disassemble(
         self, bb_asm: bytes, correct_mnemonic: str, correct_size: int
     ) -> list[capstone.CsInsn]:
@@ -257,42 +308,30 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         size = None
         arch = self.program.architecture_name
         capstone_mode = 0
-        arm_mode = 0
+        if self.program._enable_cortexm:
+            capstone_mode |= capstone.CS_MODE_MCLASS
 
         # No need to guess the context for these arch
-        if arch in ("x86", "x86-64"):
-            md = _get_capstone_disassembler(arch)
-            return list(md.disasm(bb_asm, self.addr))
+        if arch in ("x86", "x86-64", "MIPS-32", "MIPS-64"):
+            pass
 
-        # Bruteforce-guessing the context
-        while size != correct_size or not is_same_mnemonic(mnemonic, correct_mnemonic):
-            # change mode
-            if arch == "ARM-32":
-                capstone_mode = 0
-                if arm_mode & 0b1:
-                    capstone_mode |= capstone.CS_MODE_ARM
-                if arm_mode & 0b10:
-                    capstone_mode |= capstone.CS_MODE_THUMB
-                if arm_mode > 0b11:
-                    raise Exception(
-                        "Cannot guess the instruction set of the instruction "
-                        f"at address 0x{self.addr:x}"
-                    )
-                arm_mode += 1
+        # For arm thumb use appropriate context guessing heuristics
+        elif arch == "ARM-32":
+            capstone_mode = self._guess_thumb_context(
+                bb_asm[:correct_size], correct_mnemonic, capstone_mode
+            )
+            if capstone_mode == None:
+                raise Exception(
+                    "Cannot guess the instruction set of the instruction "
+                    f"at address 0x{self.addr:x}"
+                )
 
-            md = _get_capstone_disassembler(arch, capstone_mode)
-            disasm = md.disasm(bb_asm, self.addr)
-            try:
-                instr = next(disasm)
-                mnemonic = instr.mnemonic
-                size = instr.size
-            except StopIteration:
-                mnemonic = None
-                size = None
+        # Everything else not yet supported
+        else:
+            raise NotImplementedError(f"The architecture {arch} is not yet supported in QBinDiff")
 
-        instructions.append(instr)
-        instructions.extend(disasm)
-        return instructions
+        disassembler = _get_capstone_disassembler(arch, capstone_mode)
+        return list(disassembler.disasm(bb_asm, self.addr))
 
     @property
     def program(self) -> ProgramBackendBinExport:
