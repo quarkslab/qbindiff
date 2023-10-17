@@ -57,4 +57,4 @@ def log_once(level: int, message: str) -> None:
     :param message: The message to log
     """
 
-    logger.log(level, message)
+    logging.log(level, message)

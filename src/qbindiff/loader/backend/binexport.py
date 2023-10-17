@@ -19,7 +19,7 @@
 from __future__ import annotations
 import logging
 import weakref
-from typing import TypeAlias, TYPE_CHECKING
+from typing import Any, TypeAlias, TYPE_CHECKING
 from collections.abc import Iterator
 from functools import cached_property
 
@@ -43,7 +43,6 @@ from qbindiff.utils import log_once
 from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
 
 if TYPE_CHECKING:
-    from typing import Any
     from qbindiff.types import Addr
 
 # Type aliases
