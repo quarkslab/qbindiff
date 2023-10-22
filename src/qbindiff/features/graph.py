@@ -96,13 +96,18 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
 
 class MDIndex(FunctionFeatureExtractor):
     """
-    MD-Index of the function,
-    based on `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_.
-    A slightly modified version of it : notice the topological sort is only available for DAG graphs
+    MD-Index of the function, based on
+    `<https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf>`_.
+    A slightly modified version of it: notice the topological sort is only available for DAG graphs
     (which may not always be the case)
     """
 
     key = "mdidx"
+    help_msg = """
+    MD-Index of the function, based on https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf.
+    A slightly modified version of it: notice the topological sort is only available for
+    DAG graphs (which may not always be the case)
+    """.strip()
 
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
@@ -167,6 +172,12 @@ class SmallPrimeNumbers(FunctionFeatureExtractor):
     """
 
     key = "spp"
+    help_msg = """
+    Small-Prime-Number based on mnemonics, as defined in Bindiff 
+    (see https://www.sto.nato.int/publications/STO%20Meeting%20Proceedings/RTO-MP-IST-091/MP-IST-091-26.pdf).
+    This hash is slightly different from the theoretical implementation. Modulo is made
+    at each round, instead of doing it at the end.
+    """.strip()
 
     @staticmethod
     def primesbelow(n: int) -> list[int]:

@@ -58,6 +58,11 @@ class DatName(InstructionFeatureExtractor):
     """
 
     key = "dat"
+    help_msg = """
+    References to data in the instruction (as retrieved by the backend loader).
+    This feature maps the data value to the number of reference occurences to it.
+    It's a superset of StrRef (strref) feature.
+    """.strip()
 
     def visit_instruction(
         self, _: Program, instruction: Instruction, collector: FeatureCollector

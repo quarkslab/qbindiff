@@ -27,6 +27,7 @@ from qbindiff.loader.basic_block import BasicBlock
 from qbindiff.loader.function import Function
 from qbindiff.loader.program import Program
 from qbindiff.loader.types import LoaderType
+from qbindiff.types import Distance
 
 LOADERS = {
     "binexport": LoaderType.binexport,

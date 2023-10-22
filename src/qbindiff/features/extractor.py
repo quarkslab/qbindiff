@@ -116,13 +116,21 @@ class FeatureCollector:
         return vector.tocsr()
 
 
-class FeatureExtractor:
+class FeatureExtractorMeta(type):
+    def __init__(cls, *args, **kwargs):
+        # Check if a local "help_msg" attribute has been defined in the class
+        if "help_msg" not in cls.__dict__:
+            cls.help_msg = cls.__doc__.strip()
+
+
+class FeatureExtractor(metaclass=FeatureExtractorMeta):
     """
     Base class that represent a feature extractor which sole contraints are to
     define a unique key and a function call that is to be called by the visitor.
     """
 
     key: str = ""  #: feature name (short)
+    help_msg: str = ""  #: CLI help message
 
     def __init__(self, weight: Positive = 1.0):
         """

@@ -31,11 +31,10 @@ class LoaderType(IntEnum):
     Enum of different loaders (supported or not)
     """
 
-    unknown = 0  # doc: unknown loader
-    binexport = 1  # doc: binexport loader
-    diaphora = 2  # doc: diaphora loader (not supported)
-    ida = 3  # doc: IDA loader
-    quokka = 4  # doc: Quokka loader
+    binexport = 0  # doc: binexport loader
+    diaphora = 1  # doc: diaphora loader (not supported)
+    ida = 2  # doc: IDA loader
+    quokka = 3  # doc: Quokka loader
 
 
 @enum_tools.documentation.document_enum
