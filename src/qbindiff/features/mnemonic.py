@@ -68,6 +68,11 @@ class GroupsCategory(InstructionFeatureExtractor):
     """
 
     key = "Gp"
+    help_msg = """
+    Categorization of instructions feature.
+    It can correspond to instructions subset (XMM, AES etc..), or more generic grouping
+    like (arithmetic, comparisons etc..). As of now, rely on capstone groups.
+    """.strip()
 
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector

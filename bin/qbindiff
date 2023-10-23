@@ -16,21 +16,24 @@ limitations under the License.
 """
 
 # builtin-imports
+from __future__ import annotations
 import logging
 import os
 from pathlib import Path
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 # Third-party imports
 import click
-import numpy as np
-from tqdm import tqdm
 
 # Local imports
+from qbindiff import __version__ as qbindiff_version
+from qbindiff import LoaderType, Program, QBinDiff, Mapping, Distance
+from qbindiff.loader import LOADERS
 from qbindiff.features import FEATURES, DEFAULT_FEATURES
-from qbindiff.loader import LOADERS, LoaderType
-from qbindiff import Program, QBinDiff, Mapping
-from qbindiff.types import Distance
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 def configure_logging(verbose: int):
@@ -67,10 +70,10 @@ def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
 
 FEATURES_KEYS = {x.key: x for x in FEATURES}
 
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=300)
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=120)
 
 DEFAULT_FEATURES = tuple(x.key for x in DEFAULT_FEATURES)
-DEFAULT_DISTANCE = "canberra"
+DEFAULT_DISTANCE = Distance.canberra.name
 DEFAULT_SPARSITY_RATIO = 0.75
 DEFAULT_TRADEOFF = 0.75
 DEFAULT_EPSILON = 0.5
@@ -78,20 +81,32 @@ DEFAULT_MAXITER = 1000
 
 LOADERS_KEYS = list(LOADERS.keys())
 
-help_formats = (
-    f"The file format of the output file. Supported formats are [bindiff]. [default: bindiff]"
-)
-help_loaders = f"Loader type to be used. Must be one of these {LOADERS_KEYS}. [default: binexport]"
+
+def list_features(ctx: click.Context, param: click.Parameter, value: Any) -> None:
+    if not value or ctx.resilient_parsing:
+        return
+    click.echo("The following features are available:")
+    for feature in FEATURES:
+        click.echo(f"  - {feature.key}:")
+        click.echo(f"    {feature.help_msg}\n")
+    ctx.exit()
+
+
+def full_help(ctx: click.Context, param: click.Parameter, value: Any) -> None:
+    if not value or ctx.resilient_parsing:
+        return
+    for p in ctx.command.get_params(ctx):
+        if isinstance(p, click.Option) and p.hidden:
+            p.hidden = False
+    click.echo(ctx.get_help())
+    ctx.exit()
+
+
 help_features = """\b
-The following features are available:
-{}
-Features may be weighted by a positive value (default 1.0) and compared with a specificdistance (by default the option -d is used) like this <feature>:<weight>:<distance>
-[default: {}]""".format(
-    "\n".join("  - {}: {}".format(x.key, x.__doc__) for x in FEATURES), DEFAULT_FEATURES
-)
-help_distance = f"""\b
-The following distances are available {[d.name for d in Distance]}
-[default: canberra]"""
+Features to use for the binary analysis, it can be specified multiple times.
+Features may be weighted by a positive value (default 1.0) and/or compared with a
+specific distance (by default the option -d is used) like this <feature>:<weight>:<distance>.
+For a list of all the features available see --list-features."""
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -99,26 +114,20 @@ The following distances are available {[d.name for d in Distance]}
     "-l",
     "--loader",
     type=click.Choice(LOADERS_KEYS),
+    show_default=True,
     default="binexport",
     metavar="<loader>",
-    help=help_loaders,
+    help=f"Loader type to be used. Must be one of these {LOADERS_KEYS}",
 )
 @click.option(
     "-f",
-    "--features",
+    "--feature",
+    "features",
     type=str,
     default=DEFAULT_FEATURES,
     multiple=True,
     metavar="<feature>",
     help=help_features,
-)
-@click.option(
-    "-fopt",
-    "--feature-option",
-    type=(str, str, str),
-    multiple=True,
-    metavar="<feature> <option> <value>",
-    help="Specify a feature option. To get a list of options accepted by a feature look into the description of the feature",
 )
 @click.option(
     "-n",
@@ -129,18 +138,19 @@ The following distances are available {[d.name for d in Distance]}
 @click.option(
     "-d",
     "--distance",
-    type=click.Choice([d.name for d in Distance]),
+    type=click.Choice((d.name for d in Distance)),
+    show_default=True,
     default=DEFAULT_DISTANCE,
     metavar="<function>",
-    help=help_distance,
+    help=f"The following distances are available {[d.name for d in Distance]}",
 )
 @click.option(
     "-s",
     "--sparsity-ratio",
     type=float,
+    show_default=True,
     default=DEFAULT_SPARSITY_RATIO,
-    help="Ratio of least probable matches to ignore. Between 0.0 (nothing is ignored) to 1.0 (only perfect matches are considered) [default: %.02f]"
-    % DEFAULT_SPARSITY_RATIO,
+    help=f"Ratio of least probable matches to ignore. Between 0.0 (nothing is ignored) to 1.0 (only perfect matches are considered)",
 )
 @click.option(
     "-sr",
@@ -152,23 +162,25 @@ The following distances are available {[d.name for d in Distance]}
     "-t",
     "--tradeoff",
     type=float,
+    show_default=True,
     default=DEFAULT_TRADEOFF,
-    help="Tradeoff between function content (near 1.0) and call-graph information (near 0.0) [default: %.02f]"
-    % DEFAULT_TRADEOFF,
+    help=f"Tradeoff between function content (near 1.0) and call-graph information (near 0.0)",
 )
 @click.option(
     "-e",
     "--epsilon",
     type=float,
+    show_default=True,
     default=DEFAULT_EPSILON,
-    help="Relaxation parameter to enforce convergence [default: %.02f]" % DEFAULT_EPSILON,
+    help=f"Relaxation parameter to enforce convergence",
 )
 @click.option(
     "-i",
     "--maxiter",
     type=int,
+    show_default=True,
     default=DEFAULT_MAXITER,
-    help="Maximum number of iteration for belief propagation [default: %d]" % DEFAULT_MAXITER,
+    help=f"Maximum number of iteration for belief propagation",
 )
 @click.option(
     "-e1",
@@ -193,14 +205,10 @@ The following distances are available {[d.name for d in Distance]}
 @click.option(
     "-ff",
     "--file-format",
+    show_default=True,
     default="bindiff",
     type=click.Choice(["bindiff"]),
-    help=help_formats,
-)
-@click.option(
-    "--enable-cortexm",
-    is_flag=True,
-    help="Enable the usage of the cortex-m extension when disassembling",
+    help=f"The file format of the output file. Supported formats are [bindiff]",
 )
 @click.option(
     "-v",
@@ -208,12 +216,34 @@ The following distances are available {[d.name for d in Distance]}
     count=True,
     help="Activate debugging messages. Can be supplied multiple times to increase verbosity",
 )
+@click.version_option(qbindiff_version)
+@click.option(
+    "--enable-cortexm",
+    is_flag=True,
+    hidden=True,
+    help="Enable the usage of the cortex-m extension when disassembling",
+)
+@click.option(
+    "--list-features",
+    is_flag=True,
+    callback=list_features,
+    expose_value=False,
+    is_eager=True,
+    help="List all the available features",
+)
+@click.option(
+    "--help-all",
+    is_flag=True,
+    callback=full_help,
+    expose_value=False,
+    is_eager=True,
+    help="Show the full help message, including all the options that affect the disassembly phase",
+)
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
     loader,
     features,
-    feature_option,
     normalize,
     distance,
     sparsity_ratio,
@@ -231,7 +261,7 @@ def main(
     secondary,
 ):
     """
-    qBinDiff is an experimental binary diffing tool based on
+    QBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
     """
 
@@ -257,11 +287,6 @@ def main(
 
     if not output:
         logging.warning("[-] You have not specified an output file")
-
-    # Group options to pass to the feature extractors
-    feature_option_dict = defaultdict(dict)
-    for option in feature_option:
-        feature_option_dict[option[0]][option[1]] = option[2]
 
     loader = LOADERS[loader]
 
@@ -322,12 +347,7 @@ def main(
         extractor_class = FEATURES_KEYS[feature]
         if distance is not None:
             distance = Distance[distance]
-        feature_opts = {
-            k: extractor_class.options[k].parser(v) for k, v in feature_option_dict[feature].items()
-        }
-        qbindiff.register_feature_extractor(
-            extractor_class, float(weight), distance=distance, **feature_opts
-        )
+        qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
 
     logging.info("[+] Initializing NAP")
     qbindiff.process()
