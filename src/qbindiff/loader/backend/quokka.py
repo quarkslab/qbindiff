@@ -48,7 +48,7 @@ from qbindiff.loader.types import (
     OperandType,
 )
 from qbindiff.types import Addr
-from qbindiff.loader.backend.utils import convert_operand_type  
+from qbindiff.loader.backend.utils import convert_operand_type
 
 
 # Aliases
@@ -266,7 +266,8 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         if self.cs_instr is None:
             return iter([])
         return (
-            OperandBackendQuokka(self.program, self.cs_instr, o, i) for i, o in enumerate(self.cs_instr.operands)
+            OperandBackendQuokka(self.program, self.cs_instr, o, i)
+            for i, o in enumerate(self.cs_instr.operands)
         )
 
     @property

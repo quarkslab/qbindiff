@@ -47,13 +47,14 @@ class OperandType(IntEnum):
     register = 1  # doc: register (GPR)
     memory = 2  # doc: Direct memory reference
     immediate = 3  # doc: Immediate value
-    float_point = 4, # doc: Floating point operand
-    coprocessor = 5, # doc: Coprocessor operand   
-        
-    # Below are arch specific 
-    arm_setend = 6, # doc: operand for SETEND instruction ('BE'/'LE')
-    arm_sme = 7, # doc: operand for SME instruction (matrix operation)
-    arm_memory_management = 8, # doc: Memory management operand like prefetch, SYS and barrier
+    float_point = (4,)  # doc: Floating point operand
+    coprocessor = (5,)  # doc: Coprocessor operand
+
+    # Below are arch specific
+    arm_setend = (6,)  # doc: operand for SETEND instruction ('BE'/'LE')
+    arm_sme = (7,)  # doc: operand for SME instruction (matrix operation)
+    arm_memory_management = (8,)  # doc: Memory management operand like prefetch, SYS and barrier
+
 
 @enum_tools.documentation.document_enum
 class FunctionType(IntEnum):

@@ -248,7 +248,6 @@ For a list of all the features available see --list-features."""
     hidden=True,
     help="Force the architecture when disassembling for the secondary. Format is 'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'",
 )
-
 @click.option(
     "--list-features",
     is_flag=True,
@@ -322,10 +321,7 @@ def main(
 
     # Check that the executables have been provided
     if loader_p == LoaderType.quokka:
-        if not (
-            exec_primary
-            and os.path.exists(exec_primary)
-        ):
+        if not (exec_primary and os.path.exists(exec_primary)):
             logging.error("When using the quokka loader you have to provide the raw binaries")
             exit(1)
         logging.info(f"[+] Loading primary: {primary.name}")
@@ -336,17 +332,14 @@ def main(
     elif loader_p == LoaderType.diaphora:
         logging.info(f"Loader for diaphora is not implemented yet")
         exit(1)
-    else: 
+    else:
         # BinExport
         logging.info(f"[+] Loading primary: {primary.name}")
         primary = Program(loader_p, primary, enable_cortexm=enable_cortexm, arch=arch_primary)
 
     # Check that the executables have been provided
     if loader_s == LoaderType.quokka:
-        if not (
-            exec_secondary
-            and os.path.exists(exec_secondary)
-        ):
+        if not (exec_secondary and os.path.exists(exec_secondary)):
             logging.error("When using the quokka loader you have to provide the raw binaries")
             exit(1)
         logging.info(f"[+] Loading secondary: {secondary.name}")
@@ -357,7 +350,7 @@ def main(
     elif loader_s == LoaderType.diaphora:
         logging.info(f"Loader for diaphora is not implemented yet")
         exit(1)
-    else: 
+    else:
         # BinExport
         logging.info(f"[+] Loading secondary: {secondary.name}")
         secondary = Program(loader_s, secondary, enable_cortexm=enable_cortexm, arch=arch_secondary)
@@ -382,12 +375,14 @@ def main(
         weight = 1.0
         distance = None
 
-        if feature == 'all':
+        if feature == "all":
             # Add all features with default weight and distance
             for f in FEATURES_KEYS:
-                qbindiff.register_feature_extractor(FEATURES_KEYS[f], float(weight), distance=distance)
+                qbindiff.register_feature_extractor(
+                    FEATURES_KEYS[f], float(weight), distance=distance
+                )
             break
-             
+
         if ":" in feature:
             feature, *opts = feature.split(":")
             if len(opts) == 2:
