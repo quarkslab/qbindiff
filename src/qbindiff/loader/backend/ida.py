@@ -151,15 +151,15 @@ class OperandBackendIDA(AbstractOperandBackend):
             case ida_ua.o_mem:
                 return OperandType.memory
             case ida_ua.o_phrase:
-                return OperandType.phrase
+                return OperandType.memory
             case ida_ua.o_displ:
-                return OperandType.displacement
+                return OperandType.memory
             case ida_ua.o_imm:
                 return OperandType.immediate
             case ida_ua.o_far:
-                return OperandType.far
+                return OperandType.memory
             case ida_ua.o_near:
-                return OperandType.near
+                return OperandType.memory
             case _:
                 return OperandType.unknown
 

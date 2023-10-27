@@ -37,6 +37,7 @@ from qbindiff.loader.backend import (
     AbstractInstructionBackend,
     AbstractOperandBackend,
 )
+from qbindiff.loader.backend.utils import convert_operand_type  
 from qbindiff.loader import Structure
 from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
 from qbindiff.types import Addr
@@ -45,7 +46,6 @@ from qbindiff.types import Addr
 beFunction: TypeAlias = binexport.function.FunctionBinExport
 beBasicBlock: TypeAlias = binexport.basic_block.BasicBlockBinExport
 capstoneOperand: TypeAlias = Any  # Relaxed typing
-
 
 # === General purpose utils functions ===
 def _get_capstone_disassembler(binexport_arch: str, mode: int = 0):
@@ -91,16 +91,51 @@ def is_same_mnemonic(mnemonic1: str, mnemonic2: str) -> bool:
 
     return False
 
+def parse_architecture_flag(arch_mode_str: str):
+    """ Return the capstone architecture corresponding to the string passed as parameter.
+        The format should be something like 'CS_ARCH_any:[CS_MODE_any, ...] """
+        
+    separator = ':'
+    # Replace trailing spaces
+    split = arch_mode_str.replace(' ', '').split(separator)
+    # Check for only one separator
+    if len(split) != 2:
+        return None
+    
+    # Unpack arch and mode
+    arch_str, mode_str = split
+    arch = capstone.__dict__.get(arch_str)
+    if arch == None:
+        return None
+
+    mode = 0
+    # Look for one or more modes
+    for m in mode_str.split(','): 
+        mode_attr = capstone.__dict__.get(m)
+        if mode_attr == None:
+            return None
+        # Capstone mode is a bitwise enum
+        mode |= mode_attr
+    
+    # Arch and Mode are valid capstone attributes, instantiate Cs object
+    cs = capstone.Cs(arch, mode)
+    if cs:
+        # Enable details for operand
+        cs.detail = True
+    return cs
+        
 
 # =======================================
 
 
 class OperandBackendBinExport(AbstractOperandBackend):
     def __init__(
-        self, cs_instruction: capstone.CsInsn, cs_operand: capstoneOperand, cs_operand_position: int
+        self, cs: capstone.Cs, cs_instruction: capstone.CsInsn, 
+        cs_operand: capstoneOperand, cs_operand_position: int
     ):
         super(OperandBackendBinExport, self).__init__()
 
+        self.cs = cs
         self.cs_instr = cs_instruction
         self.cs_operand = cs_operand
         self.cs_operand_position = cs_operand_position
@@ -121,28 +156,7 @@ class OperandBackendBinExport(AbstractOperandBackend):
     @property
     def type(self) -> OperandType:
         """Returns the capstone operand type"""
-        op = self.cs_operand
-        typ = OperandType.unknown
-        cs_op_type = self.cs_operand.type
-
-        if cs_op_type == capstone.CS_OP_REG:
-            return OperandType.register
-        elif cs_op_type == capstone.CS_OP_IMM:
-            return OperandType.immediate
-        elif cs_op_type == capstone.CS_OP_MEM:
-            # A displacement is represented as [reg+hex] (example : [rdi+0x1234])
-            # Then, base (reg) and disp (hex) should be different of 0
-            if op.mem.base != 0 and op.mem.disp != 0:
-                typ = OperandType.displacement
-            # A phrase is represented as [reg1 + reg2] (example : [rdi + eax])
-            # Then, base (reg1) and index (reg2) should be different of 0
-            if op.mem.base != 0 and op.mem.index != 0:
-                typ = OperandType.phrase
-            if op.mem.disp != 0:
-                typ = OperandType.displacement
-        else:
-            raise NotImplementedError(f"Unrecognized capstone type {cs_op_type}")
-        return typ
+        return convert_operand_type(self.cs.arch, self.cs_operand)
 
     def is_immediate(self) -> bool:
         """Returns whether the operand is an immediate value (not considering addresses)"""
@@ -151,9 +165,10 @@ class OperandBackendBinExport(AbstractOperandBackend):
 
 
 class InstructionBackendBinExport(AbstractInstructionBackend):
-    def __init__(self, cs_instruction: capstone.CsInsn):
+    def __init__(self, cs: capstone.Cs, cs_instruction: capstone.CsInsn):
         super(InstructionBackendBinExport, self).__init__()
 
+        self.cs = cs
         self.cs_instr = cs_instruction
 
     @property
@@ -178,7 +193,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         if self.cs_instr is None:
             return iter([])
         return (
-            OperandBackendBinExport(self.cs_instr, o, i)
+            OperandBackendBinExport(self.cs, self.cs_instr, o, i)
             for i, o in enumerate(self.cs_instr.operands)
         )
 
@@ -227,6 +242,11 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         :param correct_size: The right size of the first instruction of the basic block
         """
 
+        # Check if we already have a capstone context, if so use it
+        if self.program._cs:
+            return list(self.program._cs.disasm(bb_asm, self.addr))
+
+        # Continue with the old method
         instructions = []
         mnemonic = None
         size = None
@@ -291,7 +311,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         )
 
         # Then iterate over the instructions
-        return (InstructionBackendBinExport(instr) for instr in capstone_instructions)
+        return (InstructionBackendBinExport(self.program._cs, instr) for instr in capstone_instructions)
 
     @property
     def bytes(self) -> bytes:
@@ -366,9 +386,21 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
 
 
 class ProgramBackendBinExport(AbstractProgramBackend):
-    def __init__(self, file: str, *, enable_cortexm: bool = False):
+    def __init__(self, file: str, *, enable_cortexm: bool = False, arch: str = None):
         super(ProgramBackendBinExport, self).__init__()
 
+        self._cs = None
+ 
+        # Check if the architecture is set by the user
+        if arch:
+            # Parse the architecture
+            self._cs = parse_architecture_flag(arch)
+            if not self._cs:
+                raise Exception(
+                    "Unable to instantiate capstone context from given arch: %s"
+                    % arch
+                )
+                
         self._enable_cortexm = enable_cortexm
 
         self.be_prog = binexport.ProgramBinExport(file)

@@ -233,7 +233,7 @@ class ReadWriteAccess(OperandFeatureExtractor):
     def visit_operand(
         self, program: Program, operand: Operand, collector: FeatureCollector
     ) -> None:
-        if operand.type in (OperandType.memory, OperandType.displacement, OperandType.phrase):
+        if operand.type == OperandType.memory:
             collector.add_dict_feature(self.key, {"value": 1})
 
 
