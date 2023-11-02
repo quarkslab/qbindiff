@@ -393,9 +393,12 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
 
 
 class ProgramBackendBinExport(AbstractProgramBackend):
-    def __init__(self, file: str, *, enable_cortexm: bool = False, arch: str = None):
+    def __init__(self, file: str, *, arch: str | None = None):
         super(ProgramBackendBinExport, self).__init__()
 
+        self.be_prog = binexport.ProgramBinExport(file)
+        self.architecture_name = self.be_prog.architecture
+        self._fun_names = {}  # {fun_name : fun_address}
         self._cs = None
 
         # Check if the architecture is set by the user
@@ -404,12 +407,11 @@ class ProgramBackendBinExport(AbstractProgramBackend):
             self._cs = parse_architecture_flag(arch)
             if not self._cs:
                 raise Exception("Unable to instantiate capstone context from given arch: %s" % arch)
-
-        self._enable_cortexm = enable_cortexm
-
-        self.be_prog = binexport.ProgramBinExport(file)
-        self.architecture_name = self.be_prog.architecture
-        self._fun_names = {}  # {fun_name : fun_address}
+        else:
+            logging.warning(
+                "No architecture set but BinExport backed is used, falling back to guessing method"
+            )
+            self._cs = _get_capstone_disassembler(self.be_prog.architecture)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}:{self.name}>"

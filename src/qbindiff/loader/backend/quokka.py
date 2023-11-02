@@ -159,8 +159,7 @@ class OperandBackendQuokka(AbstractOperandBackend):
     def type(self) -> OperandType:
         """Returns the capstone operand type"""
         # Get capstone type
-        cs = get_capstone_context(self.program().qb_prog.arch, self.program().qb_prog.endianness)
-        return convert_operand_type(cs.arch, self.cs_operand)
+        return convert_operand_type(self.program().qb_prog.capstone.arch, self.cs_operand)
 
     def is_immediate(self) -> bool:
         """

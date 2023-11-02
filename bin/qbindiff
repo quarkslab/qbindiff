@@ -231,21 +231,13 @@ For a list of all the features available see --list-features."""
 )
 @click.version_option(qbindiff_version)
 @click.option(
-    "--enable-cortexm",
-    is_flag=True,
-    hidden=True,
-    help="Enable the usage of the cortex-m extension when disassembling",
-)
-@click.option(
     "--arch-primary",
     type=str,
-    hidden=True,
     help="Force the architecture when disassembling for the primary. Format is 'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'",
 )
 @click.option(
     "--arch-secondary",
     type=str,
-    hidden=True,
     help="Force the architecture when disassembling for the secondary. Format is 'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'",
 )
 @click.option(
@@ -283,7 +275,6 @@ def main(
     file_format,
     arch_primary,
     arch_secondary,
-    enable_cortexm,
     verbose,
     primary,
     secondary,
@@ -327,15 +318,12 @@ def main(
         logging.info(f"[+] Loading primary: {primary.name}")
         primary = Program(loader_p, primary, exec_primary)
     elif loader_p == LoaderType.ida:
-        logging.info(f"Loader for IDA is not supported yet")
-        exit(1)
-    elif loader_p == LoaderType.diaphora:
-        logging.info(f"Loader for diaphora is not implemented yet")
-        exit(1)
+        logging.info(f"[+] Loading primary: {primary.name}")
+        primary = Program(loader_p, primary)
     else:
         # BinExport
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader_p, primary, enable_cortexm=enable_cortexm, arch=arch_primary)
+        primary = Program(loader_p, primary, arch=arch_primary)
 
     # Check that the executables have been provided
     if loader_s == LoaderType.quokka:
@@ -344,64 +332,62 @@ def main(
             exit(1)
         logging.info(f"[+] Loading secondary: {secondary.name}")
         secondary = Program(loader_s, secondary, exec_secondary)
-    elif loader_s == LoaderType.ida:
-        logging.info(f"Loader for IDA is not supported yet")
-        exit(1)
-    elif loader_s == LoaderType.diaphora:
-        logging.info(f"Loader for diaphora is not implemented yet")
-        exit(1)
+    elif loader_p == LoaderType.ida:
+        logging.info(f"[+] Loading secondary: {secondary.name}")
+        secondary = Program(loader_p, secondary)
     else:
         # BinExport
         logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader_s, secondary, enable_cortexm=enable_cortexm, arch=arch_secondary)
+        secondary = Program(loader_s, secondary, arch=arch_secondary)
 
-    qbindiff = QBinDiff(
-        primary,
-        secondary,
-        sparsity_ratio=sparsity_ratio,
-        tradeoff=tradeoff,
-        epsilon=epsilon,
-        distance=Distance[distance],
-        maxiter=maxiter,
-        normalize=normalize,
-        sparse_row=sparse_row,
-    )
+    try:
+        qbindiff = QBinDiff(
+            primary,
+            secondary,
+            sparsity_ratio=sparsity_ratio,
+            tradeoff=tradeoff,
+            epsilon=epsilon,
+            distance=Distance[distance],
+            maxiter=maxiter,
+            normalize=normalize,
+            sparse_row=sparse_row,
+        )
+    except Exception as e:
+        logging.error(e)
+        exit(1)
 
     if not features:
         logging.error("no feature provided")
         exit(1)
 
-    for feature in set(features):
-        weight = 1.0
-        distance = None
-
-        if feature == "all":
-            # Add all features with default weight and distance
-            for f in FEATURES_KEYS:
-                qbindiff.register_feature_extractor(
-                    FEATURES_KEYS[f], float(weight), distance=distance
-                )
-            break
-
-        if ":" in feature:
-            feature, *opts = feature.split(":")
-            if len(opts) == 2:
-                weight, distance = opts
-            elif len(opts) == 1:
-                try:
-                    weight = float(opts[0])
-                except ValueError:
-                    distance = opts[0]
-            else:
-                logging.error(f"Malformed feature {feature}")
+    # Check for the 'all' option
+    if "all" in set(features):
+        # Add all features with default weight and distance
+        for f in FEATURES_KEYS:
+            qbindiff.register_feature_extractor(FEATURES_KEYS[f], float(weight), distance=distance)
+    else:
+        for feature in set(features):
+            weight = 1.0
+            distance = None
+            if ":" in feature:
+                feature, *opts = feature.split(":")
+                if len(opts) == 2:
+                    weight, distance = opts
+                elif len(opts) == 1:
+                    try:
+                        weight = float(opts[0])
+                    except ValueError:
+                        distance = opts[0]
+                else:
+                    logging.error(f"Malformed feature {feature}")
+                    continue
+            if feature not in FEATURES_KEYS:
+                logging.warning(f"Feature '{feature}' not recognized - ignored.")
                 continue
-        if feature not in FEATURES_KEYS:
-            logging.warning(f"Feature '{feature}' not recognized - ignored.")
-            continue
-        extractor_class = FEATURES_KEYS[feature]
-        if distance is not None:
-            distance = Distance[distance]
-        qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
+            extractor_class = FEATURES_KEYS[feature]
+            if distance is not None:
+                distance = Distance[distance]
+            qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
 
     logging.info("[+] Initializing NAP")
     qbindiff.process()

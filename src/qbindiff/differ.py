@@ -89,6 +89,13 @@ class Differ:
             entirety or processing it row per row
         """
 
+        # Checks for empty graph
+        if primary.callgraph.number_of_nodes() == 0:
+            raise Exception("Primary does not contains any function")
+
+        elif secondary.callgraph.number_of_nodes() == 0:
+            raise Exception("Secondary does not contains any function")
+
         # NAP parameters
         self.sparsity_ratio = sparsity_ratio
         self.tradeoff = tradeoff
