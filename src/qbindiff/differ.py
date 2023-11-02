@@ -431,7 +431,7 @@ class QBinDiff(Differ):
     DTYPE = np.float32
 
     def __init__(
-        self, primary: Program, secondary: Program, distance: Distance = Distance.canberra, **kwargs
+        self, primary: Program, secondary: Program, distance: Distance = Distance.canberra, custom_anchors: list[tuple[Addr]]= None, **kwargs
     ):
         """
         QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
@@ -440,6 +440,7 @@ class QBinDiff(Differ):
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param distance: the distance function used when comparing the feature vector
             extracted from the graphs. Default is a py:class:`qbindiff.types.Distance` initialized to 'canberra'.
+        :param custom_anchors : list of tuples that represent anchors. Initialized as None.
         """
 
         super(QBinDiff, self).__init__(primary, secondary, **kwargs)
@@ -456,6 +457,8 @@ class QBinDiff(Differ):
         self._feature_pass = FeaturePass(distance)
         self.register_postpass(ZeroPass)
         self.register_prepass(self.match_import_functions)
+        if custom_anchors is not None : 
+            self.register_prepass(self.match_custom_functions, custom_anchors=custom_anchors)
 
     def register_postpass(self, pass_func: GenericPostPass, **extra_args) -> None:
         """
@@ -512,6 +515,32 @@ class QBinDiff(Differ):
                 **extra_args,
             )
 
+    
+    def match_custom_functions(
+        self, 
+        sim_matrix: SimMatrix,
+        primary: Program, 
+        secondary: Program, 
+        primary_mapping:dict, 
+        secondary_mapping:dict,
+        custom_anchors:list[tuple[Addr]],
+        ) -> None:
+        """ Custom Anchoring phase. It might be interesting to force the matching between functions whose we are sure they are the same, even if they are not imported.
+        Determining these anchors can be done by a deeper look at the binaries.
+        
+        :param sim_matrix: The similarity matrix of between the primary and secondary, of
+            type py:class:`qbindiff.types:SimMatrix`
+        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
+        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+        :param primary_mapping: Mapping between the primary function addresses and their corresponding index
+        :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
+        :param custom_anchors: List of tuples where each tuple represent an anchor between two functions (ex: [(addr1, addr2), (addr3, addr4)])
+        :returns: None
+        """
+    
+        for (addr1, addr2) in custom_anchors:
+            sim_matrix[primary_mapping[int(addr1, 16)], secondary_mapping[int(addr2, 16)]] = 1
+                    
     def match_import_functions(
         self,
         sim_matrix: SimMatrix,
