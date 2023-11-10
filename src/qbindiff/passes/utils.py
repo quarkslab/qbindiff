@@ -16,18 +16,23 @@
 """
 
 from __future__ import annotations
-from typing import Any
 
-from qbindiff.loader import Program
-from qbindiff.types import SimMatrix
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qbindiff.loader import Program
+    from qbindiff.types import SimMatrix, FeatureValue, Addr, Idx
+    from qbindiff.features.extractor import FeatureCollector
 
 
 def ZeroPass(
     sim_matrix: SimMatrix,
     primary: Program,
     secondary: Program,
-    primary_mapping: dict[Any, int],
-    secondary_mapping: dict[Any, int],
+    primary_mapping: dict[Addr, Idx],
+    secondary_mapping: dict[Addr, Idx],
+    primary_features: dict[Addr, FeatureCollector],
+    secondary_features: dict[Addr, FeatureCollector],
 ) -> None:
     """Set to zero all the -1 entries in the similarity matrix"""
     mask = sim_matrix == -1
