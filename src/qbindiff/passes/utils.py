@@ -15,6 +15,7 @@
 """Utilities
 """
 
+from __future__ import annotations
 from typing import Any
 
 from qbindiff.loader import Program
