@@ -15,6 +15,7 @@
 """Interface of the feature extractor
 """
 
+from __future__ import annotations
 from scipy.sparse import lil_array
 from collections import defaultdict
 
@@ -34,6 +35,17 @@ class FeatureCollector:
 
     def __init__(self):
         self._features: dict[str, FeatureValue] = {}
+
+    def get(self, key: str) -> FeatureValue | None:
+        """
+        Returns the FeatureValue associated to a feature key, None if the feature
+        key doesn't exists.
+
+        :param key: Name of the feature to retrieve
+        :return: The associated FeatureValue or None.
+        """
+
+        return self._features.get(key)
 
     def add_feature(self, key: str, value: float) -> None:
         """

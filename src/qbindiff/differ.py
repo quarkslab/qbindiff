@@ -41,21 +41,20 @@ from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
 from qbindiff.passes import FeaturePass, ZeroPass
 from qbindiff.utils import is_debug
-from qbindiff.types import (
-    RawMapping,
-    Positive,
-    Ratio,
-    Graph,
-    AdjacencyMatrix,
-    SimMatrix,
-    Addr,
-    Idx,
-    Distance,
-)
+from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, Distance
 from qbindiff.mapping.bindiff import export_to_bindiff
 
 if TYPE_CHECKING:
-    from qbindiff.types import GenericPass
+    from qbindiff.types import (
+        GenericPrePass,
+        GenericPostPass,
+        NodeLabel,
+        SimMatrix,
+        FeatureValue,
+        Addr,
+        Idx,
+    )
+    from qbindiff.features.extractor import FeatureCollector
 
 
 class Differ:
@@ -101,7 +100,6 @@ class Differ:
         #: Secondary graph
         self.secondary = secondary
         self._pre_passes: list = []
-        self._post_passes: list = []
         self._already_processed: bool = False  # Flag to perform the processing only once
 
         if normalize:
@@ -127,9 +125,6 @@ class Differ:
             (self.primary_dim, self.secondary_dim), -1, dtype=Differ.DTYPE
         )
         self.mapping: Mapping = {}
-
-        self.p_features = None
-        self.s_features = None
 
     def get_similarities(self, primary_idx: list[Idx], secondary_idx: list[Idx]) -> list[float]:
         """
@@ -197,7 +192,7 @@ class Differ:
 
     def extract_adjacency_matrix(
         self, graph: Graph
-    ) -> tuple[AdjacencyMatrix, dict[Addr, Idx], dict[Idx, Addr]]:
+    ) -> tuple[AdjacencyMatrix, dict[Idx, NodeLabel], dict[NodeLabel, Idx]]:
         """
         Returns the adjacency matrix for the graph and the mappings
 
@@ -219,7 +214,7 @@ class Differ:
 
         return matrix, map_i2l, map_l2i
 
-    def register_prepass(self, pass_func: GenericPass, **extra_args) -> None:
+    def register_prepass(self, pass_func: GenericPrePass, **extra_args) -> None:
         """
         Register a new pre-pass that will operate on the similarity matrix.
         The passes will be called in the same order as they are registered and each one
@@ -232,17 +227,6 @@ class Differ:
         """
 
         self._pre_passes.append((pass_func, extra_args))
-
-    def register_postpass(self, pass_func: GenericPass, **extra_args) -> None:
-        """
-        Register a new post-pass that will operate on the similarity matrix.
-        The passes will be called in the same order as they are registered and each one
-        of them will operate on the output of the previous one.
-
-        :param pass_func: Pass method to apply on the similarity matrix. Example : a Pass that extracts graph features.
-        """
-
-        self._post_passes.append((pass_func, extra_args))
 
     def normalize(self, graph: Graph) -> Graph:
         """
@@ -269,26 +253,6 @@ class Differ:
                 self.secondary_n2i,
                 **extra_args,
             )
-        for pass_func, extra_args in self._post_passes:
-            if isinstance(pass_func, FeaturePass):
-                self.p_features, self.s_features = pass_func(
-                    self.sim_matrix,
-                    self.primary,
-                    self.secondary,
-                    self.primary_n2i,
-                    self.secondary_n2i,
-                    **extra_args,
-                )
-
-            else:
-                pass_func(
-                    self.sim_matrix,
-                    self.primary,
-                    self.secondary,
-                    self.primary_n2i,
-                    self.secondary_n2i,
-                    **extra_args,
-                )
 
     def process(self) -> None:
         """
@@ -486,11 +450,24 @@ class QBinDiff(Differ):
         self.secondary_f2i = self.secondary_n2i
         self.secondary_i2f = self.secondary_i2n
 
+        self._post_passes: list = []
+
         # Register the import function mapping and feature extraction pass
         self._feature_pass = FeaturePass(distance)
-        self.register_postpass(self._feature_pass)
         self.register_postpass(ZeroPass)
         self.register_prepass(self.match_import_functions)
+
+    def register_postpass(self, pass_func: GenericPostPass, **extra_args) -> None:
+        """
+        Register a new post-pass that will operate on the similarity matrix.
+        The passes will be called in the same order as they are registered and each one
+        of them will operate on the output of the previous one.
+
+        :param pass_func: Pass method to apply on the similarity matrix. Example: a Pass that enforces
+                          the matches considering certain features extracted.
+        """
+
+        self._post_passes.append((pass_func, extra_args))
 
     def register_feature_extractor(
         self,
@@ -512,13 +489,38 @@ class QBinDiff(Differ):
         extractor = extractor_class(weight, **extra_args)
         self._feature_pass.register_extractor(extractor, distance=distance)
 
+    def run_passes(self) -> None:
+        """
+        Run all the pre passes and post passes that have been previously registered.
+        """
+
+        super().run_passes()
+
+        self._feature_pass(
+            self.sim_matrix, self.primary, self.secondary, self.primary_n2i, self.secondary_n2i
+        )
+
+        for pass_func, extra_args in self._post_passes:
+            pass_func(
+                self.sim_matrix,
+                self.primary,
+                self.secondary,
+                self.primary_n2i,
+                self.secondary_n2i,
+                self._feature_pass.primary_features,
+                self._feature_pass.secondary_features,
+                **extra_args,
+            )
+
     def match_import_functions(
         self,
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict,
-        secondary_mapping: dict,
+        primary_mapping: dict[Addr, Idx],
+        secondary_mapping: dict[Addr, Idx],
+        primary_features: dict[Addr, FeatureCollector],
+        secondary_features: dict[Addr, FeatureCollector],
     ) -> None:
         """
         Anchoring phase. This phase considers import functions as anchors to the matching and set these functions
