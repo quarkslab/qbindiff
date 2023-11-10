@@ -55,8 +55,8 @@ class FeaturePass:
 
         # These two attributes exist only to keep an access to the FeatureCollector for each function
         # Please note that **not** every the function might be present in the dictionary.
-        self._primary_features: dict[Addr, FeatureCollector] = {}
-        self._secondary_features: dict[Addr, FeatureCollector] = {}
+        self.primary_features: dict[Addr, FeatureCollector] = {}
+        self.secondary_features: dict[Addr, FeatureCollector] = {}
 
     def distance(self, key: str) -> Distance:
         """Returns the correct distance for the given feature key"""
@@ -236,8 +236,8 @@ class FeaturePass:
         secondary.set_function_filter(lambda _: True)
 
         # { node_label : FeatureCollector } In this case node_label is the function address
-        self._primary_features = primary_features
-        self._secondary_features = secondary_features
+        self.primary_features = primary_features
+        self.secondary_features = secondary_features
 
         # Get the weights of each feature
         f_weights = {}

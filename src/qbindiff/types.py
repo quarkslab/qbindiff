@@ -33,6 +33,7 @@ from qbindiff.abstract import GenericGraph
 
 if TYPE_CHECKING:
     from qbindiff import Program
+    from qbindiff.features.extractor import FeatureCollector
 
 FeatureValue: TypeAlias = float | dict[str, float]
 """
@@ -141,8 +142,8 @@ The node label of a generic graph
 """
 
 
-class GenericPass(Protocol):
-    """Callback function type for Passes"""
+class GenericPrePass(Protocol):
+    """Callback function type for Pre Passes"""
 
     def __call__(
         self,
@@ -153,7 +154,47 @@ class GenericPass(Protocol):
         secondary_mapping: dict[Addr, Idx],
         **kwargs,
     ) -> None:
-        """Execute the pass that operates on the similarity matrix inplace"""
+        """
+        Execute the pass that operates on the similarity matrix inplace
+
+        :param sim_matrix: The similarity matrix of between the primary and secondary, of
+                            type py:class:`qbindiff.types:SimMatrix`
+        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
+        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+        :param primary_mapping: Mapping between the primary function addresses and their corresponding index
+        :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
+        """
+        raise NotImplementedError()
+
+
+class GenericPostPass(Protocol):
+    """Callback function type for Post Passes"""
+
+    def __call__(
+        self,
+        sim_matrix: SimMatrix,
+        primary: Program,
+        secondary: Program,
+        primary_mapping: dict[Addr, Idx],
+        secondary_mapping: dict[Addr, Idx],
+        primary_features: dict[Addr, FeatureCollector],
+        secondary_features: dict[Addr, FeatureCollector],
+        **kwargs,
+    ) -> None:
+        """
+        Execute the pass that operates on the similarity matrix inplace
+
+        :param sim_matrix: The similarity matrix of between the primary and secondary, of
+                            type py:class:`qbindiff.types:SimMatrix`
+        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
+        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+        :param primary_mapping: Mapping between the primary function addresses and their corresponding index
+        :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
+        :param primary_features: Mapping between function addresses and the associated FeatureCollector
+                                    object for the primary program
+        :param secondary_features: Mapping between function addresses and the associated FeatureCollector
+                                    object for the secondary program
+        """
         raise NotImplementedError()
 
 
