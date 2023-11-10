@@ -135,6 +135,11 @@ PathLike: TypeAlias = str | Path
 Path
 """
 
+NodeLabel: TypeAlias = Any
+"""
+The node label of a generic graph
+"""
+
 
 class GenericPass(Protocol):
     """Callback function type for Passes"""
@@ -144,8 +149,8 @@ class GenericPass(Protocol):
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int],
+        primary_mapping: dict[Addr, Idx],
+        secondary_mapping: dict[Addr, Idx],
         **kwargs,
     ) -> None:
         """Execute the pass that operates on the similarity matrix inplace"""

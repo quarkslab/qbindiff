@@ -13,16 +13,16 @@
 # limitations under the License.
 
 """Standard passes
-
 """
 
+from __future__ import annotations
 import logging
 import tqdm
 import numpy as np
 from scipy.sparse import lil_matrix
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from qbindiff.loader import Program
 from qbindiff.visitor import ProgramVisitor
@@ -31,6 +31,10 @@ from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
 from qbindiff.passes.metrics import pairwise_distances
 from qbindiff.utils import is_debug
 from qbindiff.types import SimMatrix, Distance
+
+
+if TYPE_CHECKING:
+    from qbindiff.types import Addr, Idx
 
 
 class FeaturePass:
@@ -48,6 +52,11 @@ class FeaturePass:
         self._default_distance = distance
         self._distances = {}
         self._visitor = ProgramVisitor()
+
+        # These two attributes exist only to keep an access to the FeatureCollector for each function
+        # Please note that **not** every the function might be present in the dictionary.
+        self._primary_features: dict[Addr, FeatureCollector] = {}
+        self._secondary_features: dict[Addr, FeatureCollector] = {}
 
     def distance(self, key: str) -> Distance:
         """Returns the correct distance for the given feature key"""
@@ -188,8 +197,8 @@ class FeaturePass:
         sim_matrix: SimMatrix,
         primary: Program,
         secondary: Program,
-        primary_mapping: dict[Any, int],
-        secondary_mapping: dict[Any, int],
+        primary_mapping: dict[Addr, Idx],
+        secondary_mapping: dict[Addr, Idx],
         fill: bool = False,
     ) -> None:
         """
@@ -226,8 +235,9 @@ class FeaturePass:
         primary.set_function_filter(lambda _: True)
         secondary.set_function_filter(lambda _: True)
 
-        p_features = primary_features
-        s_features = secondary_features
+        # { node_label : FeatureCollector } In this case node_label is the function address
+        self._primary_features = primary_features
+        self._secondary_features = secondary_features
 
         # Get the weights of each feature
         f_weights = {}
@@ -301,4 +311,3 @@ class FeaturePass:
         for idx in map(lambda l: secondary_mapping[l], ignore_secondary):
             result_matrix[:, idx] = sim_matrix[:, idx]
         sim_matrix[:] = result_matrix
-        return p_features, s_features

@@ -55,7 +55,7 @@ from qbindiff.types import (
 from qbindiff.mapping.bindiff import export_to_bindiff
 
 if TYPE_CHECKING:
-    from qbindiff.types import GenericPass
+    from qbindiff.types import GenericPass, NodeLabel
 
 
 class Differ:
@@ -128,9 +128,6 @@ class Differ:
         )
         self.mapping: Mapping = {}
 
-        self.p_features = None
-        self.s_features = None
-
     def get_similarities(self, primary_idx: list[Idx], secondary_idx: list[Idx]) -> list[float]:
         """
         Returns the similarity scores between the nodes specified as parameter.
@@ -197,7 +194,7 @@ class Differ:
 
     def extract_adjacency_matrix(
         self, graph: Graph
-    ) -> tuple[AdjacencyMatrix, dict[Addr, Idx], dict[Idx, Addr]]:
+    ) -> tuple[AdjacencyMatrix, dict[Idx, NodeLabel], dict[NodeLabel, Idx]]:
         """
         Returns the adjacency matrix for the graph and the mappings
 
@@ -270,25 +267,14 @@ class Differ:
                 **extra_args,
             )
         for pass_func, extra_args in self._post_passes:
-            if isinstance(pass_func, FeaturePass):
-                self.p_features, self.s_features = pass_func(
-                    self.sim_matrix,
-                    self.primary,
-                    self.secondary,
-                    self.primary_n2i,
-                    self.secondary_n2i,
-                    **extra_args,
-                )
-
-            else:
-                pass_func(
-                    self.sim_matrix,
-                    self.primary,
-                    self.secondary,
-                    self.primary_n2i,
-                    self.secondary_n2i,
-                    **extra_args,
-                )
+            pass_func(
+                self.sim_matrix,
+                self.primary,
+                self.secondary,
+                self.primary_n2i,
+                self.secondary_n2i,
+                **extra_args,
+            )
 
     def process(self) -> None:
         """
@@ -511,42 +497,7 @@ class QBinDiff(Differ):
 
         extractor = extractor_class(weight, **extra_args)
         self._feature_pass.register_extractor(extractor, distance=distance)
-    
-    def match_same_hash_functions(
-        self, 
-        sim_matrix : SimMatrix, 
-        primary: Program, 
-        secondary: Program, 
-        primary_mapping: dict,
-        secondary_mapping: dict,
-    ) -> None : 
-        """
-        This function is used as an optional postpass. It empties the similarity matrix right after the FeatureExtraction step so that functions with the same hash are directly matched and other match candidate on the same row are no longer valid.
-        
-        :param sim_matrix: The similarity matrix of between the primary and secondary, of
-            type py:class:`qbindiff.types:SimMatrix`
-        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
-        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
-        :param primary_mapping: Mapping between the primary function addresses and their corresponding index
-        :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
-        :returns: None
-        """
-        for i, (p_addr, p_func_feats) in enumerate(self.p_features.items()):
-            for j, (s_addr, s_func_feats) in enumerate(self.s_features.items()):
-                # 'bh' corresponds to the BytesHash feature.
-                if ('bh' in p_func_feats.feature_vector()) :
-                    # If the hashes of two functions are equals, function are identical.
-                    # They should be matched. 
-                    # Other match candidate on the same row are no longer valid.
-                    if p_func_feats.feature_vector()['bh']==s_func_feats.feature_vector()['bh']:
-                        p_idx = primary_mapping[p_addr]
-                        s_idx = secondary_mapping[s_addr]
-                        sim_matrix[p_idx, :s_idx] = 0
-                        sim_matrix[p_idx,(s_idx+1):]=0
-                else : 
-                    logging.warning('To use this post-pass, please use BytesHash as a feature')
-                    return None
-                                
+
     def match_import_functions(
         self,
         sim_matrix: SimMatrix,
