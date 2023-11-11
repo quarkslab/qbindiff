@@ -519,8 +519,6 @@ class QBinDiff(Differ):
         secondary: Program,
         primary_mapping: dict[Addr, Idx],
         secondary_mapping: dict[Addr, Idx],
-        primary_features: dict[Addr, FeatureCollector],
-        secondary_features: dict[Addr, FeatureCollector],
     ) -> None:
         """
         Anchoring phase. This phase considers import functions as anchors to the matching and set these functions
