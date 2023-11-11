@@ -104,3 +104,33 @@ def match_same_hash_functions(
 
         # Set to 1 only the matches
         sim_matrix[primary_indexes, secondary_indexes] = 1
+
+
+def match_custom_functions(
+    sim_matrix: SimMatrix,
+    primary: Program,
+    secondary: Program,
+    primary_mapping: dict[Addr, Idx],
+    secondary_mapping: dict[Addr, Idx],
+    *,
+    custom_anchors: list[tuple[Addr, Addr]],
+) -> None:
+    """
+    Custom Anchoring pass. It enforces the matching between functions using the user
+    supplied anchors.
+    Determining these anchors can be done by a deeper look at the binaries.
+
+    :param sim_matrix: The similarity matrix of between the primary and secondary, of
+                       type py:class:`qbindiff.types:SimMatrix`
+    :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
+    :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+    :param primary_mapping: Mapping between the primary function addresses and their corresponding index
+    :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
+    :param custom_anchors: List of tuples where each tuple represent an anchor between
+                           two functions (ex: [(addr1, addr2), (addr3, addr4)])
+    """
+
+    for addr1, addr2 in custom_anchors:
+        sim_matrix[primary_mapping[addr1], :] = 0
+        sim_matrix[:, secondary_mapping[addr2]] = 0
+        sim_matrix[primary_mapping[addr1], secondary_mapping[addr2]] = 1

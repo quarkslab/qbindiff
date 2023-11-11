@@ -23,4 +23,4 @@ content of the similarity matrix.
 
 from qbindiff.passes.base import FeaturePass
 from qbindiff.passes.utils import ZeroPass
-from qbindiff.passes.passes import match_same_hash_functions
+from qbindiff.passes.passes import match_same_hash_functions, match_custom_functions
