@@ -5,10 +5,10 @@
     <img src="https://img.shields.io/github/v/release/quarkslab/qbindiff?logo=github">
   </a>
   <img src="https://img.shields.io/github/license/quarkslab/qbindiff"/>
-  <a href="https://github.com/quarkslab/pastis/releases">
+  <a href="https://github.com/quarkslab/qbindiff/releases">
     <img src="https://img.shields.io/github/actions/workflow/status/quarkslab/qbindiff/release.yml">
   </a>
-  <img src="https://img.shields.io/github/downloads/quarkslab/tritondse/total"/>
+  <img src="https://img.shields.io/github/downloads/quarkslab/qbindiff/total"/>
   <img src="https://img.shields.io/pypi/dm/qbindiff"/>
 </p>
 
