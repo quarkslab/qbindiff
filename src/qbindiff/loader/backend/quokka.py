@@ -26,7 +26,6 @@ from typing import Any, TypeAlias
 # third party imports
 import quokka
 import quokka.types
-from quokka.backends.capstone import get_capstone_context
 import networkx
 import capstone
 
