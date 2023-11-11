@@ -273,8 +273,6 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                     capstone_mode |= capstone.CS_MODE_ARM
                 if arm_mode & 0b10:
                     capstone_mode |= capstone.CS_MODE_THUMB
-                if self.program._enable_cortexm:
-                    capstone_mode |= capstone.CS_MODE_MCLASS
                 if arm_mode > 0b11:
                     raise Exception(
                         "Cannot guess the instruction set of the instruction "
@@ -427,10 +425,6 @@ class ProgramBackendBinExport(AbstractProgramBackend):
             self._fun_names[f.name] = f.addr
 
         return iter(functions)
-
-    @property
-    def cortexm(self) -> bool:
-        return self._enable_cortexm
 
     @property
     def name(self):
