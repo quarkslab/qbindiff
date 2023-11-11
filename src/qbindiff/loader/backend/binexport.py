@@ -93,7 +93,7 @@ def is_same_mnemonic(mnemonic1: str, mnemonic2: str) -> bool:
     return False
 
 
-def parse_architecture_flag(arch_mode_str: str):
+def parse_architecture_flag(arch_mode_str: str) -> capstone.Cs | None:
     """Return the capstone architecture corresponding to the string passed as parameter.
     The format should be something like 'CS_ARCH_any:[CS_MODE_any, ...]"""
 
@@ -409,7 +409,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
                 raise Exception("Unable to instantiate capstone context from given arch: %s" % arch)
         else:
             logging.warning(
-                "No architecture set but BinExport backed is used, falling back to guessing method"
+                "No architecture set but BinExport backend is used, falling back to guessing method"
             )
             self._cs = _get_capstone_disassembler(self.be_prog.architecture)
 
