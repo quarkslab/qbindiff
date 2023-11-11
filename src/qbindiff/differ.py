@@ -90,11 +90,10 @@ class Differ:
         """
 
         # Checks for empty graph
-        if primary.callgraph.number_of_nodes() == 0:
-            raise Exception("Primary does not contains any function")
-
-        elif secondary.callgraph.number_of_nodes() == 0:
-            raise Exception("Secondary does not contains any function")
+        if len(primary) == 0:
+            raise Exception("Primary graph does not contains any nodes")
+        if len(secondary) == 0:
+            raise Exception("Secondary graph does not contains any nodes")
 
         # NAP parameters
         self.sparsity_ratio = sparsity_ratio
@@ -351,6 +350,9 @@ class GraphDiffer(Differ):
             """
             self._graph = graph
 
+        def __len__(self) -> int:
+            return len(self._graph)
+
         def items(self) -> Iterator[tuple[Addr, Any]]:
             """
             Return a iterator over the items. Each item is {node_label: node}
@@ -416,6 +418,9 @@ class DiGraphDiffer(Differ):
             :param graph: Graph to initialize the differ
             """
             self._graph = graph
+
+        def __len__(self) -> int:
+            return len(self._graph)
 
         def items(self) -> Iterator[tuple[Addr, Any]]:
             """

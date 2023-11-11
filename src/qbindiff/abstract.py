@@ -29,6 +29,11 @@ class GenericGraph(metaclass=ABCMeta):
     """
 
     @abstractmethod
+    def __len__(self) -> int:
+        """Number of nodes in the graph"""
+        raise NotImplementedError()
+
+    @abstractmethod
     def items(self) -> Iterator[tuple[Any, Any]]:
         """
         Return an iterator over the items. Each item is {node_label: node}
