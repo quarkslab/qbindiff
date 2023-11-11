@@ -124,8 +124,6 @@ The complete command line options are:
       --arch-secondary TEXT         Force the architecture when disassembling for the secondary. Format is
                                     'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'
       --list-features               List all the available features
-      --help-all                    Show the full help message, including all the options that affect the disassembly
-                                    phase
       -h, --help                    Show this message and exit.
 
 ## Library usage

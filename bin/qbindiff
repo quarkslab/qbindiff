@@ -94,16 +94,6 @@ def list_features(ctx: click.Context, param: click.Parameter, value: Any) -> Non
     ctx.exit()
 
 
-def full_help(ctx: click.Context, param: click.Parameter, value: Any) -> None:
-    if not value or ctx.resilient_parsing:
-        return
-    for p in ctx.command.get_params(ctx):
-        if isinstance(p, click.Option) and p.hidden:
-            p.hidden = False
-    click.echo(ctx.get_help())
-    ctx.exit()
-
-
 help_features = """\b
 Features to use for the binary analysis, it can be specified multiple times.
 Features may be weighted by a positive value (default 1.0) and/or compared with a
@@ -247,14 +237,6 @@ For a list of all the features available see --list-features."""
     expose_value=False,
     is_eager=True,
     help="List all the available features",
-)
-@click.option(
-    "--help-all",
-    is_flag=True,
-    callback=full_help,
-    expose_value=False,
-    is_eager=True,
-    help="Show the full help message, including all the options that affect the disassembly phase",
 )
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
