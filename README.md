@@ -84,7 +84,7 @@ After installation, the binary ``qbindiff`` is available in the path.
 It takes in input two exported files and start the diffing analysis. The result can then
 be exported in a BinDiff file format.
 The default format for input files is [BinExport](https://github.com/google/binexport),
-for a complete list of backend loader look at the `-l, --loader` option in the help.
+for a complete list of backend loader look at the `-l1, --loader1` option in the help.
 The complete command line options are:
 
     Usage: qbindiff [OPTIONS] <primary file> <secondary file>
@@ -92,8 +92,10 @@ The complete command line options are:
       QBinDiff is an experimental binary diffing tool based on machine learning technics, namely Belief propagation.
 
     Options:
-      -l, --loader <loader>         Loader type to be used. Must be one of these ['binexport', 'quokka', 'ida']  [default:
-                                    binexport]
+      -l1, --loader1 <loader>       Loader type to be used for the primary. Must be one of these ['binexport', 'quokka',
+                                    'ida']  [default: binexport]
+      -l2, --loader2 <loader>       Loader type to be used for the secondary. Must be one of these ['binexport', 'quokka',
+                                    'ida']  [default: binexport]
       -f, --feature <feature>       Features to use for the binary analysis, it can be specified multiple times.
                                     Features may be weighted by a positive value (default 1.0) and/or compared with a
                                     specific distance (by default the option -d is used) like this <feature>:<weight>:<distance>.
@@ -117,7 +119,10 @@ The complete command line options are:
                                     bindiff]
       -v, --verbose                 Activate debugging messages. Can be supplied multiple times to increase verbosity
       --version                     Show the version and exit.
-      --enable-cortexm              Enable the usage of the cortex-m extension when disassembling
+      --arch-primary TEXT           Force the architecture when disassembling for the primary. Format is
+                                    'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'
+      --arch-secondary TEXT         Force the architecture when disassembling for the secondary. Format is
+                                    'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'
       --list-features               List all the available features
       --help-all                    Show the full help message, including all the options that affect the disassembly
                                     phase
