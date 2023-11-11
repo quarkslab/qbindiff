@@ -28,7 +28,6 @@ import quokka
 import quokka.types
 import networkx
 import capstone
-from capstone import CS_OP_REG, CS_OP_IMM, CS_OP_MEM, CS_GRP_JUMP
 
 # local imports
 from qbindiff.loader import Data, Structure
@@ -48,6 +47,7 @@ from qbindiff.loader.types import (
     OperandType,
 )
 from qbindiff.types import Addr
+from qbindiff.loader.backend.utils import convert_operand_type
 
 
 # Aliases
@@ -129,12 +129,14 @@ class OperandBackendQuokka(AbstractOperandBackend):
 
     def __init__(
         self,
+        program: weakref.ref[ProgramBackendQuokka],
         cs_instruction: "capstone.CsInsn",
         cs_operand: capstoneOperand,
         cs_operand_position: int,
     ):
         super(OperandBackendQuokka, self).__init__()
 
+        self.program = program
         self.cs_instr = cs_instruction
         self.cs_operand = cs_operand
         self.cs_operand_position = cs_operand_position
@@ -155,28 +157,8 @@ class OperandBackendQuokka(AbstractOperandBackend):
     @property
     def type(self) -> OperandType:
         """Returns the capstone operand type"""
-        op = self.cs_operand
-        typ = OperandType.unknown
-        cs_op_type = self.cs_operand.type
-
-        if cs_op_type == capstone.CS_OP_REG:
-            return OperandType.register
-        elif cs_op_type == capstone.CS_OP_IMM:
-            return OperandType.immediate
-        elif cs_op_type == capstone.CS_OP_MEM:
-            # A displacement is represented as [reg+hex] (example : [rdi+0x1234])
-            # Then, base (reg) and disp (hex) should be different of 0
-            if op.mem.base != 0 and op.mem.disp != 0:
-                typ = OperandType.displacement
-            # A phrase is represented as [reg1 + reg2] (example : [rdi + eax])
-            # Then, base (reg1) and index (reg2) should be different of 0
-            if op.mem.base != 0 and op.mem.index != 0:
-                typ = OperandType.phrase
-            if op.mem.disp != 0:
-                typ = OperandType.displacement
-        else:
-            raise NotImplementedError(f"Unrecognized capstone type {cs_op_type}")
-        return typ
+        # Get capstone type
+        return convert_operand_type(self.program().qb_prog.capstone.arch, self.cs_operand)
 
     def is_immediate(self) -> bool:
         """
@@ -282,7 +264,8 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         if self.cs_instr is None:
             return iter([])
         return (
-            OperandBackendQuokka(self.cs_instr, o, i) for i, o in enumerate(self.cs_instr.operands)
+            OperandBackendQuokka(self.program, self.cs_instr, o, i)
+            for i, o in enumerate(self.cs_instr.operands)
         )
 
     @property

@@ -71,7 +71,7 @@ FEATURES = (
     ParentNb,
     RelativeNb,
     LibName,
-    WeisfeilerLehman,
+    # WeisfeilerLehman,
     FuncName,
     # BasicBlockFeatureExtractor
     # InstructionFeatureExtractor
@@ -88,7 +88,7 @@ FEATURES = (
 )
 
 DEFAULT_FEATURES = (
-    WeisfeilerLehman,
+    # WeisfeilerLehman,
     FuncName,
     Address,
     DatName,

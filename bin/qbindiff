@@ -89,6 +89,8 @@ def list_features(ctx: click.Context, param: click.Parameter, value: Any) -> Non
     for feature in FEATURES:
         click.echo(f"  - {feature.key}:")
         click.echo(f"    {feature.help_msg}\n")
+    # Also add the 'all' option
+    click.echo(f"  - all: Enable every working features\n")
     ctx.exit()
 
 
@@ -111,13 +113,24 @@ For a list of all the features available see --list-features."""
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "-l",
-    "--loader",
+    "-l1",
+    "--loader1",
+    "loader_primary",
     type=click.Choice(LOADERS_KEYS),
     show_default=True,
     default="binexport",
     metavar="<loader>",
-    help=f"Loader type to be used. Must be one of these {LOADERS_KEYS}",
+    help=f"Loader type to be used for the primary. Must be one of these {LOADERS_KEYS}",
+)
+@click.option(
+    "-l2",
+    "--loader2",
+    "loader_secondary",
+    type=click.Choice(LOADERS_KEYS),
+    show_default=True,
+    default="binexport",
+    metavar="<loader>",
+    help=f"Loader type to be used for the secondary. Must be one of these {LOADERS_KEYS}",
 )
 @click.option(
     "-f",
@@ -218,10 +231,14 @@ For a list of all the features available see --list-features."""
 )
 @click.version_option(qbindiff_version)
 @click.option(
-    "--enable-cortexm",
-    is_flag=True,
-    hidden=True,
-    help="Enable the usage of the cortex-m extension when disassembling",
+    "--arch-primary",
+    type=str,
+    help="Force the architecture when disassembling for the primary. Format is 'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'",
+)
+@click.option(
+    "--arch-secondary",
+    type=str,
+    help="Force the architecture when disassembling for the secondary. Format is 'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'",
 )
 @click.option(
     "--list-features",
@@ -242,7 +259,8 @@ For a list of all the features available see --list-features."""
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
-    loader,
+    loader_primary,
+    loader_secondary,
     features,
     normalize,
     distance,
@@ -255,7 +273,8 @@ def main(
     exec_secondary,
     output,
     file_format,
-    enable_cortexm,
+    arch_primary,
+    arch_secondary,
     verbose,
     primary,
     secondary,
@@ -288,66 +307,87 @@ def main(
     if not output:
         logging.warning("[-] You have not specified an output file")
 
-    loader = LOADERS[loader]
+    loader_p = LOADERS[loader_primary]
+    loader_s = LOADERS[loader_secondary]
 
     # Check that the executables have been provided
-    if loader == LoaderType.quokka:
-        if not (
-            exec_primary
-            and exec_secondary
-            and os.path.exists(exec_primary)
-            and os.path.exists(exec_secondary)
-        ):
+    if loader_p == LoaderType.quokka:
+        if not (exec_primary and os.path.exists(exec_primary)):
             logging.error("When using the quokka loader you have to provide the raw binaries")
             exit(1)
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader, primary, exec_primary)
-        logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader, secondary, exec_secondary)
-    else:
+        primary = Program(loader_p, primary, exec_primary)
+    elif loader_p == LoaderType.ida:
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader, primary, enable_cortexm=enable_cortexm)
-        logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader, secondary, enable_cortexm=enable_cortexm)
+        primary = Program(loader_p, primary)
+    else:
+        # BinExport
+        logging.info(f"[+] Loading primary: {primary.name}")
+        primary = Program(loader_p, primary, arch=arch_primary)
 
-    qbindiff = QBinDiff(
-        primary,
-        secondary,
-        sparsity_ratio=sparsity_ratio,
-        tradeoff=tradeoff,
-        epsilon=epsilon,
-        distance=Distance[distance],
-        maxiter=maxiter,
-        normalize=normalize,
-        sparse_row=sparse_row,
-    )
+    # Check that the executables have been provided
+    if loader_s == LoaderType.quokka:
+        if not (exec_secondary and os.path.exists(exec_secondary)):
+            logging.error("When using the quokka loader you have to provide the raw binaries")
+            exit(1)
+        logging.info(f"[+] Loading secondary: {secondary.name}")
+        secondary = Program(loader_s, secondary, exec_secondary)
+    elif loader_p == LoaderType.ida:
+        logging.info(f"[+] Loading secondary: {secondary.name}")
+        secondary = Program(loader_p, secondary)
+    else:
+        # BinExport
+        logging.info(f"[+] Loading secondary: {secondary.name}")
+        secondary = Program(loader_s, secondary, arch=arch_secondary)
+
+    try:
+        qbindiff = QBinDiff(
+            primary,
+            secondary,
+            sparsity_ratio=sparsity_ratio,
+            tradeoff=tradeoff,
+            epsilon=epsilon,
+            distance=Distance[distance],
+            maxiter=maxiter,
+            normalize=normalize,
+            sparse_row=sparse_row,
+        )
+    except Exception as e:
+        logging.error(e)
+        exit(1)
 
     if not features:
         logging.error("no feature provided")
         exit(1)
 
-    for feature in set(features):
-        weight = 1.0
-        distance = None
-        if ":" in feature:
-            feature, *opts = feature.split(":")
-            if len(opts) == 2:
-                weight, distance = opts
-            elif len(opts) == 1:
-                try:
-                    weight = float(opts[0])
-                except ValueError:
-                    distance = opts[0]
-            else:
-                logging.error(f"Malformed feature {feature}")
+    # Check for the 'all' option
+    if "all" in set(features):
+        # Add all features with default weight and distance
+        for f in FEATURES_KEYS:
+            qbindiff.register_feature_extractor(FEATURES_KEYS[f], float(1.0), distance=distance)
+    else:
+        for feature in set(features):
+            weight = 1.0
+            distance = None
+            if ":" in feature:
+                feature, *opts = feature.split(":")
+                if len(opts) == 2:
+                    weight, distance = opts
+                elif len(opts) == 1:
+                    try:
+                        weight = float(opts[0])
+                    except ValueError:
+                        distance = opts[0]
+                else:
+                    logging.error(f"Malformed feature {feature}")
+                    continue
+            if feature not in FEATURES_KEYS:
+                logging.warning(f"Feature '{feature}' not recognized - ignored.")
                 continue
-        if feature not in FEATURES_KEYS:
-            logging.warning(f"Feature '{feature}' not recognized - ignored.")
-            continue
-        extractor_class = FEATURES_KEYS[feature]
-        if distance is not None:
-            distance = Distance[distance]
-        qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
+            extractor_class = FEATURES_KEYS[feature]
+            if distance is not None:
+                distance = Distance[distance]
+            qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
 
     logging.info("[+] Initializing NAP")
     qbindiff.process()

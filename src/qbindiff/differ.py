@@ -88,6 +88,12 @@ class Differ:
             entirety or processing it row per row
         """
 
+        # Checks for empty graph
+        if len(primary) == 0:
+            raise Exception("Primary graph does not contains any nodes")
+        if len(secondary) == 0:
+            raise Exception("Secondary graph does not contains any nodes")
+
         # NAP parameters
         self.sparsity_ratio = sparsity_ratio
         self.tradeoff = tradeoff
@@ -308,6 +314,9 @@ class GraphDiffer(Differ):
             """
             self._graph = graph
 
+        def __len__(self) -> int:
+            return len(self._graph)
+
         def items(self) -> Iterator[tuple[Addr, Any]]:
             """
             Return a iterator over the items. Each item is {node_label: node}
@@ -373,6 +382,9 @@ class DiGraphDiffer(Differ):
             :param graph: Graph to initialize the differ
             """
             self._graph = graph
+
+        def __len__(self) -> int:
+            return len(self._graph)
 
         def items(self) -> Iterator[tuple[Addr, Any]]:
             """

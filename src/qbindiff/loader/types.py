@@ -46,12 +46,14 @@ class OperandType(IntEnum):
     unknown = 0  # doc: type is unknown
     register = 1  # doc: register (GPR)
     memory = 2  # doc: Direct memory reference
-    phrase = 3  # doc: Memory access with base+reg  or  base + offset * factor
-    displacement = 4  # doc: Memory access with base+offset
-    immediate = 5  # doc: Immediate value
-    far = 6  # doc: Asbolute address
-    near = 7  # doc: Relative address
-    # TODO: To improve with architectures type specific (reglist,
+    immediate = 3  # doc: Immediate value
+    float_point = 4  # doc: Floating point operand
+    coprocessor = 5  # doc: Coprocessor operand
+
+    # Below are arch specific
+    arm_setend = 6  # doc: operand for SETEND instruction ('BE'/'LE')
+    arm_sme = 7  # doc: operand for SME instruction (matrix operation)
+    arm_memory_management = 8  # doc: Memory management operand like prefetch, SYS and barrier
 
 
 @enum_tools.documentation.document_enum
