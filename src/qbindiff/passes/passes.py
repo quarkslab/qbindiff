@@ -35,7 +35,6 @@ def match_same_hash_functions(
     secondary: Program,
     primary_mapping: dict[Addr, Idx],
     secondary_mapping: dict[Addr, Idx],
-    *,
     primary_features: dict[Addr, FeatureCollector],
     secondary_features: dict[Addr, FeatureCollector],
 ) -> None:
@@ -63,7 +62,7 @@ def match_same_hash_functions(
     hash_map: dict[FeatureValue, tuple[set[Addr], set[Addr]]] = defaultdict(lambda: (set(), set()))
 
     # Store the hash of the primary functions
-    for f1_addr in primary:
+    for f1_addr in primary.keys():
         # If no features for this function skip it
         if (p_feature := primary_features.get(f1_addr)) is None:
             continue
@@ -71,12 +70,16 @@ def match_same_hash_functions(
         hash_map[p_feature.get(BytesHash.key)][0].add(f1_addr)
 
     # Store the hash of the secondary functions
-    for f2_addr in primary:
+    for f2_addr in secondary.keys():
         # If no features for this function skip it
         if (s_feature := secondary_features.get(f2_addr)) is None:
             continue
 
         hash_map[s_feature.get(BytesHash.key)][1].add(f2_addr)
+
+    # Remove None key
+    if None in hash_map:
+        hash_map.pop(None)
 
     # No hash means no feature registered
     if len(hash_map) == 0:
@@ -92,8 +95,8 @@ def match_same_hash_functions(
             continue
 
         # Create the indexes for fast numpy access
-        primary_indexes = list(map(primary_mapping.get, primary_addr_set))
-        secondary_indexes = list(map(secondary_mapping.get, secondary_addr_set))
+        primary_indexes = tuple(map(primary_mapping.get, primary_addr_set))
+        secondary_indexes = tuple(map(secondary_mapping.get, secondary_addr_set))
 
         # Initialize the rows and cols to zero
         sim_matrix[primary_indexes, :] = 0
