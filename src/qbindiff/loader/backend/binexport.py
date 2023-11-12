@@ -237,14 +237,14 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         """
         return len(self.be_block)
 
-    def _guess_thumb_context(self, instr_bytes: bytes, mnemonic: str, base_mode: int) -> int | None:
+    def _guess_thumb_context(self, instr_bytes: bytes, mnemonic: str) -> int:
         """Guess wether the instruction is thumb or not"""
 
         if len(instr_bytes) < 2:  # Must be an error
             raise ValueError(f"Instruction malformed of size {len(instr_bytes)} bytes.")
 
         if len(instr_bytes) == 2:  # Must be thumb
-            return base_mode | capstone.CS_MODE_THUMB
+            return capstone.CS_MODE_THUMB
 
         # Might be either thumb or normal arm.
         # There is no easy way of knowing whether a 4/8 bytes instruction is thumb or not
@@ -260,15 +260,14 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         )
 
         # Save the original mode
-        orig_capstone_mode = base_mode
         arch = self.program.architecture_name
 
         # Bruteforce-guessing the context
         for i in range(2):
             if i == 0:  # Try with regular arm
-                capstone_mode = orig_capstone_mode | capstone.CS_MODE_ARM
+                capstone_mode = capstone.CS_MODE_ARM
             elif i == 1:  # Try with thumb
-                capstone_mode = orig_capstone_mode | capstone.CS_MODE_THUMB
+                capstone_mode = capstone.CS_MODE_THUMB
 
             # Disassemble the instruction and check the mnemonic
             disassembler = _get_capstone_disassembler(arch, capstone_mode)
@@ -282,7 +281,11 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                 pass
 
         # We have not being lucky
-        return None
+        log_once(
+            logging.ERROR,
+            f"Cannot guess ISA of the program {self.program.name}." " Consider setting it manually",
+        )
+        raise Exception(f"Cannot guess ISA of the instruction at address {self.addr:#x}")
 
     def _disassemble(
         self, bb_asm: bytes, correct_mnemonic: str, correct_size: int
@@ -298,17 +301,12 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         """
 
         # Check if we already have a capstone context, if so use it
-        if self.program._cs:
-            return list(self.program._cs.disasm(bb_asm, self.addr))
+        if self.program.cs:
+            return list(self.program.cs.disasm(bb_asm, self.addr))
 
         # Continue with the old method
-        instructions = []
-        mnemonic = None
-        size = None
         arch = self.program.architecture_name
-        capstone_mode = 0
-        if self.program._enable_cortexm:
-            capstone_mode |= capstone.CS_MODE_MCLASS
+        capstone_mode = None
 
         # No need to guess the context for these arch
         if arch in ("x86", "x86-64", "MIPS-32", "MIPS-64", "ARM-64"):
@@ -316,21 +314,15 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
 
         # For arm thumb use appropriate context guessing heuristics
         elif arch == "ARM-32":
-            capstone_mode = self._guess_thumb_context(
-                bb_asm[:correct_size], correct_mnemonic, capstone_mode
-            )
-            if capstone_mode == None:
-                raise Exception(
-                    "Cannot guess the instruction set of the instruction "
-                    f"at address 0x{self.addr:x}"
-                )
+            capstone_mode = self._guess_thumb_context(bb_asm[:correct_size], correct_mnemonic)
 
         # Everything else not yet supported
         else:
             raise NotImplementedError(f"The architecture {arch} is not yet supported in QBinDiff")
 
-        disassembler = _get_capstone_disassembler(arch, capstone_mode)
-        return list(disassembler.disasm(bb_asm, self.addr))
+        # Set the program wide disassembler
+        self.program.cs = _get_capstone_disassembler(arch, capstone_mode)
+        return list(self.program.cs.disasm(bb_asm, self.addr))
 
     @property
     def program(self) -> ProgramBackendBinExport:
@@ -353,7 +345,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
 
         # Then iterate over the instructions
         return (
-            InstructionBackendBinExport(self.program._cs, instr) for instr in capstone_instructions
+            InstructionBackendBinExport(self.program.cs, instr) for instr in capstone_instructions
         )
 
     @property
@@ -435,19 +427,21 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         self.be_prog = binexport.ProgramBinExport(file)
         self.architecture_name = self.be_prog.architecture
         self._fun_names = {}  # {fun_name : fun_address}
-        self._cs = None
+        self.cs = None
 
         # Check if the architecture is set by the user
         if arch:
             # Parse the architecture
-            self._cs = parse_architecture_flag(arch)
-            if not self._cs:
+            self.cs = parse_architecture_flag(arch)
+            if not self.cs:
                 raise Exception("Unable to instantiate capstone context from given arch: %s" % arch)
         else:
-            logging.warning(
-                "No architecture set but BinExport backend is used, falling back to guessing method"
+            logging.info(
+                "No architecture set but BinExport backend is used. If invalid instructions"
+                " are found consider setting manually the architecture"
             )
-            self._cs = _get_capstone_disassembler(self.be_prog.architecture)
+            # self.cs will be set at basic block level
+            # self.cs = _get_capstone_disassembler(self.be_prog.architecture)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}:{self.name}>"
