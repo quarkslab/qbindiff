@@ -18,6 +18,7 @@ Collection of utilities used internally.
 """
 
 from __future__ import annotations
+from functools import cache
 import logging
 from typing import TYPE_CHECKING
 
@@ -45,3 +46,15 @@ def iter_csr_matrix(matrix: SparseMatrix) -> Generator[tuple[int, int, Any]]:
     coo_matrix = matrix.tocoo()
     for x, y, v in zip(coo_matrix.row, coo_matrix.col, coo_matrix.data):
         yield (x, y, v)
+
+
+@cache
+def log_once(level: int, message: str) -> None:
+    """
+    Log a message with the corresponding level only once.
+
+    :param level: The severity level of the logging
+    :param message: The message to log
+    """
+
+    logging.log(level, message)
