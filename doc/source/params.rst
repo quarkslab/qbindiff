@@ -26,7 +26,7 @@ Most of the distance functions that QBinDiff uses come from `Scipy <https://docs
 * sqeuclidean
 
 However, some distance are unique in QBinDiff, such as the jaccard-strong distance.
-This is a experminetal new metric that combines the jaccard index and the canberra distance.
+This is a experimental new metric that combines the jaccard index and the canberra distance.
 
 Jaccard-strong
 ~~~~~~~~~~~~~~
