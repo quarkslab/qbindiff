@@ -326,13 +326,31 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
     if not output:
         logging.warning("[-] You have not specified an output file")
 
-    loader_p = LOADERS[loader_primary]
-    loader_s = LOADERS[loader_secondary]
+    if not loader_primary:
+        if primary.suffix.casefold() == ".quokka".casefold():
+            loader_p = LOADERS["quokka"]
+        elif primary.suffix.casefold() == ".BinExport".casefold():
+            loader_p = LOADERS["binexport"]
+        else:
+            logging.error("Cannot detect automatically the loader for the primary, please specify it with `-l1`.")
+            exit(1)
+    else:
+        loader_p = LOADERS[loader_primary]
+    if not loader_secondary:
+        if secondary.suffix.casefold() == ".quokka".casefold():
+            loader_s = LOADERS["quokka"]
+        elif secondary.suffix.casefold() == ".BinExport".casefold():
+            loader_s = LOADERS["binexport"]
+        else:
+            logging.error("Cannot detect automatically the loader for the primary, please specify it with `-l1`.")
+            exit(1)
+    else:
+        loader_s = LOADERS[loader_secondary]
 
     # Check that the executables have been provided
     if loader_p == LoaderType.quokka:
         if not (exec_primary and os.path.exists(exec_primary)):
-            logging.error("When using the quokka loader you have to provide the raw binaries")
+            logging.error("When using the quokka loader you have to provide the raw binaries (option `-e1`).")
             exit(1)
         logging.info(f"[+] Loading primary: {primary.name}")
         primary = Program(loader_p, primary, exec_primary)
@@ -347,7 +365,7 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
     # Check that the executables have been provided
     if loader_s == LoaderType.quokka:
         if not (exec_secondary and os.path.exists(exec_secondary)):
-            logging.error("When using the quokka loader you have to provide the raw binaries")
+            logging.error("When using the quokka loader you have to provide the raw binaries (option `-e2`).")
             exit(1)
         logging.info(f"[+] Loading secondary: {secondary.name}")
         secondary = Program(loader_s, secondary, exec_secondary)
