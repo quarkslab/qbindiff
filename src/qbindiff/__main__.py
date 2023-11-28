@@ -25,6 +25,8 @@ from typing import TYPE_CHECKING
 
 # Third-party imports
 import rich_click as click
+from rich.logging import RichHandler
+
 
 # Local imports
 from qbindiff import __version__ as qbindiff_version
@@ -37,7 +39,8 @@ if TYPE_CHECKING:
 
 
 def configure_logging(verbose: int):
-    logging.basicConfig(format="[%(levelname)s] %(message)s", level=logging.INFO)
+    logging.basicConfig(format="%(message)s", level=logging.INFO,
+                        handlers=[RichHandler(rich_tracebacks=True, show_time=False)])
 
     logger = logging.getLogger()
     if verbose >= 2:
@@ -135,28 +138,28 @@ For a list of all the features available see --list-features."""
 @click.option(
     "-l1",
     "--primary-loader",
-    "loader_primary",
+    "primary_loader",
     type=click.Choice(LOADERS_KEYS),
     help=f"Enforce loader type.",
 )
 @click.option(
     "-l2",
     "--secondary-loader",
-    "loader_secondary",
+    "secondary_loader",
     type=click.Choice(LOADERS_KEYS),
     help=f"Enforce loader type.",
 )
 @click.option(
     "-e1",
     "--primary-executable",
-    "exec_primary",
+    "primary_exec",
     type=Path,
     help="Path to the raw executable (required for quokka exports).",
 )
 @click.option(
     "-e2",
     "--secondary-executable",
-    "exec_secondary",
+    "secondary_exec",
     type=Path,
     help="Path to the raw executable (required for quokka exports).",
 )
@@ -270,8 +273,8 @@ For a list of all the features available see --list-features."""
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
-        loader_primary,
-        loader_secondary,
+        primary_loader,
+        secondary_loader,
         features,
         normalize,
         distance,
@@ -280,12 +283,12 @@ def main(
         tradeoff,
         epsilon,
         maxiter,
-        exec_primary,
-        exec_secondary,
+        primary_exec,
+        secondary_exec,
         output,
-        file_format,
-        arch_primary,
-        arch_secondary,
+        format,
+        primary_arch,
+        secondary_arch,
         verbose,
         primary,
         secondary,
@@ -326,7 +329,7 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
     if not output:
         logging.warning("[-] You have not specified an output file")
 
-    if not loader_primary:
+    if not primary_loader:
         if primary.suffix.casefold() == ".quokka".casefold():
             loader_p = LOADERS["quokka"]
         elif primary.suffix.casefold() == ".BinExport".casefold():
@@ -335,8 +338,8 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
             logging.error("Cannot detect automatically the loader for the primary, please specify it with `-l1`.")
             exit(1)
     else:
-        loader_p = LOADERS[loader_primary]
-    if not loader_secondary:
+        loader_p = LOADERS[primary_loader]
+    if not secondary_loader:
         if secondary.suffix.casefold() == ".quokka".casefold():
             loader_s = LOADERS["quokka"]
         elif secondary.suffix.casefold() == ".BinExport".casefold():
@@ -345,37 +348,37 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
             logging.error("Cannot detect automatically the loader for the primary, please specify it with `-l1`.")
             exit(1)
     else:
-        loader_s = LOADERS[loader_secondary]
+        loader_s = LOADERS[secondary_loader]
 
     # Check that the executables have been provided
     if loader_p == LoaderType.quokka:
-        if not (exec_primary and os.path.exists(exec_primary)):
+        if not (primary_exec and os.path.exists(primary_exec)):
             logging.error("When using the quokka loader you have to provide the raw binaries (option `-e1`).")
             exit(1)
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader_p, primary, exec_primary)
+        primary = Program(loader_p, primary, primary_exec)
     elif loader_p == LoaderType.ida:
         logging.info(f"[+] Loading primary: {primary.name}")
         primary = Program(loader_p, primary)
     else:
         # BinExport
         logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader_p, primary, arch=arch_primary)
+        primary = Program(loader_p, primary, arch=primary_arch)
 
     # Check that the executables have been provided
     if loader_s == LoaderType.quokka:
-        if not (exec_secondary and os.path.exists(exec_secondary)):
+        if not (secondary_exec and os.path.exists(secondary_exec)):
             logging.error("When using the quokka loader you have to provide the raw binaries (option `-e2`).")
             exit(1)
         logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader_s, secondary, exec_secondary)
+        secondary = Program(loader_s, secondary, secondary_exec)
     elif loader_p == LoaderType.ida:
         logging.info(f"[+] Loading secondary: {secondary.name}")
         secondary = Program(loader_p, secondary)
     else:
         # BinExport
         logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader_s, secondary, arch=arch_secondary)
+        secondary = Program(loader_s, secondary, arch=secondary_arch)
 
     try:
         qbindiff = QBinDiff(
@@ -437,7 +440,7 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
     display_statistics(qbindiff, qbindiff.mapping)
 
     logging.info("[+] Saving")
-    if file_format == "bindiff":
+    if format == "bindiff":
         qbindiff.export_to_bindiff(output)
     elif file_format == "csv":
         qbindiff.mapping.to_csv(output, ("name", lambda f: f.name))
