@@ -436,13 +436,12 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
 
     display_statistics(qbindiff, qbindiff.mapping)
 
-    if output:
-        logging.info("[+] Saving")
-        if file_format == "bindiff":
-            qbindiff.export_to_bindiff(output)
-        elif file_format == "csv":
-            qbindiff.mapping.to_csv(output, ("name", lambda f: f.name))
-        logging.info("[+] Mapping successfully saved to: %s" % output)
+    logging.info("[+] Saving")
+    if file_format == "bindiff":
+        qbindiff.export_to_bindiff(output)
+    elif file_format == "csv":
+        qbindiff.mapping.to_csv(output, ("name", lambda f: f.name))
+    logging.info("[+] Mapping successfully saved to: %s" % output)
 
 
 if __name__ == "__main__":
