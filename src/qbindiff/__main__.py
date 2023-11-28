@@ -24,7 +24,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 # Third-party imports
-import click
+import rich_click as click
 
 # Local imports
 from qbindiff import __version__ as qbindiff_version
@@ -70,7 +70,7 @@ def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
 
 FEATURES_KEYS = {x.key: x for x in FEATURES}
 
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=120)
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 DEFAULT_FEATURES = tuple(x.key for x in DEFAULT_FEATURES)
 DEFAULT_DISTANCE = Distance.haussmann.name
@@ -78,8 +78,38 @@ DEFAULT_SPARSITY_RATIO = 0.6
 DEFAULT_TRADEOFF = 0.8
 DEFAULT_EPSILON = 0.9
 DEFAULT_MAXITER = 1000
+DEFAULT_OUTPUT = Path('qbindiff_results.bindiff')
 
 LOADERS_KEYS = list(LOADERS.keys())
+
+click.rich_click.SHOW_METAVARS_COLUMN = False
+click.rich_click.APPEND_METAVARS_HELP = True
+click.rich_click.STYLE_METAVAR_APPEND = "yellow"
+click.rich_click.OPTION_GROUPS = {
+    "qbindiff": [
+        {
+            "name"   : "Output parameters",
+            "options": ["--output", "--format"]
+        },
+        {
+            "name"   : "Primary file options",
+            "options": ["--primary-loader", "--primary-executable", "--primary-arch"]
+        },
+        {
+            "name"   : "Secondary file options",
+            "options": ["--secondary-loader", "--secondary-executable", "--secondary-arch"]
+        },
+        {
+            "name"   : "Global options",
+            "options": ["--verbose", "--help", "--version"]
+        },
+        {
+            "name"   : "Diffing parameters",
+            "options": ["--feature", "--list-features", "--normalize", "--distance", "--tradeoff",
+                        "--sparsity-ratio", "--sparse-row", "--epsilon", "--maxiter", ]
+        }
+    ]
+}
 
 
 def list_features(ctx: click.Context, param: click.Parameter, value: Any) -> None:
@@ -104,23 +134,31 @@ For a list of all the features available see --list-features."""
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
     "-l1",
-    "--loader1",
+    "--primary-loader",
     "loader_primary",
     type=click.Choice(LOADERS_KEYS),
-    show_default=True,
-    default="binexport",
-    metavar="<loader>",
-    help=f"Loader type to be used for the primary. Must be one of these {LOADERS_KEYS}",
+    help=f"Enforce loader type.",
 )
 @click.option(
     "-l2",
-    "--loader2",
+    "--secondary-loader",
     "loader_secondary",
     type=click.Choice(LOADERS_KEYS),
-    show_default=True,
-    default="binexport",
-    metavar="<loader>",
-    help=f"Loader type to be used for the secondary. Must be one of these {LOADERS_KEYS}",
+    help=f"Enforce loader type.",
+)
+@click.option(
+    "-e1",
+    "--primary-executable",
+    "exec_primary",
+    type=Path,
+    help="Path to the raw executable (required for quokka exports).",
+)
+@click.option(
+    "-e2",
+    "--secondary-executable",
+    "exec_secondary",
+    type=Path,
+    help="Path to the raw executable (required for quokka exports).",
 )
 @click.option(
     "-f",
@@ -136,7 +174,8 @@ For a list of all the features available see --list-features."""
     "-n",
     "--normalize",
     is_flag=True,
-    help="Normalize the Call Graph (can potentially lead to a partial matching). [default disabled]",
+    show_default=True,
+    help="Normalize the Call Graph (can potentially lead to a partial matching).",
 )
 @click.option(
     "-d",
@@ -144,8 +183,7 @@ For a list of all the features available see --list-features."""
     type=click.Choice([d.name for d in Distance]),
     show_default=True,
     default=DEFAULT_DISTANCE,
-    metavar="<function>",
-    help=f"The following distances are available {[d.name for d in Distance]}",
+    help=f"Available distances:",
 )
 @click.option(
     "-s",
@@ -159,7 +197,7 @@ For a list of all the features available see --list-features."""
     "-sr",
     "--sparse-row",
     is_flag=True,
-    help="Whether to build the sparse similarity matrix considering its entirety or processing it row per row",
+    help="Whether to build the sparse similarity matrix considering its entirety or processing it row per row.",
 )
 @click.option(
     "-t",
@@ -167,7 +205,7 @@ For a list of all the features available see --list-features."""
     type=float,
     show_default=True,
     default=DEFAULT_TRADEOFF,
-    help=f"Tradeoff between function content (near 1.0) and call-graph information (near 0.0)",
+    help=f"Tradeoff between function content (near 1.0) and call-graph information (near 0.0).",
 )
 @click.option(
     "-e",
@@ -175,7 +213,7 @@ For a list of all the features available see --list-features."""
     type=float,
     show_default=True,
     default=DEFAULT_EPSILON,
-    help=f"Relaxation parameter to enforce convergence",
+    help=f"Relaxation parameter to enforce convergence.",
 )
 @click.option(
     "-i",
@@ -183,52 +221,43 @@ For a list of all the features available see --list-features."""
     type=int,
     show_default=True,
     default=DEFAULT_MAXITER,
-    help=f"Maximum number of iteration for belief propagation",
-)
-@click.option(
-    "-e1",
-    "--executable1",
-    "exec_primary",
-    type=Path,
-    help="Path to the primary raw executable. Must be provided if using quokka loader",
-)
-@click.option(
-    "-e2",
-    "--executable2",
-    "exec_secondary",
-    type=Path,
-    help="Path to the secondary raw executable. Must be provided if using quokka loader",
+    help=f"Maximum number of iteration for belief propagation.",
 )
 @click.option(
     "-o",
     "--output",
-    type=Path,
-    help="Write output to PATH",
+    type=click.Path(file_okay=True, dir_okay=False),
+    default=DEFAULT_OUTPUT,
+    show_default=True,
+    help="Output file path.",
 )
 @click.option(
     "-ff",
-    "--file-format",
+    "--format",
     show_default=True,
     default="csv",
     type=click.Choice(["bindiff", "csv"]),
-    help=f"The file format of the output file",
+    help=f"Output file format.",
 )
 @click.option(
     "-v",
     "--verbose",
     count=True,
-    help="Activate debugging messages. Can be supplied multiple times to increase verbosity",
+    metavar="-v|-vv|-vvv",
+    help="Activate debugging messages.",
 )
 @click.version_option(qbindiff_version)
 @click.option(
-    "--arch-primary",
+    "-a1",
+    "--primary-arch",
     type=str,
-    help="Force the architecture when disassembling for the primary. Format is 'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'",
+    help="Enforce disassembling architecture. Format is like 'CS_ARCH_X86:CS_MODE_64'.",
 )
 @click.option(
-    "--arch-secondary",
+    "-a2",
+    "--secondary-arch",
     type=str,
-    help="Force the architecture when disassembling for the secondary. Format is 'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'",
+    help="Enforce disassembling architecture. Format is like 'CS_ARCH_X86:CS_MODE_64'.",
 )
 @click.option(
     "--list-features",
@@ -241,29 +270,37 @@ For a list of all the features available see --list-features."""
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
-    loader_primary,
-    loader_secondary,
-    features,
-    normalize,
-    distance,
-    sparsity_ratio,
-    sparse_row,
-    tradeoff,
-    epsilon,
-    maxiter,
-    exec_primary,
-    exec_secondary,
-    output,
-    file_format,
-    arch_primary,
-    arch_secondary,
-    verbose,
-    primary,
-    secondary,
+        loader_primary,
+        loader_secondary,
+        features,
+        normalize,
+        distance,
+        sparsity_ratio,
+        sparse_row,
+        tradeoff,
+        epsilon,
+        maxiter,
+        exec_primary,
+        exec_secondary,
+        output,
+        file_format,
+        arch_primary,
+        arch_secondary,
+        verbose,
+        primary,
+        secondary,
 ):
     """
     QBinDiff is an experimental binary diffing tool based on
-    machine learning technics, namely Belief propagation.
+machine learning technics, namely Belief propagation.
+
+    Examples:
+
+- For Quokka exports:
+qbindiff -e1 file1.bin -e2 file2.bin file1.quokka file2.quokka
+
+- For BinExport exports, changing the output path:
+qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
     """
 
     configure_logging(verbose)
