@@ -20,7 +20,6 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from collections import defaultdict
 from typing import TYPE_CHECKING
 
 # Third-party imports
