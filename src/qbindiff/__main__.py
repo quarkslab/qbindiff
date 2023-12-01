@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING
 import rich_click as click
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.progress import track
+from rich.progress import Progress
 from rich.table import Table
 
 # Local imports
@@ -366,111 +366,131 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
     else:
         loader_s = LOADERS[secondary_loader]
 
-    # Check that the executables have been provided
-    if loader_p == LoaderType.quokka:
-        if not (primary_exec and os.path.exists(primary_exec)):
-            logging.error("When using the quokka loader you have to provide the raw binaries (option `-e1`).")
-            exit(1)
-        logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader_p, primary, primary_exec)
-    elif loader_p == LoaderType.ida:
-        logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader_p, primary)
-    else:
-        # BinExport
-        logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader_p, primary, arch=primary_arch)
+    with Progress() as progress:
+        if not quiet:
+            load_bar_total = 2
+            load_bar = progress.add_task("File loading", total=load_bar_total)
+            init_bar = progress.add_task("Initialization", start=False)
+            match_bar = progress.add_task("Matching", start=False)
+            save_bar_total=1
+            save_bar = progress.add_task("Saving Results", total=save_bar_total, start=False)
 
-    # Check that the executables have been provided
-    if loader_s == LoaderType.quokka:
-        if not (secondary_exec and os.path.exists(secondary_exec)):
-            logging.error("When using the quokka loader you have to provide the raw binaries (option `-e2`).")
-            exit(1)
-        logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader_s, secondary, secondary_exec)
-    elif loader_p == LoaderType.ida:
-        logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader_p, secondary)
-    else:
-        # BinExport
-        logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader_s, secondary, arch=secondary_arch)
+        # Check that the executables have been provided
+        if loader_p == LoaderType.quokka:
+            if not (primary_exec and os.path.exists(primary_exec)):
+                logging.error("When using the quokka loader you have to provide the raw binaries (option `-e1`).")
+                exit(1)
+            logging.info(f"[+] Loading primary: {primary.name}")
+            primary = Program(loader_p, primary, primary_exec)
+        elif loader_p == LoaderType.ida:
+            logging.info(f"[+] Loading primary: {primary.name}")
+            primary = Program(loader_p, primary)
+        else:
+            # BinExport
+            logging.info(f"[+] Loading primary: {primary.name}")
+            primary = Program(loader_p, primary, arch=primary_arch)
+        progress.update(load_bar, advance=1) if not quiet else None
 
-    try:
-        qbindiff = QBinDiff(
-            primary,
-            secondary,
-            sparsity_ratio=sparsity_ratio,
-            tradeoff=tradeoff,
-            epsilon=epsilon,
-            distance=Distance[distance],
-            maxiter=maxiter,
-            normalize=normalize,
-            sparse_row=sparse_row,
-        )
-    except Exception as e:
-        logging.error(e)
-        exit(1)
-
-    if not features:
-        logging.error("no feature provided")
-        exit(1)
-
-    # Check for the 'all' option
-    if "all" in set(features):
-        # Add all features with default weight and distance
-        for f in FEATURES_KEYS:
-            qbindiff.register_feature_extractor(
-                FEATURES_KEYS[f], float(1.0), distance=Distance[distance]
+        # Check that the executables have been provided
+        if loader_s == LoaderType.quokka:
+            if not (secondary_exec and os.path.exists(secondary_exec)):
+                logging.error("When using the quokka loader you have to provide the raw binaries (option `-e2`).")
+                exit(1)
+            logging.info(f"[+] Loading secondary: {secondary.name}")
+            secondary = Program(loader_s, secondary, secondary_exec)
+        elif loader_p == LoaderType.ida:
+            logging.info(f"[+] Loading secondary: {secondary.name}")
+            secondary = Program(loader_p, secondary)
+        else:
+            # BinExport
+            logging.info(f"[+] Loading secondary: {secondary.name}")
+            secondary = Program(loader_s, secondary, arch=secondary_arch)
+        progress.update(load_bar, advance=1) if not quiet else None
+        progress.start_task(init_bar) if not quiet else None
+        try:
+            qbindiff = QBinDiff(
+                primary,
+                secondary,
+                sparsity_ratio=sparsity_ratio,
+                tradeoff=tradeoff,
+                epsilon=epsilon,
+                distance=Distance[distance],
+                maxiter=maxiter,
+                normalize=normalize,
+                sparse_row=sparse_row,
             )
-    else:
-        for feature in set(features):
-            weight = 1.0
-            distance = None
-            if ":" in feature:
-                feature, *opts = feature.split(":")
-                if len(opts) == 2:
-                    weight, distance = opts
-                elif len(opts) == 1:
-                    try:
-                        weight = float(opts[0])
-                    except ValueError:
-                        distance = opts[0]
-                else:
-                    logging.error(f"Malformed feature {feature}")
+        except Exception as e:
+            logging.error(e)
+            exit(1)
+
+        if not features:
+            logging.error("no feature provided")
+            exit(1)
+
+        # Check for the 'all' option
+        if "all" in set(features):
+            # Add all features with default weight and distance
+            for f in FEATURES_KEYS:
+                qbindiff.register_feature_extractor(FEATURES_KEYS[f], float(1.0), distance=Distance[distance])
+        else:
+            for feature in set(features):
+                weight = 1.0
+                distance = None
+                if ":" in feature:
+                    feature, *opts = feature.split(":")
+                    if len(opts) == 2:
+                        weight, distance = opts
+                    elif len(opts) == 1:
+                        try:
+                            weight = float(opts[0])
+                        except ValueError:
+                            distance = opts[0]
+                    else:
+                        logging.error(f"Malformed feature {feature}")
+                        continue
+                if feature not in FEATURES_KEYS:
+                    logging.warning(f"Feature '{feature}' not recognized - ignored.")
                     continue
-            if feature not in FEATURES_KEYS:
-                logging.warning(f"Feature '{feature}' not recognized - ignored.")
-                continue
-            extractor_class = FEATURES_KEYS[feature]
-            if distance is not None:
-                distance = Distance[distance]
-            qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
+                extractor_class = FEATURES_KEYS[feature]
+                if distance is not None:
+                    distance = Distance[distance]
+                qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
 
-    logging.info("[+] Initializing NAP")
-    if not quiet:
-        for _ in track(qbindiff.process_iterator(), description="Visit",
-                       total=len(qbindiff.primary) + len(qbindiff.secondary)):
-            pass
-    else:
-        qbindiff.process()
+        logging.info("[+] Initializing NAP")
+        if not quiet:
+            init_bar_total = len(qbindiff.primary) + len(qbindiff.secondary)
+            progress.update(init_bar, total=init_bar_total)
+            for _ in qbindiff.process_iterator():
+                progress.update(init_bar, advance=1)
+            progress.update(init_bar, completed=init_bar_total)
+            progress.stop_task(init_bar)
+            progress.start_task(match_bar)
+        else:
+            qbindiff.process()
 
-    logging.info("[+] Computing NAP")
-    if not quiet:
-        for _ in track(qbindiff.matching_iterator(), description="Compute Matching", total=qbindiff.maxiter):
-            pass
-    else:
-        qbindiff.compute_matching()
+        logging.info("[+] Computing NAP")
+        if not quiet:
+            match_bar_total = qbindiff.maxiter
+            progress.update(match_bar, total=match_bar_total)
+            for _ in qbindiff.matching_iterator():
+                progress.update(match_bar, advance=1)
+            progress.update(match_bar, completed=match_bar_total)
+            progress.stop_task(match_bar)
+            progress.start_task(save_bar)
+        else:
+            qbindiff.compute_matching()
 
+        logging.info("[+] Saving")
+        if format == "bindiff":
+            qbindiff.export_to_bindiff(output)
+        elif file_format == "csv":
+            qbindiff.mapping.to_csv(output, ("name", lambda f: f.name))
+        logging.info("[+] Mapping successfully saved to: %s" % output)
+        if not quiet:
+            progress.update(save_bar, advance=save_bar_total)
+            progress.stop_task(save_bar)
     if not quiet:
         display_statistics(qbindiff, qbindiff.mapping)
-
-    logging.info("[+] Saving")
-    if format == "bindiff":
-        qbindiff.export_to_bindiff(output)
-    elif file_format == "csv":
-        qbindiff.mapping.to_csv(output, ("name", lambda f: f.name))
-    logging.info("[+] Mapping successfully saved to: %s" % output)
 
 
 if __name__ == "__main__":
