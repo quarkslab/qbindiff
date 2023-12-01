@@ -448,7 +448,12 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
             qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
 
     logging.info("[+] Initializing NAP")
-    qbindiff.process()
+    if not quiet:
+        for _ in track(qbindiff.process_iterator(), description="Visit",
+                       total=len(qbindiff.primary) + len(qbindiff.secondary)):
+            pass
+    else:
+        qbindiff.process()
 
     logging.info("[+] Computing NAP")
     if not quiet:

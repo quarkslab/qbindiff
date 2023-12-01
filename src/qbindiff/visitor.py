@@ -18,7 +18,6 @@ This module contains the base abstract class that defines the visitor access
 pattern to a GenericGraph as well as its standard implementations.
 """
 
-from rich.progress import track
 import logging
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
@@ -76,6 +75,7 @@ class Visitor(metaclass=ABCMeta):
             collector = FeatureCollector()
             self.visit_item(graph, node, collector)
             obj_features[key_fun(item, i)] = collector
+            yield obj_features
         return obj_features
 
     def visit_item(self, graph: Graph, item: Any, collector: FeatureCollector) -> None:
