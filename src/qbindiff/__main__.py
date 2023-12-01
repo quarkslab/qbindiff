@@ -25,8 +25,10 @@ from typing import TYPE_CHECKING
 
 # Third-party imports
 import rich_click as click
+from rich.console import Console
 from rich.logging import RichHandler
 from rich.progress import track
+from rich.table import Table
 
 # Local imports
 from qbindiff import __version__ as qbindiff_version
@@ -56,19 +58,24 @@ def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
     similarity = mapping.similarity
     nb_squares = mapping.squares
 
-    output = (
-        "Score: {:.4f} | "
-        "Similarity: {:.4f} | "
-        "Squares: {:.0f} | "
-        "Nb matches: {}\n".format(similarity + nb_squares, similarity, nb_squares, nb_matches)
-    )
-    output += "Node cover:  {:.3f}% / {:.3f}% | " "Edge cover:  {:.3f}% / {:.3f}%\n".format(
+    console = Console()
+
+    table = Table(show_header=False)
+    table.add_column(style="dim")
+    table.add_column(justify="right")
+
+    table.add_row("Score", "{:.4f}".format(similarity + nb_squares))
+    table.add_row("Similarity", "{:.4f}".format(similarity))
+    table.add_row("Squares", "{:.0f}".format(nb_squares))
+    table.add_row("Nb matches", "{}".format(nb_matches), end_section=True)
+    table.add_row("Node cover", "{:.3f}% / {:.3f}%".format(
         100 * nb_matches / len(differ.primary_adj_matrix),
-        100 * nb_matches / len(differ.secondary_adj_matrix),
+        100 * nb_matches / len(differ.secondary_adj_matrix)))
+    table.add_row("Edge cover", "{:.3f}% / {:.3f}%".format(
         100 * nb_squares / differ.primary_adj_matrix.sum(),
-        100 * nb_squares / differ.secondary_adj_matrix.sum(),
-    )
-    print(output)
+        100 * nb_squares / differ.secondary_adj_matrix.sum()))
+
+    console.print(table)
 
 
 FEATURES_KEYS = {x.key: x for x in FEATURES}
