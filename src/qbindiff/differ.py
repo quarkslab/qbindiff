@@ -22,7 +22,6 @@ and for directed graphs diffing (class DiGraphDiffing)
 
 from __future__ import annotations
 import logging
-import tqdm
 import numpy as np
 import networkx
 from datasketch import MinHash  # type: ignore[import-untyped]
@@ -266,11 +265,11 @@ class Differ:
         :return: Mapping between items of the primary and items of the secondary
         """
 
-        for _ in tqdm.tqdm(self._matching_iterator(), total=self.maxiter, disable=not is_debug()):
+        for _ in self.matching_iterator():
             pass
         return self.mapping
 
-    def _matching_iterator(self) -> Generator[int, None, None]:
+    def matching_iterator(self) -> Generator[int, None, None]:
         """
         Run the belief propagation algorithm.
 

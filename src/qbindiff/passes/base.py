@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 import logging
-import tqdm
 import numpy as np
 from scipy.sparse import lil_matrix  # type: ignore[import-untyped]
 from collections import defaultdict
@@ -98,9 +97,7 @@ class FeaturePass:
         """
 
         feature_matrix = lil_matrix(shape, dtype=dtype)
-        for node_label, feature in tqdm.tqdm(
-            features.items(), total=len(features), disable=not is_debug()
-        ):
+        for node_label, feature in features.items():
             vec = feature.to_sparse_vector(dtype, features_main_keys)
             feature_matrix[node_to_index[node_label]] = vec
         return feature_matrix.tocsr()
