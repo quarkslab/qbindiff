@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 # Third-party imports
 import rich_click as click
 from rich.logging import RichHandler
-
+from rich.progress import track
 
 # Local imports
 from qbindiff import __version__ as qbindiff_version
@@ -104,7 +104,7 @@ click.rich_click.OPTION_GROUPS = {
         },
         {
             "name"   : "Global options",
-            "options": ["--verbose", "--help", "--version"]
+            "options": ["--verbose", "--quiet", "--help", "--version"]
         },
         {
             "name"   : "Diffing parameters",
@@ -268,7 +268,15 @@ For a list of all the features available see --list-features."""
     callback=list_features,
     expose_value=False,
     is_eager=True,
-    help="List all the available features",
+    help="List all the available features.",
+)
+@click.option(
+    "-q",
+    "--quiet",
+    is_flag=True,
+    default=False,
+    type=click.BOOL,
+    help="Do not display progress bars and final statistics."
 )
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
@@ -289,6 +297,7 @@ def main(
         format,
         primary_arch,
         secondary_arch,
+        quiet,
         verbose,
         primary,
         secondary,
@@ -435,9 +444,14 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
     qbindiff.process()
 
     logging.info("[+] Computing NAP")
-    qbindiff.compute_matching()
+    if not quiet:
+        for _ in track(qbindiff.matching_iterator(), description="Compute Matching", total=qbindiff.maxiter):
+            pass
+    else:
+        qbindiff.compute_matching()
 
-    display_statistics(qbindiff, qbindiff.mapping)
+    if not quiet:
+        display_statistics(qbindiff, qbindiff.mapping)
 
     logging.info("[+] Saving")
     if format == "bindiff":
