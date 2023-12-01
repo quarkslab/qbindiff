@@ -18,7 +18,7 @@ This module contains the base abstract class that defines the visitor access
 pattern to a GenericGraph as well as its standard implementations.
 """
 
-import tqdm
+from rich.progress import track
 import logging
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
@@ -71,9 +71,7 @@ class Visitor(metaclass=ABCMeta):
             key_fun = lambda _, i: i
 
         obj_features = {}
-        for i, item in tqdm.tqdm(
-            enumerate(graph.items()), total=len(graph), disable=not is_debug()
-        ):
+        for i, item in enumerate(graph.items()):
             _, node = item
             collector = FeatureCollector()
             self.visit_item(graph, node, collector)
