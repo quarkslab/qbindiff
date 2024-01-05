@@ -414,11 +414,6 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
         # Should we consider also FunctionType.thunk?
         return self.type in (FunctionType.imported, FunctionType.extern)
 
-    def unload_blocks(self) -> None:
-        """Unload basic blocks from memory"""
-        # del self.be_func.blocks
-        pass  # can't delete it as it is decorated with @cache_property
-
 
 class ProgramBackendBinExport(AbstractProgramBackend):
     def __init__(self, file: str, *, arch: str | None = None):
