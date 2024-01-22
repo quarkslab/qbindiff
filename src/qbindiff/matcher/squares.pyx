@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# cython: language_level=3
+# cython: cdivision=True
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: initializedcheck=False
+# cython: nonecheck=False
+
 """Utilities for fast squares matrix generation
 """
 
 cimport numpy as cnp
-cimport openmp
 import numpy as np
 from scipy.sparse import csr_matrix
 from cython.parallel cimport prange
@@ -26,6 +32,7 @@ from libcpp.unordered_map cimport unordered_map
 from libcpp.pair cimport pair
 
 from qbindiff.utils.openmp_helpers import _openmp_effective_n_threads
+from qbindiff.utils.openmp_helpers cimport omp_lock_t, omp_unset_lock, omp_set_lock, omp_init_lock
 
 cnp.import_array()
 
@@ -75,8 +82,8 @@ def find_squares(
     cdef int num_threads = _openmp_effective_n_threads()
 
     # Mutex for synchronization
-    cdef openmp.omp_lock_t lock
-    openmp.omp_init_lock(&lock)
+    cdef omp_lock_t lock
+    omp_init_lock(&lock)
 
     # Populate the children per node
     for i in range(rows):
@@ -124,7 +131,7 @@ def find_squares(
                         edge_idx1 = edge_map[nodeA * cols + nodeB]
                         edge_idx2 = edge_map[nodeD * cols + nodeC]
 
-                        openmp.omp_set_lock(&lock)
+                        omp_set_lock(&lock)
 
                         # Add the suqares (A, B, C, D) and (C, D, A, B)
                         squares_rows.push_back(edge_idx1)
@@ -132,7 +139,7 @@ def find_squares(
                         squares_cols.push_back(edge_idx2)
                         squares_cols.push_back(edge_idx1)
 
-                        openmp.omp_unset_lock(&lock)
+                        omp_unset_lock(&lock)
 
     # Sparse square matrix data
     data = np.ones(squares_rows.size(), dtype=np.uint8)

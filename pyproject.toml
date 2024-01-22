@@ -1,8 +1,8 @@
 [build-system]
 requires = [
-    "setuptools<65.5.2",
+    "meson-python>=0.7.0",
+    "meson>=1.1.0",
     "cython",
-    "packaging",
 
     # use oldest-supported-numpy which provides the oldest numpy version with
     # wheels on PyPI
@@ -10,7 +10,7 @@ requires = [
     # see: https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
     "oldest-supported-numpy",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "mesonpy"
 
 [project]
 name = "qbindiff"
@@ -38,6 +38,9 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.scripts]
+bindiff = 'qbindiff.__main__:main'
+
 [project.urls]
 Homepage = "https://github.com/quarkslab/qbindiff"
 Repository = "https://github.com/quarkslab/qbindiff"
@@ -53,9 +56,6 @@ doc = [
     "quokka-project",
 ]
 dev = ["tox"]
-
-[tool.cibuildwheel]
-skip = "cp312-*"
 
 [tool.black]
 line-length = 100
