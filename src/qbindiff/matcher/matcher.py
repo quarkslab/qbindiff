@@ -129,7 +129,7 @@ class Matcher:
         """
         Generate the sparse squares matrix and store it in self._squares_matrix.
         Given two graphs G1 and G2, a square is a tuple of nodes (nodeA, nodeB, nodeC, nodeD)
-        such that all of the followings statements are true:
+        such that all of the followings conditions are true:
           - nodeA and nodeD belong to G1
           - nodeB and nodeC belong to G2
           - (nodeA, nodeD) is a directed edge in G1
