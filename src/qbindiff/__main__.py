@@ -346,7 +346,9 @@ def main(
     if "all" in set(features):
         # Add all features with default weight and distance
         for f in FEATURES_KEYS:
-            qbindiff.register_feature_extractor(FEATURES_KEYS[f], float(1.0), distance=Distance[distance])
+            qbindiff.register_feature_extractor(
+                FEATURES_KEYS[f], float(1.0), distance=Distance[distance]
+            )
     else:
         for feature in set(features):
             weight = 1.0
