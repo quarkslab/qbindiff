@@ -338,7 +338,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         """Returns an iterator over backend instruction objects"""
 
         # Generates the first instruction and use it to guess the context for capstone
-        first_instr = next(iter(self.be_block.values()))
+        first_instr = next(iter(self.be_block.instructions.values()))
         capstone_instructions = self._disassemble(
             self.be_block.bytes, first_instr.mnemonic, len(first_instr.bytes)
         )

@@ -72,17 +72,19 @@ class Program(MutableMapping, GenericGraph):
         self._load_functions()
 
     @staticmethod
-    def from_binexport(file_path: str, enable_cortexm: bool = False) -> Program:
+    def from_binexport(file_path: str, arch: str | None = None) -> Program:
         """
         Load the Program using the binexport backend
 
         :param file_path: File path to the binexport file
-        :param enable_cortexm: Whether to check for cortexm instructions while
-                               disassembling with capstone
+        :param arch: Architecture to pass to the capstone disassembler. This is
+                     useful when the binexport'ed architecture is not enough to
+                     correctly disassemble the binary (for example with arm
+                     thumb2 or some mips modes).
         :return: Program instance
         """
 
-        return Program(LoaderType.binexport, file_path, enable_cortexm=enable_cortexm)
+        return Program(LoaderType.binexport, file_path, arch=arch)
 
     @staticmethod
     def from_quokka(file_path: str, exec_path: str) -> Program:
