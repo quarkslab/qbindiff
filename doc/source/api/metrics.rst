@@ -6,10 +6,10 @@ pairwise_distances
 
 .. autofunction:: qbindiff.passes.metrics.pairwise_distances
 
-jaccard_strong
---------------
+haussmann
+---------
 
-.. autofunction:: qbindiff.passes.metrics.jaccard_strong
+.. autofunction:: qbindiff.passes.metrics.haussmann
 
 canberra_distances
 ------------------

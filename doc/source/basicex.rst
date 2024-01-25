@@ -25,7 +25,7 @@ BinExport is more flexible since it can be used with IDA, Ghidra and BinaryNinja
 
 * `-n`, `--normalize` Normalize the Call Graph by removing some of the edges/nodes that should worsen the diffing result. **WARNING:** it can potentially lead to a worse matching. To know the details of the normalization step look at {ref}`normalization`
 
-* `-d`, `--distance` Set the default distance that should be used by the features. The possible values are `canberra, correlation, cosine, euclidean, jaccard-strong`. The default one is `canberra`. To know the details of the jaccard-strong distance look here {ref}`jaccard-strong`
+* `-d`, `--distance` Set the default distance that should be used by the features. The possible values are `canberra, correlation, cosine, euclidean, haussmann`. The default one is `canberra`. To know the details of the haussmann distance look here {ref}`haussmann`
 
 * `-s`, `--sparsity-ratio` Set the density of the similarity matrix. This will loose some information (hence decrease accuracy) but it will also increase the performace. `0.999` means that the 99.9% of the matrix will be filled with zeros. The default value is `0.75`
 
@@ -65,7 +65,7 @@ Some examples are displayed below :
          -f dat \
          -f cst \
          -f addr:0.01 \
-         -d jaccard-strong -s 0.999 -sr \
+         -d haussmann -s 0.999 -sr \
          -ff bindiff -o ./result.BinDiff -vv
 
 ..  code-block:: bash

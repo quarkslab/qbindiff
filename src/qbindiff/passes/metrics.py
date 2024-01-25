@@ -34,7 +34,7 @@ import numpy as np
 import sklearn.metrics
 from scipy.spatial import distance
 from scipy.sparse import issparse, csr_matrix
-from qbindiff.passes.fast_metrics import sparse_canberra, sparse_strong_jaccard
+from qbindiff.passes.fast_metrics import sparse_canberra, sparse_haussmann
 from qbindiff.types import Distance
 
 
@@ -106,16 +106,16 @@ def canberra_distances(X, Y, w=None):
     ValueError("Cannot assign weights with non-sparse matrices")
 
 
-def jaccard_strong(X, Y, w=None):
+def haussmann(X, Y, w=None):
     r"""
-    Compute a variation of the jaccard distances between the vectors in X and Y using
-    the optional array of weights w.
+    Custom distance that takes inspiration from the jaccard index and the canberra distance.
+    If computes the distance between the vectors in X and Y using the optional array of weights w.
 
     The distance function between two vector ``u`` and ``v`` is the following:
 
     .. math::
 
-        \sum_{i}\frac{f(u_i, v_i)}{ | \{ i | u_i \neq 0 \lor v_i \neq 0 \} | }
+        \sum_{i}\frac{f(u_i, v_i)}{ | \{ j | u_j \neq 0 \lor v_j \neq 0 \} | }
 
     where the function ``f`` is defined like this:
 
@@ -127,7 +127,7 @@ def jaccard_strong(X, Y, w=None):
 
     .. math::
 
-        \sum_{i}\frac{w_i * f(u_i, v_i)}{ | \{ i | u_i \neq 0 \lor v_i \neq 0 \} | }
+        \sum_{i}\frac{w_i * f(u_i, v_i)}{ | \{ j | u_j \neq 0 \lor v_j \neq 0 \} | }
 
     :param X: array-like of shape (n_samples_X, n_features)
               An array where each row is a sample and each column is a feature.
@@ -139,7 +139,7 @@ def jaccard_strong(X, Y, w=None):
               Default is None, which gives each value a weight of 1.0
 
     :return D: ndarray of shape (n_samples_X, n_samples_Y)
-               D contains the pairwise strong jaccard distances.
+               D contains the pairwise haussmann distances.
 
     When X and/or Y are CSR sparse matrices and they are not already
     in canonical format, this function modifies them in-place to
@@ -159,11 +159,11 @@ def jaccard_strong(X, Y, w=None):
             w = _validate_weights(w)
             if w.size != X.shape[1]:
                 ValueError("Weights size mismatch")
-        sparse_strong_jaccard(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, w)
+        sparse_haussmann(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, w)
         return D
 
     if w is None:
-        return sparse_strong_jaccard(
+        return sparse_haussmann(
             X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, None
         )
     ValueError("Cannot assign weights with non-sparse matrices")
@@ -171,7 +171,7 @@ def jaccard_strong(X, Y, w=None):
 
 CUSTOM_DISTANCES = {
     Distance.canberra: canberra_distances,
-    Distance.jaccard_strong: jaccard_strong,
+    Distance.haussmann: haussmann,
 }
 
 

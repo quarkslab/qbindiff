@@ -124,7 +124,7 @@ def sparse_canberra(floating[::1] X_data, int[:] X_indices, int[:] X_indptr,
 
             D[px, py] = d
 
-def sparse_strong_jaccard(floating[::1] X_data, int[:] X_indices, int[:] X_indptr,
+def sparse_haussmann(floating[::1] X_data, int[:] X_indices, int[:] X_indptr,
                     floating[::1] Y_data, int[:] Y_indices, int[:] Y_indptr,
                     double[:, ::1] D, double[:] w):
     """Pairwise canberra distances for CSR matrices"""

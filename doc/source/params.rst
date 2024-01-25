@@ -25,16 +25,16 @@ Most of the distance functions that QBinDiff uses come from `Scipy <https://docs
 * seuclidean
 * sqeuclidean
 
-However, some distance are unique in QBinDiff, such as the jaccard-strong distance.
+However, some distance are unique in QBinDiff, such as the haussmann distance.
 This is a experimental new metric that combines the jaccard index and the canberra distance.
 
-Jaccard-strong
-~~~~~~~~~~~~~~
+Haussmann
+~~~~~~~~~
 
 Formally it is defined as:
 
 .. math::
-   d(u, v) = \sum_{i=0}^n\frac{f(u_i, v_i)}{ | \{ i  |  u_i \neq 0 \lor v_i \neq 0 \} | }
+   d(u, v) = \sum_{i=0}^n\frac{f(u_i, v_i)}{ \lvert \{ j | u_j \neq 0 \lor v_j \neq 0 \} \rvert }
 
 .. math::
    with\ u, v \in \mathbb{R}^n
