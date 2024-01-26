@@ -207,4 +207,4 @@ class Distance(IntEnum):
     canberra = 0  # doc: canberra distance
     euclidean = 1  # doc: euclidean distance
     cosine = 2  # doc: cosine distance
-    jaccard_strong = 3  # doc: custom distance
+    haussmann = 3  # doc: haussmann distance
