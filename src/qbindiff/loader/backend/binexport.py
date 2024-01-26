@@ -306,7 +306,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
 
         # Continue with the old method
         arch = self.program.architecture_name
-        capstone_mode = None
+        capstone_mode = 0
 
         # No need to guess the context for these arch
         if arch in ("x86", "x86-64", "MIPS-32", "MIPS-64", "ARM-64"):
