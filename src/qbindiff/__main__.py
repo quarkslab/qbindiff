@@ -337,19 +337,19 @@ def main(
 
     configure_logging(verbose)
 
-    if 0.0 > sparsity_ratio > 1:
+    if 0 > sparsity_ratio or sparsity_ratio > 1:
         logging.warning(
             "[-] Sparsity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SPARSITY_RATIO
         )
         sparsity_ratio = DEFAULT_SPARSITY_RATIO
 
-    if 0.0 > tradeoff > 1:
+    if 0 > tradeoff or tradeoff > 1:
         logging.warning(
             "[-] Trade-off parameter should be within 0..1 (set it to %.2f)" % DEFAULT_TRADEOFF
         )
         tradeoff = DEFAULT_TRADEOFF
 
-    if 0.0 > epsilon:
+    if 0 > epsilon:
         logging.warning(
             "[-] Epsilon parameter should be positive (set it to %.3f)" % DEFAULT_EPSILON
         )
