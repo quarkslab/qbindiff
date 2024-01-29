@@ -55,9 +55,6 @@ doc = [
 ]
 dev = ["tox"]
 
-[project.scripts]
-qbindiff = 'qbindiff.__main__:main'
-
 [tool.black]
 line-length = 100
 target-version = ['py310']
