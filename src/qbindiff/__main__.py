@@ -355,9 +355,6 @@ def main(
         )
         epsilon = DEFAULT_EPSILON
 
-    if not output:
-        logging.warning("[-] You have not specified an output file")
-
     if not primary_loader:
         if primary.suffix.casefold() == ".quokka".casefold():
             loader_p = LOADERS["quokka"]
