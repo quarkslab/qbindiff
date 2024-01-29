@@ -163,9 +163,7 @@ def haussmann(X, Y, w=None):
         return D
 
     if w is None:
-        return sparse_haussmann(
-            X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, None
-        )
+        return sparse_haussmann(X.data, X.indices, X.indptr, Y.data, Y.indices, Y.indptr, D, None)
     ValueError("Cannot assign weights with non-sparse matrices")
 
 
