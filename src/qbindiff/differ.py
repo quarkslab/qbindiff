@@ -443,7 +443,11 @@ class QBinDiff(Differ):
     DTYPE = np.float32
 
     def __init__(
-        self, primary: Program, secondary: Program, distance: Distance = Distance.haussmann, **kwargs
+        self,
+        primary: Program,
+        secondary: Program,
+        distance: Distance = Distance.haussmann,
+        **kwargs,
     ):
         """
         QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
