@@ -62,16 +62,16 @@ class Differ:
     DTYPE = np.float32
 
     def __init__(
-            self,
-            primary: Graph,
-            secondary: Graph,
-            *,
-            sparsity_ratio: Ratio = 0.6,
-            tradeoff: Ratio = 0.8,
-            epsilon: Positive = 0.9,
-            maxiter: int = 1000,
-            normalize: bool = False,
-            sparse_row: bool = False,
+        self,
+        primary: Graph,
+        secondary: Graph,
+        *,
+        sparsity_ratio: Ratio = 0.6,
+        tradeoff: Ratio = 0.8,
+        epsilon: Positive = 0.9,
+        maxiter: int = 1000,
+        normalize: bool = False,
+        sparse_row: bool = False,
     ):
         """
         Abstract class that perform the NAP diffing between two generic graphs.
@@ -194,7 +194,7 @@ class Differ:
         )
 
     def extract_adjacency_matrix(
-            self, graph: Graph
+        self, graph: Graph
     ) -> tuple[AdjacencyMatrix, dict[Idx, NodeLabel], dict[NodeLabel, Idx]]:
         """
         Returns the adjacency matrix for the graph and the mappings
@@ -483,11 +483,11 @@ class QBinDiff(Differ):
         self._post_passes.append((pass_func, extra_args))
 
     def register_feature_extractor(
-            self,
-            extractor_class: type[FeatureExtractor],
-            weight: Positive | None = 1.0,
-            distance: Distance | None = None,
-            **extra_args,
+        self,
+        extractor_class: type[FeatureExtractor],
+        weight: Positive | None = 1.0,
+        distance: Distance | None = None,
+        **extra_args,
     ) -> None:
         """
         Register a feature extractor class. This will include the corresponding feature in the similarity matrix
@@ -545,12 +545,12 @@ class QBinDiff(Differ):
             )
 
     def match_import_functions(
-            self,
-            sim_matrix: SimMatrix,
-            primary: Program,
-            secondary: Program,
-            primary_mapping: dict[Addr, Idx],
-            secondary_mapping: dict[Addr, Idx],
+        self,
+        sim_matrix: SimMatrix,
+        primary: Program,
+        secondary: Program,
+        primary_mapping: dict[Addr, Idx],
+        secondary_mapping: dict[Addr, Idx],
     ) -> None:
         """
         Anchoring phase. This phase considers import functions as anchors to the matching and set these functions

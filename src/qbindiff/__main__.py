@@ -40,8 +40,11 @@ if TYPE_CHECKING:
 
 
 def configure_logging(verbose: int):
-    logging.basicConfig(format="%(message)s", level=logging.INFO,
-                        handlers=[RichHandler(rich_tracebacks=True, show_time=False)])
+    logging.basicConfig(
+        format="%(message)s",
+        level=logging.INFO,
+        handlers=[RichHandler(rich_tracebacks=True, show_time=False)],
+    )
 
     logger = logging.getLogger()
     if verbose >= 2:
@@ -67,12 +70,20 @@ def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
     table.add_row("Similarity", "{:.4f}".format(similarity))
     table.add_row("Squares", "{:.0f}".format(nb_squares))
     table.add_row("Nb matches", "{}".format(nb_matches), end_section=True)
-    table.add_row("Node cover", "{:.3f}% / {:.3f}%".format(
-        100 * nb_matches / len(differ.primary_adj_matrix),
-        100 * nb_matches / len(differ.secondary_adj_matrix)))
-    table.add_row("Edge cover", "{:.3f}% / {:.3f}%".format(
-        100 * nb_squares / differ.primary_adj_matrix.sum(),
-        100 * nb_squares / differ.secondary_adj_matrix.sum()))
+    table.add_row(
+        "Node cover",
+        "{:.3f}% / {:.3f}%".format(
+            100 * nb_matches / len(differ.primary_adj_matrix),
+            100 * nb_matches / len(differ.secondary_adj_matrix),
+        ),
+    )
+    table.add_row(
+        "Edge cover",
+        "{:.3f}% / {:.3f}%".format(
+            100 * nb_squares / differ.primary_adj_matrix.sum(),
+            100 * nb_squares / differ.secondary_adj_matrix.sum(),
+        ),
+    )
 
     console.print(table)
 
@@ -87,7 +98,7 @@ DEFAULT_SPARSITY_RATIO = 0.6
 DEFAULT_TRADEOFF = 0.8
 DEFAULT_EPSILON = 0.9
 DEFAULT_MAXITER = 1000
-DEFAULT_OUTPUT = Path('qbindiff_results.bindiff')
+DEFAULT_OUTPUT = Path("qbindiff_results.bindiff")
 
 LOADERS_KEYS = list(LOADERS.keys())
 
@@ -96,27 +107,30 @@ click.rich_click.APPEND_METAVARS_HELP = True
 click.rich_click.STYLE_METAVAR_APPEND = "yellow"
 click.rich_click.OPTION_GROUPS = {
     "qbindiff": [
+        {"name": "Output parameters", "options": ["--output", "--format"]},
         {
-            "name"   : "Output parameters",
-            "options": ["--output", "--format"]
+            "name": "Primary file options",
+            "options": ["--primary-loader", "--primary-executable", "--primary-arch"],
         },
         {
-            "name"   : "Primary file options",
-            "options": ["--primary-loader", "--primary-executable", "--primary-arch"]
+            "name": "Secondary file options",
+            "options": ["--secondary-loader", "--secondary-executable", "--secondary-arch"],
         },
+        {"name": "Global options", "options": ["--verbose", "--quiet", "--help", "--version"]},
         {
-            "name"   : "Secondary file options",
-            "options": ["--secondary-loader", "--secondary-executable", "--secondary-arch"]
+            "name": "Diffing parameters",
+            "options": [
+                "--feature",
+                "--list-features",
+                "--normalize",
+                "--distance",
+                "--tradeoff",
+                "--sparsity-ratio",
+                "--sparse-row",
+                "--epsilon",
+                "--maxiter",
+            ],
         },
-        {
-            "name"   : "Global options",
-            "options": ["--verbose", "--quiet", "--help", "--version"]
-        },
-        {
-            "name"   : "Diffing parameters",
-            "options": ["--feature", "--list-features", "--normalize", "--distance", "--tradeoff",
-                        "--sparsity-ratio", "--sparse-row", "--epsilon", "--maxiter", ]
-        }
     ]
 }
 
@@ -282,43 +296,43 @@ For a list of all the features available see --list-features."""
     is_flag=True,
     default=False,
     type=click.BOOL,
-    help="Do not display progress bars and final statistics."
+    help="Do not display progress bars and final statistics.",
 )
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
-        primary_loader,
-        secondary_loader,
-        features,
-        normalize,
-        distance,
-        sparsity_ratio,
-        sparse_row,
-        tradeoff,
-        epsilon,
-        maxiter,
-        primary_exec,
-        secondary_exec,
-        output,
-        format,
-        primary_arch,
-        secondary_arch,
-        quiet,
-        verbose,
-        primary,
-        secondary,
+    primary_loader,
+    secondary_loader,
+    features,
+    normalize,
+    distance,
+    sparsity_ratio,
+    sparse_row,
+    tradeoff,
+    epsilon,
+    maxiter,
+    primary_exec,
+    secondary_exec,
+    output,
+    format,
+    primary_arch,
+    secondary_arch,
+    quiet,
+    verbose,
+    primary,
+    secondary,
 ):
     """
-    QBinDiff is an experimental binary diffing tool based on
-machine learning technics, namely Belief propagation.
+        QBinDiff is an experimental binary diffing tool based on
+    machine learning technics, namely Belief propagation.
 
-    Examples:
+        Examples:
 
-- For Quokka exports:
-qbindiff -e1 file1.bin -e2 file2.bin file1.quokka file2.quokka
+    - For Quokka exports:
+    qbindiff -e1 file1.bin -e2 file2.bin file1.quokka file2.quokka
 
-- For BinExport exports, changing the output path:
-qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
+    - For BinExport exports, changing the output path:
+    qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
     """
 
     configure_logging(verbose)
@@ -350,7 +364,9 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
         elif primary.suffix.casefold() == ".BinExport".casefold():
             loader_p = LOADERS["binexport"]
         else:
-            logging.error("Cannot detect automatically the loader for the primary, please specify it with `-l1`.")
+            logging.error(
+                "Cannot detect automatically the loader for the primary, please specify it with `-l1`."
+            )
             exit(1)
     else:
         loader_p = LOADERS[primary_loader]
@@ -360,7 +376,9 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
         elif secondary.suffix.casefold() == ".BinExport".casefold():
             loader_s = LOADERS["binexport"]
         else:
-            logging.error("Cannot detect automatically the loader for the primary, please specify it with `-l1`.")
+            logging.error(
+                "Cannot detect automatically the loader for the primary, please specify it with `-l1`."
+            )
             exit(1)
     else:
         loader_s = LOADERS[secondary_loader]
@@ -371,13 +389,15 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
             load_bar = progress.add_task("File loading", total=load_bar_total)
             init_bar = progress.add_task("Initialization", start=False)
             match_bar = progress.add_task("Matching", start=False)
-            save_bar_total=1
+            save_bar_total = 1
             save_bar = progress.add_task("Saving Results", total=save_bar_total, start=False)
 
         # Check that the executables have been provided
         if loader_p == LoaderType.quokka:
             if not (primary_exec and os.path.exists(primary_exec)):
-                logging.error("When using the quokka loader you have to provide the raw binaries (option `-e1`).")
+                logging.error(
+                    "When using the quokka loader you have to provide the raw binaries (option `-e1`)."
+                )
                 exit(1)
             logging.info(f"[+] Loading primary: {primary.name}")
             primary = Program(loader_p, primary, primary_exec)
@@ -393,7 +413,9 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
         # Check that the executables have been provided
         if loader_s == LoaderType.quokka:
             if not (secondary_exec and os.path.exists(secondary_exec)):
-                logging.error("When using the quokka loader you have to provide the raw binaries (option `-e2`).")
+                logging.error(
+                    "When using the quokka loader you have to provide the raw binaries (option `-e2`)."
+                )
                 exit(1)
             logging.info(f"[+] Loading secondary: {secondary.name}")
             secondary = Program(loader_s, secondary, secondary_exec)
@@ -430,7 +452,9 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
         if "all" in set(features):
             # Add all features with default weight and distance
             for f in FEATURES_KEYS:
-                qbindiff.register_feature_extractor(FEATURES_KEYS[f], float(1.0), distance=Distance[distance])
+                qbindiff.register_feature_extractor(
+                    FEATURES_KEYS[f], float(1.0), distance=Distance[distance]
+                )
         else:
             for feature in set(features):
                 weight = 1.0
@@ -453,7 +477,9 @@ qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
                 extractor_class = FEATURES_KEYS[feature]
                 if distance is not None:
                     distance = Distance[distance]
-                qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
+                qbindiff.register_feature_extractor(
+                    extractor_class, float(weight), distance=distance
+                )
 
         logging.info("[+] Initializing NAP")
         if not quiet:
