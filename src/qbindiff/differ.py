@@ -65,9 +65,9 @@ class Differ:
         primary: Graph,
         secondary: Graph,
         *,
-        sparsity_ratio: Ratio = 0.75,
-        tradeoff: Ratio = 0.75,
-        epsilon: Positive = 0.5,
+        sparsity_ratio: Ratio = 0.6,
+        tradeoff: Ratio = 0.8,
+        epsilon: Positive = 0.9,
         maxiter: int = 1000,
         normalize: bool = False,
         sparse_row: bool = False,
@@ -443,7 +443,11 @@ class QBinDiff(Differ):
     DTYPE = np.float32
 
     def __init__(
-        self, primary: Program, secondary: Program, distance: Distance = Distance.canberra, **kwargs
+        self,
+        primary: Program,
+        secondary: Program,
+        distance: Distance = Distance.haussmann,
+        **kwargs,
     ):
         """
         QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
@@ -451,7 +455,7 @@ class QBinDiff(Differ):
         :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param distance: the distance function used when comparing the feature vector
-            extracted from the graphs. Default is a py:class:`qbindiff.types.Distance` initialized to 'canberra'.
+            extracted from the graphs.
         """
 
         super(QBinDiff, self).__init__(primary, secondary, **kwargs)

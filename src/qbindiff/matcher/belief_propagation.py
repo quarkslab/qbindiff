@@ -32,7 +32,7 @@ class BeliefMWM:
     Computes the optimal solution to the **Maxmimum Weight Matching problem**.
     """
 
-    def __init__(self, sim_matrix: SparseMatrix, epsilon: Positive = 0.5):
+    def __init__(self, sim_matrix: SparseMatrix, epsilon: Positive):
         """
         :param sim_matrix: similarity matrix (sparse numpy matrix)
         :param epsilon: perturbation for algorithm convergence
@@ -284,8 +284,8 @@ class BeliefQAP(BeliefMWM):
         self,
         sim_matrix: SparseMatrix,
         squares: SparseMatrix,
-        tradeoff: Ratio = 0.5,
-        epsilon: Positive = 0.5,
+        tradeoff: Ratio,
+        epsilon: Positive,
     ):
         """
         :param sim_matrix: similarity matrix (sparse numpy matrix)

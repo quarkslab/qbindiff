@@ -73,10 +73,10 @@ FEATURES_KEYS = {x.key: x for x in FEATURES}
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=120)
 
 DEFAULT_FEATURES = tuple(x.key for x in DEFAULT_FEATURES)
-DEFAULT_DISTANCE = Distance.canberra.name
-DEFAULT_SPARSITY_RATIO = 0.75
-DEFAULT_TRADEOFF = 0.75
-DEFAULT_EPSILON = 0.5
+DEFAULT_DISTANCE = Distance.haussmann.name
+DEFAULT_SPARSITY_RATIO = 0.6
+DEFAULT_TRADEOFF = 0.8
+DEFAULT_EPSILON = 0.9
 DEFAULT_MAXITER = 1000
 
 LOADERS_KEYS = list(LOADERS.keys())

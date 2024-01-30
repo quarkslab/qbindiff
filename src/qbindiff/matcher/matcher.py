@@ -173,7 +173,7 @@ class Matcher:
         return [self._confidence[idx1, idx2] for idx1, idx2 in zip(*self.mapping)]
 
     def process(
-        self, sparsity_ratio: Ratio = 0.75, sparse_row: bool = False, compute_squares: bool = True
+        self, sparsity_ratio: Ratio, sparse_row: bool = False, compute_squares: bool = True
     ):
         """
         Initialize the matching algorithm
