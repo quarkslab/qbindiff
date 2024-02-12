@@ -72,11 +72,6 @@ Match = namedtuple("Match", "primary secondary similarity confidence squares")
 Match represent the matching between two functions and can hold the similarity between the two
 """
 
-ExtendedMapping: TypeAlias = Iterable[tuple[Node, Node, float, int]]
-"""
-An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
-"""
-
 Dtype: TypeAlias = numpy.dtype
 """
 Numpy data type
@@ -115,6 +110,11 @@ Float nxm-Dimensional array. A sparse version of the above SimMatrix
 Graph: TypeAlias = GenericGraph  # generic Graph, iterable over the nodes
 
 Node: TypeAlias = GenericNode  # Generic node. This is the entity that will be matched
+
+ExtendedMapping: TypeAlias = Iterable[tuple[Node, Node, float, int]]
+"""
+An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
+"""
 
 SparseVector: TypeAlias = csr_array
 """
