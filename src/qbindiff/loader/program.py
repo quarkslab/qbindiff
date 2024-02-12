@@ -153,7 +153,7 @@ class Program(MutableMapping, GenericGraph):
         """
 
         # yield function only if filter agree to keep it
-        yield from (lambda i: self._filter(i[0]), self._functions.items())
+        yield from filter(lambda i: self._filter(i[0]), self._functions.items())
 
     def get_node(self, node_label: Addr) -> Function:
         """
