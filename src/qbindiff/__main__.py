@@ -209,9 +209,9 @@ For a list of all the features available see --list-features."""
     "-ff",
     "--file-format",
     show_default=True,
-    default="bindiff",
-    type=click.Choice(["bindiff"]),
-    help=f"The file format of the output file. Supported formats are [bindiff]",
+    default="csv",
+    type=click.Choice(["bindiff", "csv"]),
+    help=f"The file format of the output file",
 )
 @click.option(
     "-v",
@@ -385,6 +385,8 @@ def main(
         logging.info("[+] Saving")
         if file_format == "bindiff":
             qbindiff.export_to_bindiff(output)
+        elif file_format == "csv":
+            qbindiff.mapping.to_csv(output, ("name", lambda f: f.name))
         logging.info("[+] Mapping successfully saved to: %s" % output)
 
 

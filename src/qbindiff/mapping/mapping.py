@@ -16,7 +16,7 @@
 """
 
 from __future__ import annotations
-import csv
+import csv, logging
 from typing import TYPE_CHECKING
 
 from qbindiff.types import Match
@@ -218,8 +218,10 @@ class Mapping:
 
         if isinstance(path, str):
             path = Path(str)
-        if not path.exists() or not path.is_file():
-            raise ValueError(f"path `{path}` does not exist or is not a file.")
+        if path.exists() and not path.is_file():
+            raise ValueError(f"path `{path}` already exists and is not a file.")
+        if path.exists():
+            logging.info(f"Overwriting file {path}")
 
         # Extract the optional extra attributes
         attrs_name = []
@@ -229,8 +231,8 @@ class Mapping:
             attrs_name.append(f"secondary_{name}")
             attrs_func.append(func)
 
-        with open(path, "w") as f:
-            writer = csv.writer(path, newline="")
+        with open(path, "w", newline="") as f:
+            writer = csv.writer(f)
             writer.writerow(
                 ("primary_node", "secondary_node", "similarity", "confidence", *attrs_name)
             )
