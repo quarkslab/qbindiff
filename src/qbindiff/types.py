@@ -29,7 +29,7 @@ from collections import namedtuple
 import enum_tools.documentation
 from enum import IntEnum
 
-from qbindiff.abstract import GenericGraph
+from qbindiff.abstract import GenericGraph, GenericNode
 
 if TYPE_CHECKING:
     from qbindiff import Program
@@ -60,15 +60,7 @@ Addr: TypeAlias = int
 An integer representing an address within a program
 """
 
-Item: TypeAlias = Any
-"""
-Item, entity being matched. The only constraint is to be hashable
-"""
-
-Anchors: TypeAlias = list[tuple[Item, Item]]
-"""
-Pair of lists of user defined index correspondences. Default None.
-"""
+NodeLabel: TypeAlias = Any  # Generic node label
 
 RawMapping: TypeAlias = tuple[list[Idx], list[Idx]]
 """
@@ -80,8 +72,7 @@ Match = namedtuple("Match", "primary secondary similarity confidence squares")
 Match represent the matching between two functions and can hold the similarity between the two
 """
 
-
-ExtendedMapping: TypeAlias = Iterable[tuple[Item, Item, float, int]]
+ExtendedMapping: TypeAlias = Iterable[tuple[Node, Node, float, int]]
 """
 An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
 """
@@ -121,10 +112,9 @@ SparseMatrix: TypeAlias = csr_matrix
 Float nxm-Dimensional array. A sparse version of the above SimMatrix
 """
 
-Graph: TypeAlias = GenericGraph
-"""
-A generic Graph, iterable over the nodes
-"""
+Graph: TypeAlias = GenericGraph  # generic Graph, iterable over the nodes
+
+Node: TypeAlias = GenericNode  # Generic node. This is the entity that will be matched
 
 SparseVector: TypeAlias = csr_array
 """
