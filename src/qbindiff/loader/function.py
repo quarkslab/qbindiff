@@ -16,6 +16,7 @@
 """
 
 from __future__ import annotations
+from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 from qbindiff.abstract import GenericNode
@@ -24,7 +25,7 @@ from qbindiff.loader.types import FunctionType
 
 if TYPE_CHECKING:
     import networkx
-    from collections.abc import Mapping, Generator
+    from collections.abc import Generator
     from qbindiff.loader.backend.abstract import AbstractFunctionBackend
     from qbindiff.types import Addr
 
