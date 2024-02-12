@@ -16,6 +16,7 @@
 """
 
 from __future__ import annotations
+from collections.abc import MutableMapping
 from typing import TYPE_CHECKING
 
 from qbindiff.abstract import GenericGraph
