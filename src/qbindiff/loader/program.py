@@ -173,7 +173,7 @@ class Program(MutableMapping, GenericGraph):
         :returns: An :py:class:`Iterator` over the functions' address
         """
 
-        yield from filter(self._filter, self.keys())
+        yield from filter(self._filter, self._functions.keys())
 
     @property
     def nodes(self) -> Iterator[Function]:
