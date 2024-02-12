@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from qbindiff.types import Addr
 
 
-class Function(Mapping[Addr, BasicBlock], GenericNode):
+class Function(Mapping, GenericNode):
     """
     Representation of a binary function.
 

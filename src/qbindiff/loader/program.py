@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from qbindiff.types import Addr
 
 
-class Program(MutableMapping[Addr, Function], GenericGraph):
+class Program(MutableMapping, GenericGraph):
     """
     Program class that shadows the underlying program backend used.
 
