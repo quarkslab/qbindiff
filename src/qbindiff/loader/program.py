@@ -133,7 +133,7 @@ class Program(MutableMapping, GenericGraph):
         return self._functions.__getitem__(key)
 
     def __setitem__(self, key, value):
-        self._functions.__setitem__(key)
+        self._functions.__setitem__(key, value)
 
     def __delitem__(self, key):
         self._functions.__delitem__(key)
