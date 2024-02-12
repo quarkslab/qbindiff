@@ -39,7 +39,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.scripts]
-bindiff = 'qbindiff.__main__:main'
+qbindiff = 'qbindiff.__main__:main'
 
 [project.urls]
 Homepage = "https://github.com/quarkslab/qbindiff"
