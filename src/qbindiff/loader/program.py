@@ -119,12 +119,12 @@ class Program(MutableMapping, GenericGraph):
 
     def __iter__(self) -> Iterator[Addr]:
         """
-        Iterate over all functions' address located in the program.
+        Iterate over all functions located in the program, using the filter registered.
 
-        :return: Iterator of all functions' address
+        :return: Iterator of all the functions
         """
 
-        yield from self.node_labels
+        yield from self._functions.values()
 
     def __len__(self) -> int:
         return len(self._functions)
