@@ -1,5 +1,6 @@
 python_sources = [files(
     '__init__.py',
+    '__main__.py',
     'abstract.py',
     'differ.py',
     'types.py',
