@@ -24,7 +24,7 @@ If the diff, does not represent a binary diff, or for further processing the dif
 it can also be saved in .csv file.
 This is the default file format as it is very lightweight and fast to generate.
 
-It can either be obtained using the CLI option `-ff csv` or by calling the right API as follows:
+It can either be obtained using the CLI option ``-ff csv`` or by calling the right API as follows:
 
 ..  code-block:: python
 
