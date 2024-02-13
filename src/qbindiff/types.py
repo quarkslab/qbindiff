@@ -121,15 +121,9 @@ SparseVector: TypeAlias = csr_array
 Float n-Dimensional sparse array.
 """
 
-PathLike: TypeAlias = str | Path
-"""
-Path
-"""
+PathLike: TypeAlias = str | Path  # Path
 
-NodeLabel: TypeAlias = Any
-"""
-The node label of a generic graph
-"""
+NodeLabel: TypeAlias = Any  # The node label of a generic graph
 
 
 class GenericPrePass(Protocol):
