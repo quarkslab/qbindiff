@@ -157,7 +157,7 @@ class Program(MutableMapping, GenericGraph):
 
     def get_node(self, node_label: Addr) -> Function:
         """
-        Get the function identified by the address :paramref:`node_label`
+        Get the function identified by the address ``node_label``
 
         :param node_label: the address of the function that will be returned
         :returns: the function identified by its address
