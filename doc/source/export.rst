@@ -15,43 +15,32 @@ Given a ``differ`` object initialized, with two binaries to diffs, the diffing a
 ..  code-block:: python
 
     matches = differ.compute_matching()
-    differ.export_to_bindiff('/path/to/output.BinDiff'))
+    differ.export_to_bindiff('/path/to/output.BinDiff')
 
 CSV
 ---
 
 If the diff, does not represent a binary diff, or for further processing the diff
-can also be saved in .csv file.
+it can also be saved in .csv file.
+This is the default file format as it is very lightweight and fast to generate.
 
-TODO: We really have to write the CSV ourselves ? There is not utility functions?
+It can either be obtained using the CLI option `-ff csv` or by calling the right API as follows:
 
 ..  code-block:: python
 
-    import csv
+    from qbindiff.loader.types import FunctionType
 
-    matches = differ.compute_matching()
+    matches: Mapping = differ.compute_matching()
 
-    with open('/path/to/output.csv', 'w') as f:
-        writer = csv.writer(f)
-        writer.writerow((
-            'path_primary',
-            'func_addr_primary',
-            'func_name_primary',
-            'path_secondary',
-            'func_addr_secondary',
-            'func_name_secondary',
-            'similarity',
-            'confidence'
-        ))
+    # This only exports base fields (address, similarity, confidence)
+    matches.to_csv("/path/to/output.csv")
 
-        for match in matches:
-            writer.writerow((
-                differ.primary.name,
-                hex(match.primary.addr),
-                match.primary.name,
-                differ.secondary.name,
-                hex(match.secondary.addr),
-                match.primary.name,
-                match.similarity,
-                match.confidence
-            ))
+    # Add extra "name" field
+    matches.to_csv("/path/to/output.csv", "name")
+
+    # Add extra "name" field and custom field
+    matches.to_csv(
+        "/path/to/output.csv",
+        "name",
+        ("is_library", lambda f: f.type == FunctionType.library)
+    )
