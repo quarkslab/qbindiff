@@ -190,7 +190,7 @@ class Program(MutableMapping, GenericGraph):
         """
         Iterate over the edges. An edge is a pair (addr_a, addr_b)
 
-        :returns: An :py:class`OutEdgeView` over the edges.
+        :returns: An :py:class:`OutEdgeView` over the edges.
         """
 
         return self.callgraph.edges

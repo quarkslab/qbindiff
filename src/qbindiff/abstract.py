@@ -100,6 +100,6 @@ class GenericGraph(metaclass=ABCMeta):
         """
         Iterate over the edges. An edge is a pair (node_label_a, node_label_b)
 
-        :returns: An :py:class`Iterable` over the edges.
+        :returns: An :py:class:`Iterable` over the edges.
         """
         raise NotImplementedError()
