@@ -60,7 +60,7 @@ Addr: TypeAlias = int
 An integer representing an address within a program
 """
 
-NodeLabel: TypeAlias = Any  # Generic node label
+NodeLabel: TypeAlias = Any  #: The node label of a generic graph
 
 RawMapping: TypeAlias = tuple[list[Idx], list[Idx]]
 """
@@ -107,9 +107,9 @@ SparseMatrix: TypeAlias = csr_matrix
 Float nxm-Dimensional array. A sparse version of the above SimMatrix
 """
 
-Graph: TypeAlias = GenericGraph  # generic Graph, iterable over the nodes
+Graph: TypeAlias = GenericGraph  #: generic Graph, iterable over the nodes
 
-Node: TypeAlias = GenericNode  # Generic node. This is the entity that will be matched
+Node: TypeAlias = GenericNode  #: Generic node. This is the entity that will be matched
 
 ExtendedMapping: TypeAlias = Iterable[tuple[Node, Node, float, int]]
 """
@@ -121,9 +121,7 @@ SparseVector: TypeAlias = csr_array
 Float n-Dimensional sparse array.
 """
 
-PathLike: TypeAlias = str | Path  # Path
-
-NodeLabel: TypeAlias = Any  # The node label of a generic graph
+PathLike: TypeAlias = str | Path  #: Path
 
 
 class GenericPrePass(Protocol):
