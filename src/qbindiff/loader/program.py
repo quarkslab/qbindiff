@@ -16,28 +16,34 @@
 """
 
 from __future__ import annotations
-import networkx
-from collections.abc import Callable, Iterator
+from collections.abc import MutableMapping
+from typing import TYPE_CHECKING
 
 from qbindiff.abstract import GenericGraph
-from qbindiff.loader import Function, Structure
+from qbindiff.loader import Function
 from qbindiff.loader.types import LoaderType
-from qbindiff.types import Addr
-from qbindiff.loader.backend.abstract import AbstractProgramBackend
+
+if TYPE_CHECKING:
+    import networkx
+    from networkx.classes.reportviews import OutEdgeView
+    from collections.abc import Callable, Iterator
+    from qbindiff.loader import Structure
+    from qbindiff.loader.backend.abstract import AbstractProgramBackend
+    from qbindiff.types import Addr
 
 
-class Program(dict, GenericGraph):
+class Program(MutableMapping, GenericGraph):
     """
     Program class that shadows the underlying program backend used.
 
-    It inherits from dict which keys are function addresses and
-    values are Function object.
+    It is a :py:class:`MutableMapping`, where keys are function addresses and
+    values are :py:class:`Function` objects.
 
-    The node label is the function address, the node itself is the Function object
+    The node label is the function address, the node itself is the :py:class:`Function` object
     """
 
     def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
-        super(Program, self).__init__()
+        super().__init__()
         self._backend = None
 
         if loader is None and (backend := kwargs.get("backend")) is not None:
@@ -62,6 +68,7 @@ class Program(dict, GenericGraph):
             raise NotImplementedError("Loader: %s not implemented" % loader)
 
         self._filter = lambda x: True
+        self._functions: dict[Addr, Function] = {}  # underlying dictionary containing the functions
         self._load_functions()
 
     @staticmethod
@@ -110,45 +117,50 @@ class Program(dict, GenericGraph):
     def __repr__(self) -> str:
         return "<Program:%s>" % self.name
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Addr]:
         """
-        Override the built-in __iter__ to iterate all functions
-        located in the program.
+        Iterate over all functions located in the program, using the filter registered.
 
-        :return: Iterator of all functions (sorted by address)
+        :return: Iterator of all the functions
         """
 
-        for addr in sorted(self.keys()):
-            if self._filter(addr):  # yield function only if filter agree to keep it
-                yield self[addr]
+        yield from self._functions.values()
+
+    def __len__(self) -> int:
+        return len(self._functions)
+
+    def __getitem__(self, key):
+        return self._functions.__getitem__(key)
+
+    def __setitem__(self, key, value):
+        self._functions.__setitem__(key, value)
+
+    def __delitem__(self, key):
+        self._functions.__delitem__(key)
 
     def _load_functions(self) -> None:
-        """
-        Load the functions from the backend
-
-        :return: None
-        """
+        """Load the functions from the backend"""
 
         for function in map(Function.from_backend, self._backend.functions):
             self[function.addr] = function
 
     def items(self) -> Iterator[tuple[Addr, Function]]:
         """
-        Return an iterator over the items. Each item is {node_label: node}
+        Iterate over the items. Each item is {address: :py:class:`Function`}
 
-        :return: an iterator over the program elements. Each element is a tuple of shape (function_addr, function_obj)
+        :returns: A :py:class:`Iterator` over the functions. Each element
+                  is a tuple (function_addr, function_obj)
         """
 
-        for addr in self.keys():
-            if self._filter(addr):  # yield function only if filter agree to keep it
-                yield (addr, self[addr])
+        # yield function only if filter agree to keep it
+        yield from filter(lambda i: self._filter(i[0]), self._functions.items())
 
     def get_node(self, node_label: Addr) -> Function:
         """
-        Returns the node identified by the `node_label`
+        Get the function identified by the address ``node_label``
 
-        :param node_label: the node_label or the address from which we want to recover the object
-        :return: the function identified by its address
+        :param node_label: the address of the function that will be returned
+        :returns: the function identified by its address
         """
 
         return self[node_label]
@@ -156,26 +168,29 @@ class Program(dict, GenericGraph):
     @property
     def node_labels(self) -> Iterator[Addr]:
         """
-        Iterator over the node labels
+        Iterate over the functions' address
+
+        :returns: An :py:class:`Iterator` over the functions' address
         """
 
-        for addr in self.keys():
-            if self._filter(addr):
-                yield addr
+        yield from filter(self._filter, self._functions.keys())
 
     @property
     def nodes(self) -> Iterator[Function]:
         """
-        Iterator over the nodes
+        Iterate over the functions
+
+        :returns: An :py:class:`Iterator` over the functions
         """
 
         yield from self.__iter__()
 
     @property
-    def edges(self) -> Iterator[tuple[Addr, Addr]]:
+    def edges(self) -> OutEdgeView[Addr, Addr]:
         """
-        Iterator over the edges.
-        An edge is a pair (addr_a, addr_b)
+        Iterate over the edges. An edge is a pair (addr_a, addr_b)
+
+        :returns: An :py:class:`OutEdgeView` over the edges.
         """
 
         return self.callgraph.edges

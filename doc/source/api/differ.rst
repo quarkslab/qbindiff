@@ -11,6 +11,16 @@ GenericGraph
     :undoc-members:
     :exclude-members:
 
+GenericNode
+-----------
+
+.. autoclass:: qbindiff.GenericNode
+    :members:
+    :show-inheritance:
+    :inherited-members:
+    :undoc-members:
+    :exclude-members:
+
 Differ
 ------
 

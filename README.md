@@ -115,8 +115,8 @@ The complete command line options are:
       -e1, --executable1 PATH       Path to the primary raw executable. Must be provided if using quokka loader
       -e2, --executable2 PATH       Path to the secondary raw executable. Must be provided if using quokka loader
       -o, --output PATH             Write output to PATH
-      -ff, --file-format [bindiff]  The file format of the output file. Supported formats are [bindiff]  [default:
-                                    bindiff]
+      -ff, --file-format [bindiff|csv]
+                                    The file format of the output file  [default: csv]
       -v, --verbose                 Activate debugging messages. Can be supplied multiple times to increase verbosity
       --version                     Show the version and exit.
       --arch-primary TEXT           Force the architecture when disassembling for the primary. Format is

@@ -18,9 +18,30 @@ Contains the common interfaces, defined as abstract classes, that will be used
 throught the qbindiff module (the differ, the matcher, the exporters, etc...).
 """
 
+from __future__ import annotations
 from abc import ABCMeta, abstractmethod
-from collections.abc import Iterator
-from typing import Any
+from collections.abc import Hashable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import Any
+    from qbindiff.types import NodeLabel
+
+
+class GenericNode(Hashable):
+    """
+    Abstract class representing a generic node
+    """
+
+    @abstractmethod
+    def get_label(self) -> NodeLabel:
+        """
+        Get the label associated to this node
+
+        :returns: The node label associated with this node
+        """
+        raise NotImplementedError()
 
 
 class GenericGraph(metaclass=ABCMeta):
@@ -34,40 +55,51 @@ class GenericGraph(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def items(self) -> Iterator[tuple[Any, Any]]:
+    def items(self) -> Iterable[tuple[NodeLabel, GenericNode]]:
         """
-        Return an iterator over the items. Each item is {node_label: node}
+        Iterate over the items. Each item is {node_label: node}
+
+        :returns: A :py:class:`Iterable` over the items. Each item is
+                  a tuple (node_label, node)
         """
         raise NotImplementedError()
 
     @abstractmethod
-    def get_node(self, node_label: Any):
+    def get_node(self, node_label: NodeLabel) -> GenericNode:
         """
-        Returns the node identified by the `node_label`
-        """
-        raise NotImplementedError()
+        Get the node identified by the `node_label`
 
-    @property
-    @abstractmethod
-    def node_labels(self) -> Iterator[Any]:
-        """
-        Return an iterator over the node labels
-        """
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def nodes(self) -> Iterator[Any]:
-        """
-        Return an iterator over the nodes
+        :param node_label: the unique identifier of the node
+        :returns: The node identified by the label
         """
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def edges(self) -> Iterator[tuple[Any, Any]]:
+    def node_labels(self) -> Iterable[NodeLabel]:
         """
-        Return an iterator over the edges.
-        An edge is a pair (node_label_a, node_label_b)
+        Iterate over the node labels
+
+        :returns: An :py:class:`Iterable` over the node labels
+        """
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def nodes(self) -> Iterable[GenericNode]:
+        """
+        Iterate over the nodes themselves
+
+        :returns: An :py:class:`Iterable` over the nodes
+        """
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def edges(self) -> Iterable[tuple[NodeLabel, NodeLabel]]:
+        """
+        Iterate over the edges. An edge is a pair (node_label_a, node_label_b)
+
+        :returns: An :py:class:`Iterable` over the edges.
         """
         raise NotImplementedError()

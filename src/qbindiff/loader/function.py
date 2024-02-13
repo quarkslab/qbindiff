@@ -16,20 +16,25 @@
 """
 
 from __future__ import annotations
-import networkx
-from collections.abc import Mapping, Generator
+from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
+from qbindiff.abstract import GenericNode
 from qbindiff.loader import BasicBlock
 from qbindiff.loader.types import FunctionType
-from qbindiff.types import Addr
-from qbindiff.loader.backend.abstract import AbstractFunctionBackend
+
+if TYPE_CHECKING:
+    import networkx
+    from collections.abc import Generator
+    from qbindiff.loader.backend.abstract import AbstractFunctionBackend
+    from qbindiff.types import Addr
 
 
-class Function(Mapping[Addr, BasicBlock]):
+class Function(Mapping, GenericNode):
     """
     Representation of a binary function.
 
-    This class is a dict of basic block addreses to the basic block.
+    This class is a non-mutable mapping between basic block's address and the basic block itself.
 
     It lazily loads all the basic blocks when iterating through them or even accessing
     one of them and it unloads all of them after the iteration has ended.
@@ -50,7 +55,7 @@ class Function(Mapping[Addr, BasicBlock]):
     """
 
     def __init__(self, backend: AbstractFunctionBackend):
-        super(Function, self).__init__()
+        super().__init__()
 
         # The basic blocks are lazily loaded
         self._basic_blocks = None
@@ -94,7 +99,7 @@ class Function(Mapping[Addr, BasicBlock]):
         self._unload()
         return bb
 
-    def __iter__(self) -> Generator[BasicBlock]:
+    def __iter__(self) -> Generator[BasicBlock, None, None]:
         """
         Iterate over basic blocks, not addresses
         """
@@ -115,11 +120,11 @@ class Function(Mapping[Addr, BasicBlock]):
         self._unload()
         return size
 
-    def items(self) -> Generator[Addr, BasicBlock]:
+    def items(self) -> Generator[tuple[Addr, BasicBlock], None, None]:
         """
         Returns a generator of tuples with addresses of basic blocks and the corresponding basic blocks objects
 
-        :return: generator (addr, basicblock)
+        :returns: generator (addr, basicblock)
         """
 
         if self._basic_blocks is not None:
@@ -150,6 +155,15 @@ class Function(Mapping[Addr, BasicBlock]):
         if self._enable_unloading:
             self._basic_blocks = None
             self._backend.unload_blocks()
+
+    def get_label(self) -> Addr:
+        """
+        Get the address associated to this function
+
+        :returns: The address associated with the function
+        """
+
+        return self.addr
 
     @property
     def edges(self) -> list[tuple[Addr, Addr]]:
