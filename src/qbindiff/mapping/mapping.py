@@ -23,7 +23,7 @@ from qbindiff.types import Match
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Callable
+    from typing import Callable, Any
     from qbindiff.types import ExtendedMapping, Node
 
     ExtraAttrsType: TypeAlias = str | tuple[str, Callable[[Node], Any]]
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 class Mapping:
     """
     This class represents an interface to access the result of the matching analysis.
-    Its interface is independent of the underlying :py:obj:`Node`s manipulated.
+    Its interface is independent of the underlying :py:obj:`Node` type manipulated.
     """
 
     def __init__(
