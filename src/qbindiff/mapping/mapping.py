@@ -26,6 +26,8 @@ if TYPE_CHECKING:
     from typing import Callable
     from qbindiff.types import ExtendedMapping, Node
 
+    ExtraAttrsType: TypeAlias = str | tuple[str, Callable[[Node], Any]]
+
 
 class Mapping:
     """
@@ -198,7 +200,7 @@ class Mapping:
         """
         return self.match_secondary(node) is not None
 
-    def to_csv(self, path: Path | str, *extra_attrs: * tuple[str, Callable[[Node], Any]]) -> None:
+    def to_csv(self, path: Path | str, *extra_attrs: *ExtraAttrsType) -> None:
         """
         Write the mapping into a csv file.
         Additional attributes of the nodes to put in the csv can be optionally specified.
@@ -207,15 +209,20 @@ class Mapping:
         .. code-block:: python
             :linenos:
 
+            # Adding the attribute "primary_addr" and "secondary_addr". The value will be obtained
+            # by accessing `function.addr`
+            mapping.to_csv("result.csv", "addr")
+
             # Adding the attributes name and type. This will add the fields "primary_name",
             # "secondary_name", "primary_type", "secondary_type"
-            mapping.to_csv("result.csv", ("name", lambda f: f.name), ("type", lambda f: f.type))
+            mapping.to_csv("result.csv", ("name", lambda f: f.name.upper()), "type")
 
         :param path: The file path of the csv file to write
-        :param extra_attrs: Additional attributes to put in the csv. Each attribute is a
-                            tuple (attribute_name, attribute_function)
+        :param extra_attrs: Additional attributes to put in the csv. Each attribute is either a
+                            tuple (attribute_name, attribute_function) or a string *attribute_name*
         """
 
+        # Check the path
         if isinstance(path, str):
             path = Path(str)
         if path.exists() and not path.is_file():
@@ -226,10 +233,16 @@ class Mapping:
         # Extract the optional extra attributes
         attrs_name = []
         attrs_func = []
-        for name, func in extra_attrs:
-            attrs_name.append(f"primary_{name}")
-            attrs_name.append(f"secondary_{name}")
-            attrs_func.append(func)
+        for extra_attr in extra_attrs:
+            match extra_attr:
+                case str(name):
+                    attrs_name.append(f"primary_{name}")
+                    attrs_name.append(f"secondary_{name}")
+                    attrs_func.append(lambda f: getattr(f, name))
+                case (name, func):
+                    attrs_name.append(f"primary_{name}")
+                    attrs_name.append(f"secondary_{name}")
+                    attrs_func.append(func)
 
         with open(path, "w", newline="") as f:
             writer = csv.writer(f)
