@@ -63,7 +63,7 @@ class Matcher:
         primary_adj_matrix: AdjacencyMatrix,
         secondary_adj_matrix: AdjacencyMatrix,
     ):
-        self._mapping = None  # nodes mapping
+        self._mapping: RawMapping = None  # nodes mapping
         #: Similarity matrix used by the Matcher
         self.sim_matrix = similarity_matrix
         #: Adjacency matrix of the primary graph
@@ -71,8 +71,10 @@ class Matcher:
         #: Adjacency matrix of the secondary graph
         self.secondary_adj_matrix = secondary_adj_matrix
 
-        self.sparse_sim_matrix = None
-        self.squares_matrix = None
+        self._processed = False
+
+        self.sparse_sim_matrix: SimMatrix | None = None
+        self.squares_matrix: Matrix | None = None
 
     def _compute_sparse_sim_matrix(self, sparsity_ratio: Ratio, sparse_row: bool) -> None:
         """
@@ -108,7 +110,7 @@ class Matcher:
                 mask.append(self.sim_matrix[i] > 0)
 
             self.sparse_sim_matrix = csr_matrix(mask, dtype=self.sim_matrix.dtype)
-            self.sparse_sim_matrix.data[:] = self.sim_matrix[mask]
+            self.sparse_sim_matrix.data[:] = self.sim_matrix[mask]  # type: ignore
         else:
             # Sort the flattened similarity matrix and keep the indexes of the sorted values
             sorted_indexes = np.argsort(self.sim_matrix, axis=None, kind="stable")
@@ -117,12 +119,12 @@ class Matcher:
             self.sim_matrix.flat[sorted_indexes[:sparsity_size]] = 0
 
             # Create a mask
-            mask = self.sim_matrix > 0
+            mask = self.sim_matrix > 0  # type: ignore
 
             # Create the sparse matrix
             csr_data = self.sim_matrix[mask]
             self.sparse_sim_matrix = csr_matrix(mask, dtype=self.sim_matrix.dtype)
-            self.sparse_sim_matrix.data[:] = csr_data
+            self.sparse_sim_matrix.data[:] = csr_data  # type: ignore
 
     def _compute_squares_matrix(self) -> None:
         """
@@ -158,9 +160,11 @@ class Matcher:
         )
 
     @property
-    def mapping(self) -> RawMapping:
+    def mapping(self) -> RawMapping | None:
         """
         Nodes mapping between the two graphs
+
+        :returns: The raw mapping between the nodes in the two input graphs
         """
         return self._mapping
 
@@ -172,8 +176,8 @@ class Matcher:
         return [self._confidence[idx1, idx2] for idx1, idx2 in zip(*self.mapping)]
 
     def process(
-        self, sparsity_ratio: Ratio, sparse_row: bool = False, compute_squares: bool = True
-    ):
+        self, sparsity_ratio: Ratio = 0.6, sparse_row: bool = False, compute_squares: bool = True
+    ) -> None:
         """
         Initialize the matching algorithm
 
@@ -184,23 +188,27 @@ class Matcher:
                            similarity matrix (sparse_row == False) or by considering
                            each vector separately (sparse_row == True)
         :param compute_squares: Whether to compute the squares matrix
-        :return: None
         """
 
+        if self._processed:  # Only do it once
+            return
+
+        self._processed = True
         logging.debug(
             f"Computing sparse similarity matrix (ratio {sparsity_ratio} sparse_row {sparse_row})"
         )
         self._compute_sparse_sim_matrix(sparsity_ratio, sparse_row)
         logging.debug(
-            f"Sparse similarity matrix computed, shape: {self.sparse_sim_matrix.shape}"
-            f", nnz elements: {self.sparse_sim_matrix.nnz}"
+            "Sparse similarity matrix computed,"
+            f" shape: {self.sparse_sim_matrix.shape}"  # type: ignore
+            f", nnz elements: {self.sparse_sim_matrix.nnz}"  # type: ignore
         )
         if compute_squares:
             logging.debug("Computing squares matrix")
             self._compute_squares_matrix()
             logging.debug(
-                f"Squares matrix computed, shape: {self.squares_matrix.shape}"
-                f", nnz elements: {self.squares_matrix.nnz}"
+                f"Squares matrix computed, shape: {self.squares_matrix.shape}"  # type: ignore
+                f", nnz elements: {self.squares_matrix.nnz}"  # type: ignore
             )
 
     def compute(
@@ -212,8 +220,10 @@ class Matcher:
         :param tradeoff: tradeoff between the node similarity and the structure
         :param epsilon: perturbation to add to the similarity matrix
         :param maxiter: maximum number of iterations for the belief propagation
-        :return: None
+        :return: an iterator over each step of the belief propagation
         """
+
+        self.process()
 
         if tradeoff == 1:
             logging.info("[+] switching to Maximum Weight Matching (tradeoff is 1)")
@@ -224,7 +234,7 @@ class Matcher:
         for niter in belief.compute(maxiter):
             yield niter
 
-        score_matrix = self.sparse_sim_matrix.copy()
+        score_matrix = self.sparse_sim_matrix.copy()  # type: ignore
         self._confidence = belief.current_marginals
         self._mapping = self.refine(belief.current_mapping, score_matrix)
 

@@ -17,14 +17,14 @@
 
 from __future__ import annotations
 import csv, logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from qbindiff.types import Match
 
 if TYPE_CHECKING:
-    from pathlib import Path
     from typing import Callable, Any, TypeAlias
-    from qbindiff.types import ExtendedMapping, Node
+    from qbindiff.types import ExtendedMapping, Node, PathLike
 
     ExtraAttrsType: TypeAlias = str | tuple[str, Callable[[Node], Any]]
 
@@ -57,7 +57,7 @@ class Mapping:
         """
         Normalized similarity of the diff (from 0 to 1)
         """
-        return (2 * self.similarity) / (self.nb_node_primary + self.nb_node_secondary)
+        return (2 * self.similarity) / (self.nb_nodes_primary + self.nb_nodes_secondary)
 
     @property
     def squares(self) -> float:
@@ -199,7 +199,7 @@ class Mapping:
         """
         return self.match_secondary(node) is not None
 
-    def to_csv(self, path: Path | str, *extra_attrs: *ExtraAttrsType) -> None:
+    def to_csv(self, path: PathLike, *extra_attrs: *ExtraAttrsType) -> None:  # type: ignore[valid-type]
         """
         Write the mapping into a csv file.
         Additional attributes of the nodes to put in the csv can be optionally specified.
@@ -224,7 +224,7 @@ class Mapping:
 
         # Check the path
         if isinstance(path, str):
-            path = Path(str)
+            path = Path(path)
         if path.exists() and not path.is_file():
             raise ValueError(f"path `{path}` already exists and is not a file.")
         if path.exists():

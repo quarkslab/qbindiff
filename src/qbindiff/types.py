@@ -117,7 +117,7 @@ Graph: TypeAlias = GenericGraph  #: generic Graph, iterable over the nodes
 
 Node: TypeAlias = GenericNode  #: Generic node. This is the entity that will be matched
 
-ExtendedMapping: TypeAlias = Iterable[tuple[Node, Node, float, int]]
+ExtendedMapping: TypeAlias = Iterable[tuple[Node, Node, float, float, int]]
 """
 An extended version of RawMapping with two more lists recording pairing similarity and induced number of squares.
 """
