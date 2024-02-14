@@ -16,8 +16,12 @@
 """
 
 from __future__ import annotations
+from typing import TYPE_CHECKING
 
 from qbindiff.loader.backend import AbstractOperandBackend
+
+if TYPE_CHECKING:
+    from qbindiff.loader.types import OperandType
 
 
 class Operand:
@@ -37,7 +41,7 @@ class Operand:
         return Operand(backend)
 
     @property
-    def type(self) -> int:
+    def type(self) -> OperandType:
         """
         The operand type as int as defined in the IDA API.
         Example : 1 corresponds to a register (ex: rax)

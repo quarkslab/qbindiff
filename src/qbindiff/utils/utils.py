@@ -33,7 +33,7 @@ def is_debug() -> bool:
     return logging.root.level <= logging.DEBUG
 
 
-def iter_csr_matrix(matrix: SparseMatrix) -> Generator[tuple[int, int, Any]]:
+def iter_csr_matrix(matrix: SparseMatrix) -> Generator[tuple[int, int, Any], None, None]:
     """
     Iterate over non-null items in a CSR (Compressed Sparse Row) matrix.
     It returns a generator that, at each iteration, returns the tuple

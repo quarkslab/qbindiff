@@ -141,7 +141,7 @@ For a list of all the features available see --list-features."""
 @click.option(
     "-d",
     "--distance",
-    type=click.Choice((d.name for d in Distance)),
+    type=click.Choice([d.name for d in Distance]),
     show_default=True,
     default=DEFAULT_DISTANCE,
     metavar="<function>",

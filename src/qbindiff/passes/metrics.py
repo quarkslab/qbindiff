@@ -31,10 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import numpy as np
-import sklearn.metrics
-from scipy.spatial import distance
-from scipy.sparse import issparse, csr_matrix
-from qbindiff.passes.fast_metrics import sparse_canberra, sparse_haussmann
+import sklearn.metrics  # type: ignore[import-untyped]
+from scipy.spatial import distance  # type: ignore[import-untyped]
+from scipy.sparse import issparse, csr_matrix  # type: ignore[import-untyped]
+from qbindiff.passes.fast_metrics import sparse_canberra, sparse_haussmann  # type: ignore[import-untyped]
 from qbindiff.types import Distance
 
 

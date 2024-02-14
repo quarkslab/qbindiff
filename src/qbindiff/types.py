@@ -20,11 +20,11 @@ used by qbindiff.
 
 from __future__ import annotations
 from collections.abc import Iterable
-from typing import Any, TypeAlias, Protocol, TYPE_CHECKING
+from typing import Any, TypeAlias, Protocol, Literal, Sequence, TYPE_CHECKING
 
 import numpy
 from pathlib import Path
-from scipy.sparse import csr_matrix, csr_array
+from scipy.sparse import csr_matrix, csr_array  # type: ignore[import-untyped]
 from collections import namedtuple
 import enum_tools.documentation
 from enum import IntEnum
@@ -75,6 +75,12 @@ Match represent the matching between two functions and can hold the similarity b
 Dtype: TypeAlias = numpy.dtype
 """
 Numpy data type
+"""
+
+# Numpy typing system is still very incomplete
+ArrayLike1D: TypeAlias = Sequence[Any] | numpy.ndarray[Literal["N"], numpy.dtype[Any]]
+"""
+1 Dimensional arrays, either as sequences in python or as ndarrays in numpy.
 """
 
 Vector: TypeAlias = numpy.ndarray

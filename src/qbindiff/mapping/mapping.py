@@ -70,9 +70,9 @@ class Mapping:
         self,
         node1: Node,
         node2: Node,
-        similarity: float = None,
-        confidence: float = 0.0,
-        squares: int = None,
+        similarity: float,
+        confidence: float,
+        squares: int,
     ) -> None:
         """
         Add the given match between the two nodes.
@@ -82,7 +82,6 @@ class Mapping:
         :param similarity: similarity metric as float
         :param confidence: confidence in the result (0..1)
         :param squares: Number of squares being made
-        :return: None
         """
         self._matches.append(Match(node1, node2, similarity, confidence, squares))
 

@@ -15,9 +15,14 @@
 """Features that uses the topology of the CFG
 """
 
+from __future__ import annotations
 import networkx
+import hashlib
+import community  # type: ignore[import-untyped]
 import numpy as np
 import math
+from typing import no_type_check, TYPE_CHECKING
+
 from qbindiff.features.extractor import (
     FunctionFeatureExtractor,
     InstructionFeatureExtractor,
@@ -26,9 +31,9 @@ from qbindiff.features.extractor import (
 )
 from qbindiff.loader import Program, Function, Instruction, Operand
 from qbindiff.loader.types import OperandType
-import hashlib
-import community
 
+if TYPE_CHECKING:
+    from qbindiff.loader import Operand
 
 class BBlockNb(FunctionFeatureExtractor):
     """
@@ -109,6 +114,8 @@ class MDIndex(FunctionFeatureExtractor):
     DAG graphs (which may not always be the case)
     """.strip()
 
+    # There is a problem with networkx stubs for types on DiGraph.{in,out}_degree
+    @no_type_check
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:

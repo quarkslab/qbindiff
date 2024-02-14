@@ -16,24 +16,23 @@
 """
 
 # built-in imports
+from __future__ import annotations
 import logging
+from typing import TYPE_CHECKING
 
 # Third-party imports
 import numpy as np
 from lapjv import lapjv
-from scipy.sparse import csr_matrix, coo_matrix
+from scipy.sparse import csr_matrix, coo_matrix  # type: ignore[import-untyped]
 
 # Local imports
-from qbindiff.matcher.squares import find_squares
+from qbindiff.matcher.squares import find_squares  # type: ignore[import-untyped]
 from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefQAP
-from qbindiff.types import (
-    Positive,
-    Ratio,
-    RawMapping,
-    AdjacencyMatrix,
-    Matrix,
-    SimMatrix,
-)
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from qbindiff.types import Positive, Ratio, RawMapping, AdjacencyMatrix, Matrix, SimMatrix
 
 
 def solve_linear_assignment(cost_matrix: Matrix) -> RawMapping:
@@ -204,7 +203,9 @@ class Matcher:
                 f", nnz elements: {self.squares_matrix.nnz}"
             )
 
-    def compute(self, tradeoff: Ratio = 0.75, epsilon: Positive = 0.5, maxiter: int = 1000) -> None:
+    def compute(
+        self, tradeoff: Ratio = 0.75, epsilon: Positive = 0.5, maxiter: int = 1000
+    ) -> Iterator[int]:
         """
         Launch the computation for a given number of iterations, using specific QBinDiff parameters
 

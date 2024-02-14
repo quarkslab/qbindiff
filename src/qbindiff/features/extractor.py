@@ -16,7 +16,7 @@
 """
 
 from __future__ import annotations
-from scipy.sparse import lil_array
+from scipy.sparse import lil_array  # type: ignore[import-untyped]
 from collections import defaultdict
 
 from qbindiff.features.manager import FeatureKeyManager
@@ -55,9 +55,11 @@ class FeatureCollector:
         :param key: name of the feature adding the value
         :param value: float value to be added in the collector
         """
+
         FeatureKeyManager.add(key)
-        self._features.setdefault(key, 0)
-        self._features[key] += value
+        if not isinstance(self._features.setdefault(key, 0), float | int):
+            raise ValueError(f"Mixing float/int values with dict on feature {key}")
+        self._features[key] += value  # type: ignore[operator]  # mypy not being smart enough
 
     def add_dict_feature(self, key: str, value: dict[str, float]) -> None:
         """

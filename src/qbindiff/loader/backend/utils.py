@@ -1,6 +1,6 @@
 # builtin import
 from __future__ import annotations
-import capstone
+import capstone  # type: ignore[import-untyped]
 from typing import Any, TypeAlias
 
 # local imports
