@@ -170,7 +170,7 @@ def convert_operand_type(arch: int, cs_operand: capstoneOperand) -> OperandType:
     arch_specific_operands = operands.get(arch)
     if not arch_specific_operands:
         raise NotImplementedError(f"Unrecognized capstone arch {arch}")
-    operand_type = arch_specific_operands.get(cs_operand.type)
+    operand_type = arch_specific_operands.get(cs_operand.type)  # type: ignore[attr-defined]
     if not operand_type:
         raise Exception(f"Unrecognized capstone operand {cs_operand.type} for arch {arch}")
     return operand_type

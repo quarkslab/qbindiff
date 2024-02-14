@@ -23,7 +23,7 @@ from qbindiff.types import Match
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Callable, Any
+    from typing import Callable, Any, TypeAlias
     from qbindiff.types import ExtendedMapping, Node
 
     ExtraAttrsType: TypeAlias = str | tuple[str, Callable[[Node], Any]]

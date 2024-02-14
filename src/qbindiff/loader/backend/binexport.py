@@ -24,9 +24,9 @@ from collections.abc import Iterator
 from functools import cached_property
 
 # third-party imports
-import capstone
-import binexport
-import binexport.types
+import capstone  # type: ignore[import-untyped]
+import binexport  # type: ignore[import-untyped]
+import binexport.types  # type: ignore[import-untyped]
 import networkx
 
 # local imports
@@ -206,7 +206,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         )
 
     @property
-    def groups(self) -> list[str]:
+    def groups(self) -> list[int]:
         return self.cs_instr.groups
 
     @property
@@ -327,7 +327,11 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
     @property
     def program(self) -> ProgramBackendBinExport:
         """Wrapper on weak reference on ProgramBackendBinExport"""
-        return self._program()
+        if (program := self._program()) is None:
+            raise RuntimeError(
+                "Trying to access an already expired weak reference on ProgramBackendBinExport"
+            )
+        return program
 
     @property
     def addr(self) -> Addr:
@@ -417,11 +421,11 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
 
 class ProgramBackendBinExport(AbstractProgramBackend):
     def __init__(self, file: str, *, arch: str | None = None):
-        super(ProgramBackendBinExport, self).__init__()
+        super().__init__()
 
         self.be_prog = binexport.ProgramBinExport(file)
         self.architecture_name = self.be_prog.architecture
-        self._fun_names = {}  # {fun_name : fun_address}
+        self._fun_names: dict[str, Addr] = {}  # {fun_name : fun_address}
         self.cs = None
 
         # Check if the architecture is set by the user

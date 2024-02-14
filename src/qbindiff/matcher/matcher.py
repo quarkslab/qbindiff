@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 # Third-party imports
 import numpy as np
-from lapjv import lapjv
+from lapjv import lapjv  # type: ignore[import-not-found]
 from scipy.sparse import csr_matrix, coo_matrix  # type: ignore[import-untyped]
 
 # Local imports

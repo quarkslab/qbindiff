@@ -27,7 +27,7 @@ from typing import Any, TypeAlias
 import quokka
 import quokka.types
 import networkx
-import capstone
+import capstone  # type: ignore[import-untyped]
 
 # local imports
 from qbindiff.loader import Data, Structure
@@ -136,13 +136,22 @@ class OperandBackendQuokka(AbstractOperandBackend):
     ):
         super(OperandBackendQuokka, self).__init__()
 
-        self.program = program
+        self._program = program
         self.cs_instr = cs_instruction
         self.cs_operand = cs_operand
         self.cs_operand_position = cs_operand_position
 
     def __str__(self) -> str:
         return self.cs_instr.op_str.split(",")[self.cs_operand_position]
+
+    @property
+    def program(self) -> ProgramBackendQuokka:
+        """Wrapper on weak reference on ProgramBackendQuokka"""
+        if (program := self._program()) is None:
+            raise RuntimeError(
+                "Trying to access an already expired weak reference on ProgramBackendQuokka"
+            )
+        return program
 
     @property
     def value(self) -> int | None:
@@ -158,7 +167,7 @@ class OperandBackendQuokka(AbstractOperandBackend):
     def type(self) -> OperandType:
         """Returns the capstone operand type"""
         # Get capstone type
-        return convert_operand_type(self.program().qb_prog.capstone.arch, self.cs_operand)
+        return convert_operand_type(self.program.qb_prog.capstone.arch, self.cs_operand)
 
     def is_immediate(self) -> bool:
         """
@@ -181,7 +190,7 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
     ):
         super(InstructionBackendQuokka, self).__init__()
 
-        self.program = program
+        self._program = program
         self.qb_instr = qb_instruction
         self.cs_instr = qb_instruction.cs_inst
         if self.cs_instr is None:
@@ -207,24 +216,39 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         Cast the quokka references to qbindiff reference types
 
         :param references: list of Quokka references
-        :return: list of corresponding references cast to qbindiff type
+        :returns: list of corresponding references cast to qbindiff type
         """
 
-        ret_ref = []
+        ret_ref: list[ReferenceTarget] = []
         for ref in references:
             match ref:
                 case quokka.data.Data():
                     data_type = convert_data_type(ref.type)
                     ret_ref.append(Data(data_type, ref.address, ref.value))
                 case quokka.structure.Structure(name=name):
-                    ret_ref.append(self.program().get_structure(name))
+                    ret_ref.append(self.program.get_structure(name))
                 case quokka.structure.StructureMember(structure=qbe_struct, name=name):
-                    ret_ref.append(
-                        self.program().get_structure(qbe_struct.name).member_by_name(name)
-                    )
+                    if (
+                        member := self.program.get_structure(qbe_struct.name).member_by_name(name)
+                    ) is None:
+                        logging.info(
+                            f"Cannot retrieve the structure member named `{name}`"
+                            f" from structure `{qbe_struct.name}` during reference parsing"
+                        )
+                    else:
+                        ret_ref.append(member)
                 case quokka.Instruction():  # Not implemented for now
                     logging.warning("Skipping instruction reference")
         return ret_ref
+
+    @property
+    def program(self) -> ProgramBackendQuokka:
+        """Wrapper on weak reference on ProgramBackendQuokka"""
+        if (program := self._program()) is None:
+            raise RuntimeError(
+                "Trying to access an already expired weak reference on ProgramBackendQuokka"
+            )
+        return program
 
     @property
     def addr(self) -> Addr:
@@ -264,12 +288,12 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         if self.cs_instr is None:
             return iter([])
         return (
-            OperandBackendQuokka(self.program, self.cs_instr, o, i)
+            OperandBackendQuokka(self._program, self.cs_instr, o, i)
             for i, o in enumerate(self.cs_instr.operands)
         )
 
     @property
-    def groups(self) -> list[str]:
+    def groups(self) -> list[int]:
         """
         Returns a list of groups of this instruction. Groups are capstone based but enriched.
         """
@@ -482,8 +506,8 @@ class ProgramBackendQuokka(AbstractProgramBackend):
         self.qb_prog = quokka.Program(export_path, exec_path)
         self._exec_path = exec_path
 
-        self._callgraph = networkx.DiGraph()
-        self._fun_names = {}  # {fun_name : fun_address}
+        self._callgraph = networkx.DiGraph()  # type: ignore[var-annotated]
+        self._fun_names: dict[str, Addr] = {}  # {fun_name : fun_address}
 
     @property
     def functions(self) -> Iterator[FunctionBackendQuokka]:
@@ -519,9 +543,12 @@ class ProgramBackendQuokka(AbstractProgramBackend):
 
         struct_list = []
         for qbe_struct in self.qb_prog.structures:
-            struct = Structure(
-                convert_struct_type(qbe_struct.type), qbe_struct.name, qbe_struct.size
-            )
+            if (struct_size := qbe_struct.size) is None:
+                raise RuntimeError(
+                    "Normally this should never happen."
+                    " Struct with size None encountered. name = `{qbe_struct.name}`"
+                )
+            struct = Structure(convert_struct_type(qbe_struct.type), qbe_struct.name, struct_size)
             for offset, member in qbe_struct.items():
                 struct.add_member(
                     offset,

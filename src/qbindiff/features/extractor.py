@@ -68,22 +68,22 @@ class FeatureCollector:
         :param key: name of the feature adding the value
         :param value: Feature value to add
         """
-        self._features.setdefault(key, defaultdict(float))
 
-        if value == {}:
-            FeatureKeyManager.add(key)
-            self._features[key] = 0
-        else:
-            for k, v in value.items():
-                FeatureKeyManager.add(key, k)
-                self._features[key][k] += v
+        FeatureKeyManager.add(key)
+        if not isinstance(self._features.setdefault(key, defaultdict(float)), dict):
+            raise ValueError(f"Mixing immediate values (float/int) with dict on feature {key}")
 
-    def feature_vector(self) -> None:
-        """Show the feature vector associated to the node"""
-        feature_vector = {}
-        for main_key, feature in self._features.items():
-            feature_vector[main_key] = feature
-        return feature_vector
+        for k, v in value.items():
+            FeatureKeyManager.add(key, k)
+            self._features[key][k] += v  # type: ignore[index]  # MyPy not smart enough
+
+    def feature_vector(self) -> dict[str, FeatureValue]:
+        """
+        Show the feature vector in a dictionary fashion.
+
+        :returns: The feature vector in a dictionary fashion {key : FeatureValue}
+        """
+        return self._features.copy()
 
     def full_keys(self) -> dict[str, set[str]]:
         """
@@ -92,9 +92,9 @@ class FeatureCollector:
 
         e.g: {feature_key1: [], feature_key2: [], ..., feature_keyN: [subkey1, ...], ...}
 
-        :return: dictionary mapping feature keys to their subkeys if any
+        :returns: dictionary mapping feature keys to their subkeys if any
         """
-        keys = {}
+        keys: dict[str, set[str]] = {}
         for main_key, feature in self._features.items():
             keys.setdefault(main_key, set())
             if isinstance(feature, dict):
@@ -109,7 +109,7 @@ class FeatureCollector:
         :param dtype: dtype of the sparse vector
         :param main_key_list: A list of main keys that act like a filter: only those
                               keys are considered when building the vector.
-        :return:
+        :returns: The sparse feature vector for this collection of features
         """
 
         manager = FeatureKeyManager
@@ -122,7 +122,7 @@ class FeatureCollector:
                 continue
 
             if isinstance(self._features[main_key], dict):  # with subkeys
-                for subkey, value in self._features[main_key].items():
+                for subkey, value in self._features[main_key].items():  # type: ignore[union-attr]
                     vector[0, offset + manager.get(main_key, subkey)] = value
             else:  # without subkeys
                 vector[0, offset] = self._features[main_key]
