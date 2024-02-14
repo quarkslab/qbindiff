@@ -34,7 +34,6 @@ if TYPE_CHECKING:
     from qbindiff.mapping import Mapping
 
 
-
 @lru_cache
 def primes() -> list[int]:
     """

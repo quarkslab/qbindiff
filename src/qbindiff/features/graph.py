@@ -35,6 +35,7 @@ from qbindiff.loader.types import OperandType
 if TYPE_CHECKING:
     from qbindiff.loader import Operand
 
+
 class BBlockNb(FunctionFeatureExtractor):
     """
     Number of basic blocks in the function as a feature.
