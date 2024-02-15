@@ -51,7 +51,7 @@ def sparse_canberra(floating[::1] X_data, int[:] X_indices, int[:] X_indptr,
     """Pairwise canberra distances for CSR matrices"""
     cdef cnp.npy_intp px, py, i, j, ix, iy
     cdef double d = 0.0
-    cdef double tmp;
+    cdef double tmp
 
     cdef int m = D.shape[0]
     cdef int n = D.shape[1]
@@ -127,10 +127,10 @@ def sparse_canberra(floating[::1] X_data, int[:] X_indices, int[:] X_indptr,
 def sparse_haussmann(floating[::1] X_data, int[:] X_indices, int[:] X_indptr,
                     floating[::1] Y_data, int[:] Y_indices, int[:] Y_indptr,
                     double[:, ::1] D, double[:] w):
-    """Pairwise canberra distances for CSR matrices"""
+    """Pairwise haussmann distances for CSR matrices"""
     cdef cnp.npy_intp px, py, i, j, ix, iy
     cdef double d = 0.0
-    cdef double tmp;
+    cdef double tmp
 
     cdef int m = D.shape[0]
     cdef int n = D.shape[1]
@@ -138,7 +138,7 @@ def sparse_haussmann(floating[::1] X_data, int[:] X_indices, int[:] X_indptr,
     cdef int X_indptr_end = 0
     cdef int Y_indptr_end = 0
     
-    cdef int Z = 0;
+    cdef int Z = 0
 
     cdef int num_threads = _openmp_effective_n_threads()
 
