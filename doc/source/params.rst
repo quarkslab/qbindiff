@@ -34,7 +34,11 @@ Haussmann
 Formally it is defined as:
 
 .. math::
-   d(u, v) = \sum_{i=0}^n\frac{f(u_i, v_i)}{ \lvert \{ j | u_j \neq 0 \lor v_j \neq 0 \} \rvert }
+   d(u, v) = 
+   \begin{cases}
+    0 & \text{if } \forall i \; u_i = 0 \and v_i = 0 \\
+    1 - \sum_{i=0}^n\frac{f(u_i, v_i)}{ \lvert \{ j | u_j \neq 0 \lor v_j \neq 0 \} \rvert } & text{otherwise}
+   \end{cases}
 
 .. math::
    with\ u, v \in \mathbb{R}^n
