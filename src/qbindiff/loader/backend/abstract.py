@@ -102,7 +102,7 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def groups(self) -> list[str]:
+    def groups(self) -> list[int]:
         """
         Returns a list of groups of this instruction
         """

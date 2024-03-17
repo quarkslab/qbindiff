@@ -67,7 +67,8 @@ def match_same_hash_functions(
         if (p_feature := primary_features.get(f1_addr)) is None:
             continue
 
-        hash_map[p_feature.get(BytesHash.key)][0].add(f1_addr)
+        if (byte_hash_value := p_feature.get(BytesHash.key)) is not None:
+            hash_map[byte_hash_value][0].add(f1_addr)
 
     # Store the hash of the secondary functions
     for f2_addr in secondary.keys():
@@ -75,11 +76,8 @@ def match_same_hash_functions(
         if (s_feature := secondary_features.get(f2_addr)) is None:
             continue
 
-        hash_map[s_feature.get(BytesHash.key)][1].add(f2_addr)
-
-    # Remove None key
-    if None in hash_map:
-        hash_map.pop(None)
+        if (byte_hash_value := s_feature.get(BytesHash.key)) is not None:
+            hash_map[byte_hash_value][1].add(f2_addr)
 
     # No hash means no feature registered
     if len(hash_map) == 0:

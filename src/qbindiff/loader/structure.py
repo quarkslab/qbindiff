@@ -16,9 +16,11 @@
 """
 
 from __future__ import annotations
-from typing import Any
+from typing import TYPE_CHECKING
 
-from qbindiff.loader.types import DataType, StructureType
+if TYPE_CHECKING:
+    from typing import Any
+    from qbindiff.loader.types import DataType, StructureType
 
 
 class StructureMember:

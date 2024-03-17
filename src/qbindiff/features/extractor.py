@@ -16,7 +16,7 @@
 """
 
 from __future__ import annotations
-from scipy.sparse import lil_array
+from scipy.sparse import lil_array  # type: ignore[import-untyped]
 from collections import defaultdict
 
 from qbindiff.features.manager import FeatureKeyManager
@@ -55,9 +55,11 @@ class FeatureCollector:
         :param key: name of the feature adding the value
         :param value: float value to be added in the collector
         """
+
         FeatureKeyManager.add(key)
-        self._features.setdefault(key, 0)
-        self._features[key] += value
+        if not isinstance(self._features.setdefault(key, 0), float | int):
+            raise ValueError(f"Mixing float/int values with dict on feature {key}")
+        self._features[key] += value  # type: ignore[operator]  # mypy not being smart enough
 
     def add_dict_feature(self, key: str, value: dict[str, float]) -> None:
         """
@@ -66,19 +68,22 @@ class FeatureCollector:
         :param key: name of the feature adding the value
         :param value: Feature value to add
         """
-        self._features.setdefault(key, defaultdict(float))
 
         FeatureKeyManager.add(key)
+        if not isinstance(self._features.setdefault(key, defaultdict(float)), dict):
+            raise ValueError(f"Mixing immediate values (float/int) with dict on feature {key}")
+
         for k, v in value.items():
             FeatureKeyManager.add(key, k)
-            self._features[key][k] += v
+            self._features[key][k] += v  # type: ignore[index]  # MyPy not smart enough
 
-    def feature_vector(self) -> None:
-        """Show the feature vector associated to the node"""
-        feature_vector = {}
-        for main_key, feature in self._features.items():
-            feature_vector[main_key] = feature
-        return feature_vector
+    def feature_vector(self) -> dict[str, FeatureValue]:
+        """
+        Show the feature vector in a dictionary fashion.
+
+        :returns: The feature vector in a dictionary fashion {key : FeatureValue}
+        """
+        return self._features.copy()
 
     def full_keys(self) -> dict[str, set[str]]:
         """
@@ -87,9 +92,9 @@ class FeatureCollector:
 
         e.g: {feature_key1: [], feature_key2: [], ..., feature_keyN: [subkey1, ...], ...}
 
-        :return: dictionary mapping feature keys to their subkeys if any
+        :returns: dictionary mapping feature keys to their subkeys if any
         """
-        keys = {}
+        keys: dict[str, set[str]] = {}
         for main_key, feature in self._features.items():
             keys.setdefault(main_key, set())
             if isinstance(feature, dict):
@@ -104,7 +109,7 @@ class FeatureCollector:
         :param dtype: dtype of the sparse vector
         :param main_key_list: A list of main keys that act like a filter: only those
                               keys are considered when building the vector.
-        :return:
+        :returns: The sparse feature vector for this collection of features
         """
 
         manager = FeatureKeyManager
@@ -117,7 +122,7 @@ class FeatureCollector:
                 continue
 
             if isinstance(self._features[main_key], dict):  # with subkeys
-                for subkey, value in self._features[main_key].items():
+                for subkey, value in self._features[main_key].items():  # type: ignore[union-attr]
                     vector[0, offset + manager.get(main_key, subkey)] = value
             else:  # without subkeys
                 vector[0, offset] = self._features[main_key]

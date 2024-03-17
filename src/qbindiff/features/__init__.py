@@ -24,6 +24,8 @@ that was extracted in a mathematical object.
 This information should help to characterize the function.
 """
 
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCategory
 
 from qbindiff.features.graph import (
@@ -52,7 +54,10 @@ from qbindiff.features.artefact import Address, DatName, Constant, FuncName, Str
 from qbindiff.features.topology import ChildNb, ParentNb, RelativeNb, LibName, ImpName
 from qbindiff.features.wlgk import WeisfeilerLehman
 
-FEATURES = (
+if TYPE_CHECKING:
+    from qbindiff.features.extractor import FeatureExtractor
+
+FEATURES: tuple[type[FeatureExtractor]] = (  # type: ignore
     # FunctionFeatureExtractor
     BBlockNb,
     StronglyConnectedComponents,
@@ -87,7 +92,7 @@ FEATURES = (
     Constant,
 )
 
-DEFAULT_FEATURES = (
+DEFAULT_FEATURES: tuple[type[FeatureExtractor]] = (  # type: ignore
     # WeisfeilerLehman,
     FuncName,
     Address,

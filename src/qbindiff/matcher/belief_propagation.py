@@ -45,7 +45,7 @@ class BeliefMWM:
 
         self.scores: list[float] = []  #: Scores list
         self.max_avg_score: float = 0.0  #: Current maximum average score
-        self.best_mapping: RawMapping = None  #: Current best mapping
+        self.best_mapping: RawMapping = ([], [])  #: Current best mapping
         self.best_marginals = None  #: Current associated marginals as a SparseMatrix
         self.epsilon = self._dtype(epsilon)  #: Current epsilon
         self._epsilonref = self.epsilon.copy()

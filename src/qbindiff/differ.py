@@ -25,12 +25,12 @@ import logging
 import tqdm
 import numpy as np
 import networkx
-from datasketch import MinHash
+from datasketch import MinHash  # type: ignore[import-untyped]
 from collections.abc import Generator, Iterator
-from typing import Any, TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 
 # third-party imports
-from bindiff import BindiffFile
+from bindiff import BindiffFile  # type: ignore[import-untyped]
 
 # local imports
 # from qbindiff import __version__
@@ -45,6 +45,7 @@ from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, 
 from qbindiff.mapping.bindiff import export_to_bindiff
 
 if TYPE_CHECKING:
+    from typing import Any
     from qbindiff.types import (
         GenericPrePass,
         GenericPostPass,
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
         FeatureValue,
         Addr,
         Idx,
+        ArrayLike1D,
     )
     from qbindiff.features.extractor import FeatureCollector
 
@@ -69,7 +71,6 @@ class Differ:
         tradeoff: Ratio = 0.8,
         epsilon: Positive = 0.9,
         maxiter: int = 1000,
-        normalize: bool = False,
         sparse_row: bool = False,
     ):
         """
@@ -108,10 +109,6 @@ class Differ:
         self._pre_passes: list = []
         self._already_processed: bool = False  # Flag to perform the processing only once
 
-        if normalize:
-            self.primary = self.normalize(primary)
-            self.secondary = self.normalize(secondary)
-
         self.primary_adj_matrix, self.primary_i2n, self.primary_n2i = self.extract_adjacency_matrix(
             primary
         )
@@ -130,9 +127,9 @@ class Differ:
         self.sim_matrix: np.ndarray = np.full(
             (self.primary_dim, self.secondary_dim), -1, dtype=Differ.DTYPE
         )
-        self.mapping: Mapping = {}
+        self.mapping: Mapping | None = None
 
-    def get_similarities(self, primary_idx: list[Idx], secondary_idx: list[Idx]) -> list[float]:
+    def get_similarities(self, primary_idx: list[Idx], secondary_idx: list[Idx]) -> ArrayLike1D:
         """
         Returns the similarity scores between the nodes specified as parameter.
         By default, it uses the similarity matrix.
@@ -141,7 +138,7 @@ class Differ:
 
         :param primary_idx: the List of integers that represent nodes inside the primary graph
         :param secondary_idx: the List of integers that represent nodes inside the primary graph
-        :return sim_matrix: the similarity matrix between the specified nodes
+        :returns: A sequence with the corresponding similarities of the given nodes
         """
         return self.sim_matrix[primary_idx, secondary_idx]
 
@@ -234,17 +231,6 @@ class Differ:
 
         self._pre_passes.append((pass_func, extra_args))
 
-    def normalize(self, graph: Graph) -> Graph:
-        """
-        Custom function that normalizes the input graph.
-        This method is meant to be overriden by a sub-class.
-
-        :param graph: graph to normalize
-        :return graph: normalized graph
-        """
-
-        return graph
-
     def run_passes(self) -> None:
         """
         Run all the passes that have been previously registered.
@@ -272,7 +258,7 @@ class Differ:
 
         self.run_passes()  # User registered passes
 
-    def compute_matching(self) -> Mapping:
+    def compute_matching(self) -> Mapping | None:
         """
         Run the belief propagation algorithm. This method hangs until the computation is done.
         The resulting matching is returned as a Mapping object.
@@ -284,12 +270,12 @@ class Differ:
             pass
         return self.mapping
 
-    def _matching_iterator(self) -> Generator[int]:
+    def _matching_iterator(self) -> Generator[int, None, None]:
         """
         Run the belief propagation algorithm.
 
-        :return:  A generator the yields the iteration number until the algorithm either converges or reaches
-        `self.maxiter`
+        :returns: A generator the yields the iteration number until the algorithm
+                  either converges or reaches ``self.maxiter``
         """
 
         self.process()
@@ -447,6 +433,7 @@ class QBinDiff(Differ):
         primary: Program,
         secondary: Program,
         distance: Distance = Distance.haussmann,
+        normalize: bool = False,
         **kwargs,
     ):
         """
@@ -456,9 +443,19 @@ class QBinDiff(Differ):
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param distance: the distance function used when comparing the feature vector
             extracted from the graphs.
+        :param normalize: Normalize the two programs Call Graphs with a series of heuristics. Look at
+            :py:method:`normalize` for more information.
         """
 
-        super(QBinDiff, self).__init__(primary, secondary, **kwargs)
+        if normalize:  # Optional normalization step
+            primary = self.normalize(primary)
+            secondary = self.normalize(secondary)
+
+        super().__init__(primary, secondary, **kwargs)
+
+        # Type casting. Does nothing at runtime.
+        self.primary = cast(Program, self.primary)  # type: Program
+        self.secondary = cast(Program, self.secondary)  # type: Program
 
         # Aliases
         self.primary_f2i = self.primary_n2i
@@ -488,7 +485,7 @@ class QBinDiff(Differ):
     def register_feature_extractor(
         self,
         extractor_class: type[FeatureExtractor],
-        weight: Positive | None = 1.0,
+        weight: Positive = 1.0,
         distance: Distance | None = None,
         **extra_args,
     ) -> None:
@@ -546,7 +543,6 @@ class QBinDiff(Differ):
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param primary_mapping: Mapping between the primary function addresses and their corresponding index
         :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
-        :returns: None
         """
 
         primary_import = {}
@@ -567,8 +563,8 @@ class QBinDiff(Differ):
         """
         Normalize the input Program. In some cases, this can create an exception, caused by a thunk function.
 
-        :param program : the program of type py:class:`qbindiff.loader.Program` to normalize.
-        :return program : the normalized program
+        :param program: the program of type py:class:`qbindiff.loader.Program` to normalize.
+        :returns: the normalized program
         """
 
         for addr, func in list(program.items()):
@@ -584,14 +580,14 @@ class QBinDiff(Differ):
 
         return program
 
-    def get_similarities(self, primary_idx: list[int], secondary_idx: list[int]) -> list[float]:
+    def get_similarities(self, primary_idx: list[int], secondary_idx: list[int]) -> ArrayLike1D:
         """
         Returns the similarity scores between the nodes specified as parameter.
         Uses MinHash fuzzy hash at basic block level to give a similarity score.
 
         :param primary_idx: List of node indexes inside the primary
         :param secondary_idx: List of node indexes inside the secondary
-        :return: The list of corresponding similarities between the given nodes
+        :return: A sequence with the corresponding similarities of the given nodes
         """
 
         # Utils functions
@@ -617,6 +613,8 @@ class QBinDiff(Differ):
         Exports diffing results inside the BinDiff format
 
         :param filename: Name of the output diffing file
-        :return: None
         """
+
+        if self.mapping is None:
+            raise ValueError("No mapping yet. Compute the mapping first.")
         export_to_bindiff(filename, self.primary, self.secondary, self.mapping)

@@ -22,7 +22,7 @@ import tqdm
 import logging
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypeVar, Generic
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
 from qbindiff.features.extractor import (
@@ -36,8 +36,11 @@ from qbindiff.features.extractor import (
 from qbindiff.utils import is_debug
 from qbindiff.types import Graph
 
+# TODO use python 3.12 syntax (see PEP 695)
+_Graph_T = TypeVar("_Graph_T", bound=Graph)
 
-class Visitor(metaclass=ABCMeta):
+
+class Visitor(Generic[_Graph_T], metaclass=ABCMeta):
     """
     Abstract class representing interface that a visitor
     must implements to work with a Differ object.
@@ -53,7 +56,7 @@ class Visitor(metaclass=ABCMeta):
         raise NotImplementedError()
 
     def visit(
-        self, graph: Graph, key_fun: Callable[[Any, int], Any] = None
+        self, graph: _Graph_T, key_fun: Callable[[Any, int], Any] | None = None
     ) -> dict[Any, FeatureCollector]:
         """
         Function performing the visit on a Graph object by calling visit_item with a
@@ -67,7 +70,7 @@ class Visitor(metaclass=ABCMeta):
         """
 
         # By default use the iteration counter as a unique key
-        if not key_fun:
+        if key_fun is None:
             key_fun = lambda _, i: i
 
         obj_features = {}
@@ -80,7 +83,8 @@ class Visitor(metaclass=ABCMeta):
             obj_features[key_fun(item, i)] = collector
         return obj_features
 
-    def visit_item(self, graph: Graph, item: Any, collector: FeatureCollector) -> None:
+    @abstractmethod
+    def visit_item(self, graph: _Graph_T, item: Any, collector: FeatureCollector) -> None:
         """
         Abstract method meant to perform the visit of the item.
         It receives an environment in parameter that is meant to be filled.
@@ -102,7 +106,7 @@ class Visitor(metaclass=ABCMeta):
         raise NotImplementedError()
 
 
-class NoVisitor(Visitor):
+class NoVisitor(Visitor[Graph]):
     """
     Trivial visitor that doesn't traverse the graph
     """
@@ -112,10 +116,10 @@ class NoVisitor(Visitor):
         return []
 
     def visit(
-        self, graph: Graph, key_fun: Callable[[Any, int], Any] = None
+        self, graph: Graph, key_fun: Callable[[Any, int], Any] | None = None
     ) -> dict[Any, FeatureCollector]:
         # By default use the iteration counter as a unique key
-        if not key_fun:
+        if key_fun is None:
             key_fun = lambda _, i: i
 
         return {key_fun(item, i): FeatureCollector() for i, item in enumerate(graph.items())}
@@ -124,7 +128,7 @@ class NoVisitor(Visitor):
         logging.warning(f"NoVisitor is being used. The feature {fte.key} will be ignored")
 
 
-class ProgramVisitor(Visitor):
+class ProgramVisitor(Visitor[Program]):
     """
     Class aiming at providing a generic program visitor which calls
     the different feature extractor on the appropriate items.
@@ -137,7 +141,7 @@ class ProgramVisitor(Visitor):
         self.instruction_callbacks = []
         self.operand_callbacks = []
 
-    def visit_item(self, program: Program, item: Any, collector: FeatureCollector) -> None:
+    def visit_item(self, program: Program, item: Any, collector: FeatureCollector) -> None:  # type: ignore[override]
         """
         Visit a program item according to its type.
 
