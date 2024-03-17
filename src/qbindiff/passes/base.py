@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 import logging
-import tqdm
 import numpy as np
 from scipy.sparse import lil_matrix  # type: ignore[import-untyped]
 from collections import defaultdict
@@ -98,9 +97,7 @@ class FeaturePass:
         """
 
         feature_matrix = lil_matrix(shape, dtype=dtype)
-        for node_label, feature in tqdm.tqdm(
-            features.items(), total=len(features), disable=not is_debug()
-        ):
+        for node_label, feature in features.items():
             vec = feature.to_sparse_vector(dtype, features_main_keys)
             feature_matrix[node_to_index[node_label]] = vec
         return feature_matrix.tocsr()
@@ -230,8 +227,13 @@ class FeaturePass:
         secondary.set_function_filter(lambda label: label not in ignore_secondary)
         key_fun = lambda *args: args[0][0]  # ((label, node), iteration)
 
-        primary_features = self._visitor.visit(primary, key_fun=key_fun)
-        secondary_features = self._visitor.visit(secondary, key_fun=key_fun)
+        primary_features, secondary_features = {}, {}
+        for res in self._visitor.visit(primary, key_fun=key_fun):
+            primary_features = res
+            yield res
+        for res in self._visitor.visit(secondary, key_fun=key_fun):
+            secondary_features = res
+            yield res
         primary.set_function_filter(lambda _: True)
         secondary.set_function_filter(lambda _: True)
 

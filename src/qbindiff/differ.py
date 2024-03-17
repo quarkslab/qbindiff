@@ -22,7 +22,6 @@ and for directed graphs diffing (class DiGraphDiffing)
 
 from __future__ import annotations
 import logging
-import tqdm
 import numpy as np
 import networkx
 from datasketch import MinHash  # type: ignore[import-untyped]
@@ -266,11 +265,11 @@ class Differ:
         :return: Mapping between items of the primary and items of the secondary
         """
 
-        for _ in tqdm.tqdm(self._matching_iterator(), total=self.maxiter, disable=not is_debug()):
+        for _ in self.matching_iterator():
             pass
         return self.mapping
 
-    def _matching_iterator(self) -> Generator[int, None, None]:
+    def matching_iterator(self) -> Generator[int, None, None]:
         """
         Run the belief propagation algorithm.
 
@@ -502,6 +501,25 @@ class QBinDiff(Differ):
         extractor = extractor_class(weight, **extra_args)
         self._feature_pass.register_extractor(extractor, distance=distance)
 
+    def process_iterator(self) -> None:
+        """
+        Initialize all the variables for the NAP algorithm.
+        """
+
+        # Perform the initialization only once
+        if self._already_processed:
+            return
+        self._already_processed = True
+
+        yield from self.run_passes()  # User registered passes
+
+    def process(self):
+        """
+        Initialize all the variables for the NAP algorithm.
+        """
+        for _ in self.process_iterator():
+            pass
+
     def run_passes(self) -> None:
         """
         Run all the pre passes and post passes that have been previously registered.
@@ -509,7 +527,7 @@ class QBinDiff(Differ):
 
         super().run_passes()
 
-        self._feature_pass(
+        yield from self._feature_pass(
             self.sim_matrix, self.primary, self.secondary, self.primary_n2i, self.secondary_n2i
         )
 

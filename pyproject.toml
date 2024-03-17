@@ -20,8 +20,7 @@ license = { text = "Apache Software License (Apache License, Version 2)" }
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 dependencies = [
-    "click",
-    "tqdm",
+    "rich-click",
     "numpy",
     "scipy",
     "lapjv",
