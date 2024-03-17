@@ -505,7 +505,7 @@ def main(
         logging.info("[+] Saving")
         if format == "bindiff":
             qbindiff.export_to_bindiff(output)
-        elif file_format == "csv":
+        elif format == "csv":
             qbindiff.mapping.to_csv(output, ("name", lambda f: f.name))
         logging.info("[+] Mapping successfully saved to: %s" % output)
         if not quiet:

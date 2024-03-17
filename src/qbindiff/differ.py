@@ -269,7 +269,7 @@ class Differ:
             pass
         return self.mapping
 
-    def _matching_iterator(self) -> Generator[int, None, None]:
+    def matching_iterator(self) -> Generator[int, None, None]:
         """
         Run the belief propagation algorithm.
 
