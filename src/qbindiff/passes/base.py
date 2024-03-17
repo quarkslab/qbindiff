@@ -185,8 +185,8 @@ class FeaturePass:
             ).astype(dtype)
 
         logging.debug("Distance calculated")
-        # Normalize
-        if len(sim_matrix) > 0 and sim_matrix.max() != 0:
+        # Normalize. Haussmann distance comes already normalized
+        if distance != Distance.haussmann and len(sim_matrix) > 0 and sim_matrix.max() != 0:
             sim_matrix /= sim_matrix.max()
         sim_matrix[:] = 1 - sim_matrix
 
