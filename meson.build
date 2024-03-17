@@ -1,5 +1,5 @@
 project(
-    'purelib-and-platlib',
+    'qbindiff',
     'cython', 'c', 'cpp',
     version: '1.1.1',
     license: 'Apache-2.0',

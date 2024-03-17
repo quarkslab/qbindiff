@@ -17,7 +17,7 @@
 
 import re
 import random
-from typing import Any
+from typing import Any, no_type_check
 from re import Pattern
 
 from qbindiff.features.extractor import (
@@ -64,32 +64,32 @@ class DatName(InstructionFeatureExtractor):
     It's a superset of StrRef (strref) feature.
     """.strip()
 
+    # MyPy still does not support type inference on structural pattern matching statement
+    @no_type_check
     def visit_instruction(
         self, _: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
         for ref_type, references in instruction.references.items():
             for reference in references:
-                if (
-                    ref_type == ReferenceType.DATA
-                    and reference.type != DataType.UNKNOWN
-                    and reference.value is not None
-                ):
-                    assert isinstance(reference, Data), "DATA reference not referencing Data"
-                    collector.add_dict_feature(self.key, {reference.value: 1})
+                match (ref_type, reference):
+                    case (ReferenceType.DATA, Data):
+                        if reference.type != DataType.UNKNOWN and reference.value is not None:
+                            collector.add_dict_feature(self.key, {reference.value: 1})
 
-                elif ref_type == ReferenceType.STRUC:
-                    assert isinstance(
-                        reference, Structure | StructureMember
-                    ), "STRUC reference not referencing Structure nor StructureMember"
-                    if isinstance(reference, Structure):
+                    case (ReferenceType.STRUC, Structure):
                         collector.add_dict_feature(self.key, {reference.name: 1})
-                    elif isinstance(reference, StructureMember):
+
+                    case (ReferenceType.STRUC, StructureMember):
                         collector.add_dict_feature(
                             self.key, {reference.structure.name + "." + reference.name: 1}
                         )
 
-                else:  # Enum, calls
-                    pass
+                    case (ReferenceType.ENUM, _):
+                        logging.warning("Unhandled case of enum reference in DatName feature")
+                        pass
+
+                    case _:
+                        assert False, f"Malformed reference. {reference=} {ref_type=}"
 
 
 class StrRef(InstructionFeatureExtractor):

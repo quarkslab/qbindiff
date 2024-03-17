@@ -44,7 +44,6 @@ class Program(MutableMapping, GenericGraph):
 
     def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
         super().__init__()
-        self._backend = None
 
         if loader is None and (backend := kwargs.get("backend")) is not None:
             self._backend = backend  # Load directly from instanciated backend
@@ -72,17 +71,19 @@ class Program(MutableMapping, GenericGraph):
         self._load_functions()
 
     @staticmethod
-    def from_binexport(file_path: str, enable_cortexm: bool = False) -> Program:
+    def from_binexport(file_path: str, arch: str | None = None) -> Program:
         """
         Load the Program using the binexport backend
 
         :param file_path: File path to the binexport file
-        :param enable_cortexm: Whether to check for cortexm instructions while
-                               disassembling with capstone
+        :param arch: Architecture to pass to the capstone disassembler. This is
+                     useful when the binexport'ed architecture is not enough to
+                     correctly disassemble the binary (for example with arm
+                     thumb2 or some mips modes).
         :return: Program instance
         """
 
-        return Program(LoaderType.binexport, file_path, enable_cortexm=enable_cortexm)
+        return Program(LoaderType.binexport, file_path, arch=arch)
 
     @staticmethod
     def from_quokka(file_path: str, exec_path: str) -> Program:
@@ -117,7 +118,7 @@ class Program(MutableMapping, GenericGraph):
     def __repr__(self) -> str:
         return "<Program:%s>" % self.name
 
-    def __iter__(self) -> Iterator[Addr]:
+    def __iter__(self) -> Iterator[Function]:
         """
         Iterate over all functions located in the program, using the filter registered.
 
@@ -144,7 +145,7 @@ class Program(MutableMapping, GenericGraph):
         for function in map(Function.from_backend, self._backend.functions):
             self[function.addr] = function
 
-    def items(self) -> Iterator[tuple[Addr, Function]]:
+    def items(self) -> Iterator[tuple[Addr, Function]]:  # type: ignore[override]
         """
         Iterate over the items. Each item is {address: :py:class:`Function`}
 
@@ -186,7 +187,7 @@ class Program(MutableMapping, GenericGraph):
         yield from self.__iter__()
 
     @property
-    def edges(self) -> OutEdgeView[Addr, Addr]:
+    def edges(self) -> OutEdgeView[tuple[Addr, Addr]]:
         """
         Iterate over the edges. An edge is a pair (addr_a, addr_b)
 

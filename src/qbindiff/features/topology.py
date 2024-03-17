@@ -21,6 +21,7 @@ propagation algorithm, so using these features will result in relying
 excessively on that information.
 """
 
+from __future__ import annotations
 from collections import defaultdict
 
 from qbindiff.features.extractor import FunctionFeatureExtractor, FeatureCollector
@@ -84,7 +85,7 @@ class LibName(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        value = defaultdict(int)
+        value: dict[str, float] = defaultdict(int)
         for addr in function.children:
             if program[addr].is_library():
                 value[program[addr].name] += 1
@@ -103,7 +104,7 @@ class ImpName(FunctionFeatureExtractor):
     def visit_function(
         self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
-        value = defaultdict(int)
+        value: dict[str, float] = defaultdict(int)
         for addr in function.children:
             if program[addr].is_import():
                 value[program[addr].name] += 1

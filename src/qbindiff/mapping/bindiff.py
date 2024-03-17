@@ -15,19 +15,23 @@
 """BinDiff file format
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Generator
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
 # third-party imports
-from bindiff import BindiffFile
+from bindiff import BindiffFile  # type: ignore[import-untyped]
 
 # local imports
 # from qbindiff import __version__
 from qbindiff.loader import Program, Function, BasicBlock
-from qbindiff.types import Addr
 
-# from qbindiff import Mapping
+if TYPE_CHECKING:
+    from qbindiff.types import Addr
+    from qbindiff.mapping import Mapping
 
 
 @lru_cache
@@ -87,7 +91,7 @@ def _compute_bb_prime_product(basic_block: BasicBlock) -> int:
 
 def compute_basic_block_match(
     primary_func: Function, secondary_func: Function
-) -> Generator[tuple[Addr, Addr]]:
+) -> Generator[tuple[Addr, Addr], None, None]:
     """
     Matches the basic blocks between the two functions
 
@@ -116,7 +120,7 @@ def compute_basic_block_match(
 
 def compute_instruction_match(
     primary_bb: BasicBlock, secondary_bb: BasicBlock
-) -> Generator[tuple[Addr, Addr]]:
+) -> Generator[tuple[Addr, Addr], None, None]:
     """
     Matches the instructions between the two basic blocks
 
@@ -137,7 +141,7 @@ def compute_instruction_match(
 
 
 def export_to_bindiff(
-    filename: str, primary: Program, secondary: Program, mapping: "Mapping"
+    filename: str, primary: Program, secondary: Program, mapping: Mapping
 ) -> None:
     """
     Exports diffing results inside the BinDiff format

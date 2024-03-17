@@ -31,10 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 import numpy as np
-import sklearn.metrics
-from scipy.spatial import distance
-from scipy.sparse import issparse, csr_matrix
-from qbindiff.passes.fast_metrics import sparse_canberra, sparse_haussmann
+import sklearn.metrics  # type: ignore[import-untyped]
+from scipy.spatial import distance  # type: ignore[import-untyped]
+from scipy.sparse import issparse, csr_matrix  # type: ignore[import-untyped]
+from qbindiff.passes.fast_metrics import sparse_canberra, sparse_haussmann  # type: ignore[import-untyped]
 from qbindiff.types import Distance
 
 
@@ -115,7 +115,7 @@ def haussmann(X, Y, w=None):
 
     .. math::
 
-        \sum_{i}\frac{f(u_i, v_i)}{ | \{ j | u_j \neq 0 \lor v_j \neq 0 \} | }
+        \begin{cases} 0 & \text{if } \forall i \; u_i = 0 \land v_i = 0 \\ 1 - \sum_{i}\frac{f(u_i, v_i)}{ | \{ j | u_j \neq 0 \lor v_j \neq 0 \} | } & \text{otherwise.} \end{cases}
 
     where the function ``f`` is defined like this:
 
@@ -127,7 +127,7 @@ def haussmann(X, Y, w=None):
 
     .. math::
 
-        \sum_{i}\frac{w_i * f(u_i, v_i)}{ | \{ j | u_j \neq 0 \lor v_j \neq 0 \} | }
+        \begin{cases} 0 & \text{if } \forall i \; u_i = 0 \land v_i = 0 \\ 1 - \sum_{i}\frac{w_i * f(u_i, v_i)}{ | \{ j | u_j \neq 0 \lor v_j \neq 0 \} | } & \text{otherwise.} \end{cases}
 
     :param X: array-like of shape (n_samples_X, n_features)
               An array where each row is a sample and each column is a feature.

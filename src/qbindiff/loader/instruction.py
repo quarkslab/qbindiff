@@ -74,7 +74,7 @@ class Instruction:
 
         """
         if ReferenceType.DATA in self.references:
-            return self.references[ReferenceType.DATA]
+            return self.references[ReferenceType.DATA]  # type: ignore[return-value]
         else:
             return []
 

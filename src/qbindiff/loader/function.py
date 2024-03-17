@@ -25,7 +25,7 @@ from qbindiff.loader.types import FunctionType
 
 if TYPE_CHECKING:
     import networkx
-    from collections.abc import Generator
+    from collections.abc import Generator, Iterator
     from qbindiff.loader.backend.abstract import AbstractFunctionBackend
     from qbindiff.types import Addr
 
@@ -58,7 +58,7 @@ class Function(Mapping, GenericNode):
         super().__init__()
 
         # The basic blocks are lazily loaded
-        self._basic_blocks = None
+        self._basic_blocks: dict[Addr, BasicBlock] | None = None
         self._enable_unloading = True
 
         self._backend = backend  # Load directly from instanciated backend
@@ -95,7 +95,7 @@ class Function(Mapping, GenericNode):
             return self._basic_blocks[key]
 
         self._preload()
-        bb = self._basic_blocks[key]
+        bb = self._basic_blocks[key]  # type: ignore  # already preloaded
         self._unload()
         return bb
 
@@ -108,7 +108,7 @@ class Function(Mapping, GenericNode):
             yield from self._basic_blocks.values()
         else:
             self._preload()
-            yield from self._basic_blocks.values()
+            yield from self._basic_blocks.values()  # type: ignore  # already preloaded
             self._unload()
 
     def __len__(self) -> int:
@@ -116,11 +116,11 @@ class Function(Mapping, GenericNode):
             return len(self._basic_blocks)
 
         self._preload()
-        size = len(self._basic_blocks)
+        size = len(self._basic_blocks)  # type: ignore  # already preloaded
         self._unload()
         return size
 
-    def items(self) -> Generator[tuple[Addr, BasicBlock], None, None]:
+    def items(self) -> Iterator[tuple[Addr, BasicBlock]]:  # type: ignore[override]
         """
         Returns a generator of tuples with addresses of basic blocks and the corresponding basic blocks objects
 
@@ -131,26 +131,18 @@ class Function(Mapping, GenericNode):
             yield from self._basic_blocks.items()
         else:
             self._preload()
-            yield from self._basic_blocks.items()
+            yield from self._basic_blocks.items()  # type: ignore  # already preloaded
             self._unload()
 
     def _preload(self) -> None:
-        """
-        Load in memory all the basic blocks
-
-        :return: None
-        """
+        """Load in memory all the basic blocks"""
 
         self._basic_blocks = {}
         for bb in map(BasicBlock.from_backend, self._backend.basic_blocks):
             self._basic_blocks[bb.addr] = bb
 
     def _unload(self) -> None:
-        """
-        Unload from memory all the basic blocks
-
-        :return: None
-        """
+        """Unload from memory all the basic blocks"""
 
         if self._enable_unloading:
             self._basic_blocks = None
@@ -214,17 +206,6 @@ class Function(Mapping, GenericNode):
         """
 
         return self._backend.type
-
-    @type.setter
-    def type(self, value) -> None:
-        """
-        Set the type value
-
-        :param value: the value to set
-        :return: None
-        """
-
-        self._backend.type = value
 
     def is_library(self) -> bool:
         """

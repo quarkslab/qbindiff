@@ -17,23 +17,24 @@
 It uses directly the IDA API to load the disassembly analysis.
 """
 
+from __future__ import annotations
 import networkx
 import weakref
 from functools import cached_property
 from collections.abc import Iterator
 
 # Ida API
-import idautils
-import ida_nalt
-import ida_funcs
-import ida_struct
-import ida_idaapi
-import ida_bytes
-import ida_gdl
-import ida_bytes
-import ida_ua
-import ida_lines
-import ida_name
+import idautils  # type: ignore[import-not-found]
+import ida_nalt  # type: ignore[import-not-found]
+import ida_funcs  # type: ignore[import-not-found]
+import ida_struct  # type: ignore[import-not-found]
+import ida_idaapi  # type: ignore[import-not-found]
+import ida_bytes  # type: ignore[import-not-found]
+import ida_gdl  # type: ignore[import-not-found]
+import ida_bytes  # type: ignore[import-not-found]
+import ida_ua  # type: ignore[import-not-found]
+import ida_lines  # type: ignore[import-not-found]
+import ida_name  # type: ignore[import-not-found]
 
 # local imports
 from qbindiff.loader import Structure
@@ -220,7 +221,7 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         )
 
     @property
-    def groups(self) -> list[str]:
+    def groups(self) -> list[int]:
         """
         Returns a list of groups of this instruction
         """
@@ -299,13 +300,13 @@ class FunctionBackendIDA(AbstractFunctionBackend):
     def __init__(
         self, program: weakref.ref["ProgramBackendIDA"], addr: Addr, import_manager: ImportManager
     ):
-        super(FunctionBackendIDA, self).__init__()
+        super().__init__()
 
         self._program = program
         self._addr = addr
         self.import_manager = import_manager
         self._ida_fun = ida_funcs.get_func(addr)
-        self._cfg = networkx.DiGraph()
+        self._cfg = networkx.DiGraph()  # type: ignore[var-annotated]
 
         self._load_cfg()
 
@@ -318,6 +319,15 @@ class FunctionBackendIDA(AbstractFunctionBackend):
                 self._cfg.add_edge(parent.start_ea, block.start_ea)
             for child in block.succs():
                 self._cfg.add_edge(block.start_ea, child.start_ea)
+
+    @property
+    def program(self) -> ProgramBackendIDA:
+        """Wrapper on weak reference on ProgramBackendIDA"""
+        if (program := self._program()) is None:
+            raise RuntimeError(
+                "Trying to access an already expired weak reference on ProgramBackendIDA"
+            )
+        return program
 
     @property
     def basic_blocks(self) -> Iterator[BasicBlockBackendIDA]:
@@ -357,7 +367,7 @@ class FunctionBackendIDA(AbstractFunctionBackend):
         Set of function parents in the call graph.
         """
 
-        return set(self._program().callgraph.predecessors(self.addr))
+        return set(self.program.callgraph.predecessors(self.addr))
 
     @cached_property
     def children(self) -> set[Addr]:
@@ -365,7 +375,7 @@ class FunctionBackendIDA(AbstractFunctionBackend):
         Set of function children in the call graph.
         """
 
-        return set(self._program().callgraph.successors(self.addr))
+        return set(self.program.callgraph.successors(self.addr))
 
     @property
     def type(self) -> FunctionType:

@@ -18,7 +18,7 @@
 from __future__ import annotations
 import logging
 import numpy as np
-from scipy.sparse import lil_matrix
+from scipy.sparse import lil_matrix  # type: ignore[import-untyped]
 from collections import defaultdict
 from collections.abc import Iterable
 from typing import Any, TYPE_CHECKING
@@ -49,7 +49,7 @@ class FeaturePass:
         """
 
         self._default_distance = distance
-        self._distances = {}
+        self._distances: dict[str, Distance] = {}
         self._visitor = ProgramVisitor()
 
         # These two attributes exist only to keep an access to the FeatureCollector for each function
@@ -182,8 +182,8 @@ class FeaturePass:
             ).astype(dtype)
 
         logging.debug("Distance calculated")
-        # Normalize
-        if len(sim_matrix) > 0 and sim_matrix.max() != 0:
+        # Normalize. Haussmann distance comes already normalized
+        if distance != Distance.haussmann and len(sim_matrix) > 0 and sim_matrix.max() != 0:
             sim_matrix /= sim_matrix.max()
         sim_matrix[:] = 1 - sim_matrix
 
@@ -248,7 +248,7 @@ class FeaturePass:
 
         # Get all the keys and subkeys of the features
         # features_keys is a dict: {main_key: set(subkeys), ...}
-        features_keys = {}
+        features_keys: dict[str, set[str]] = {}
         for features in (primary_features, secondary_features):
             for f_collector in features.values():
                 for main_key, subkey_list in f_collector.full_keys().items():
