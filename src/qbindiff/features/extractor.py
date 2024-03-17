@@ -68,13 +68,10 @@ class FeatureCollector:
         """
         self._features.setdefault(key, defaultdict(float))
 
-        if value == {}:
-            FeatureKeyManager.add(key)
-            self._features[key] = 0
-        else:
-            for k, v in value.items():
-                FeatureKeyManager.add(key, k)
-                self._features[key][k] += v
+        FeatureKeyManager.add(key)
+        for k, v in value.items():
+            FeatureKeyManager.add(key, k)
+            self._features[key][k] += v
 
     def feature_vector(self) -> None:
         """Show the feature vector associated to the node"""

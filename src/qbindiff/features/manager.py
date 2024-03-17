@@ -31,7 +31,8 @@ class FeatureKeyManagerClass:
         Add the main_key and optionally the sub_key to the key manager.
         """
 
-        self.mainkeys[main_key] = len(self.mainkeys)
+        # Do not update the values if they are already set
+        self.mainkeys.setdefault(main_key, len(self.mainkeys))
         self.subkeys.setdefault(main_key, {})
         if sub_key and sub_key not in self.subkeys[main_key]:
             self.subkeys[main_key][sub_key] = len(self.subkeys[main_key])
