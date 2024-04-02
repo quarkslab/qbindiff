@@ -135,3 +135,19 @@ Operand level features
 * :py:class:`~qbindiff.features.Constant`: TODO write description
 
 * :py:class:`~qbindiff.features.ReadWriteAccess`: Number of Read and Write Access to the memory. This feature should be resistant to some obfuscation techniques and compilation options.
+
+
+How to choose features ?
+------------------------
+
+Choosing features can be a little be tedious for people that are not used to reverse-engineering or diffing. 
+
+In general, enabling all the features will give satisfiable results. However, in some cases, feature fine-tuning can be necessary. These cases are numerious an we do not cover all of them. 
+
+We provide a list of features that should be used when either the primary or the secondary (or both) are suspected to be obfuscated. Depending of the suspected obfuscation, specific features should be chosen. 
+
+For example, if an intra-procedural obfuscation, such as the Controlflow Graph Flattening, is suspected to be applied on a binary (Controlflow Graph Flattening exhibits a very specific pattern), then the Cyclomatic Complexity will not be a features that will lead to better diffing results, whereas the MnemonicSimple will probably. 
+
+
+.. figure:: _static/feature_obfu.png
+
