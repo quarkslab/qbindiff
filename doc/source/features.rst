@@ -140,7 +140,7 @@ Operand level features
 How to choose features ?
 ------------------------
 
-Choosing features can be a little be tedious for people that are not used to reverse-engineering or diffing. 
+Choosing features can be tedious depending on the binary under hand. 
 
 In general, enabling all the features will give satisfiable results. However, in some cases, feature fine-tuning can be necessary. These cases are numerious an we do not cover all of them. 
 
