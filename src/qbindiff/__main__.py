@@ -98,7 +98,7 @@ DEFAULT_SPARSITY_RATIO = 0.6
 DEFAULT_TRADEOFF = 0.8
 DEFAULT_EPSILON = 0.9
 DEFAULT_MAXITER = 1000
-DEFAULT_OUTPUT = Path("qbindiff_results.bindiff")
+DEFAULT_OUTPUT = Path("qbindiff_results.csv")
 
 LOADERS_KEYS = list(LOADERS.keys())
 
@@ -480,10 +480,12 @@ def main(
 
         logging.info("[+] Initializing NAP")
         if not quiet:
-            init_bar_total = len(qbindiff.primary) + len(qbindiff.secondary)
+            init_bar_total = 1000
             progress.update(init_bar, total=init_bar_total)
-            for _ in qbindiff.process_iterator():
-                progress.update(init_bar, advance=1)
+            prev_step = 0
+            for step in qbindiff.process_iterator():
+                progress.update(init_bar, advance=step - prev_step)
+                prev_step = step
             progress.update(init_bar, completed=init_bar_total)
             progress.stop_task(init_bar)
             progress.start_task(match_bar)

@@ -20,7 +20,7 @@ pattern to a GenericGraph as well as its standard implementations.
 
 import logging
 from abc import ABCMeta, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import Any, TypeVar, Generic
 
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
@@ -56,7 +56,7 @@ class Visitor(Generic[_Graph_T], metaclass=ABCMeta):
 
     def visit(
         self, graph: _Graph_T, key_fun: Callable[[Any, int], Any] | None = None
-    ) -> dict[Any, FeatureCollector]:
+    ) -> Iterator[tuple[Any, FeatureCollector]]:
         """
         Function performing the visit on a Graph object by calling visit_item with a
         FeatureCollector meant to be filled.
@@ -65,21 +65,19 @@ class Visitor(Generic[_Graph_T], metaclass=ABCMeta):
         :param key_fun: a function that takes 2 input arguments, namely the current item and
                         the current iteration number, and returns a unique key for that item.
                         If not specified, the iteration number is used.
-        :return: A dict in which keys are key_fun(item, i) and values are the FeatureCollector
+        :return: An iterator over each node of the graph visited that contains
+                 the tuple `(key_fun(item, i), FeatureCollector)`
         """
 
         # By default use the iteration counter as a unique key
         if key_fun is None:
             key_fun = lambda _, i: i
 
-        obj_features = {}
         for i, item in enumerate(graph.items()):
             _, node = item
             collector = FeatureCollector()
             self.visit_item(graph, node, collector)
-            obj_features[key_fun(item, i)] = collector
-            yield obj_features
-        return obj_features
+            yield (key_fun(item, i), collector)
 
     @abstractmethod
     def visit_item(self, graph: _Graph_T, item: Any, collector: FeatureCollector) -> None:

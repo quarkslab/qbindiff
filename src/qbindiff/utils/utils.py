@@ -19,6 +19,7 @@ Collection of utilities used internally.
 
 from __future__ import annotations
 from functools import cache
+from collections.abc import Iterator
 import logging
 from typing import TYPE_CHECKING
 
@@ -58,3 +59,22 @@ def log_once(level: int, message: str) -> None:
     """
 
     logging.log(level, message)
+
+
+def wrapper_iter(opt_iter: Iterator[Any] | Any, default_value: Any | None = 1000) -> Iterator[Any]:
+    """
+    Utility function that wraps an iterator over an optional iterator.
+    If the argument provided is not an iterator the function will return an iterator
+    over a list containing only the default_value param.
+
+    :param opt_iter: The optional iterator.
+    :param default_value: The default value that will be returned by the iterator if
+                          the argument is not an iterator
+    :returns: The untouched argument if it is an iterator, otherwise an iterator
+              over the list [default_value]
+    """
+
+    if isinstance(opt_iter, Iterator):
+        return opt_iter
+    else:
+        return iter([default_value])
