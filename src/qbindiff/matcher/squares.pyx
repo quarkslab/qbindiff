@@ -59,7 +59,7 @@ def find_squares(
 
     cdef intp begin, end, i, j
     cdef uint64 r, c, nodeA, nodeB, nodeC, nodeD
-    cdef uint32 edge_idx1, edge_idx2
+    cdef uint32 edge_idx1, edge_idx2, tmp
 
     cdef int rows = sparse_sim_matrix.shape[0]
     cdef int cols = sparse_sim_matrix.shape[1]
@@ -74,6 +74,11 @@ def find_squares(
     cdef unordered_map[uint64, uint32] edge_map
 
     cdef unordered_set[int] sparse_sim_matrix_keys
+
+    # Squares set needed to avoid adding duplicates. Hopefully it has a small memory impact
+    # Use uint64 instead of pair to have even less impact
+    cdef unordered_set[uint64] squares_set
+    cdef uint64 square
 
     # Initialize the rows and columns of the square sparse matrix
     cdef vector[uint32] squares_rows
@@ -131,13 +136,28 @@ def find_squares(
                         edge_idx1 = edge_map[nodeA * cols + nodeB]
                         edge_idx2 = edge_map[nodeD * cols + nodeC]
 
+                        # Sort them to avoid confusion for duplicates. (A, B) is the same as (B, A)
+                        if edge_idx1 > edge_idx2:
+                            tmp = edge_idx1
+                            edge_idx1 = edge_idx2
+                            edge_idx2 = tmp
+
+                        square = edge_idx1
+                        square = square << 32
+                        square = square | edge_idx2
+
                         omp_set_lock(&lock)
 
-                        # Add the suqares (A, B, C, D) and (C, D, A, B)
-                        squares_rows.push_back(edge_idx1)
-                        squares_rows.push_back(edge_idx2)
-                        squares_cols.push_back(edge_idx2)
-                        squares_cols.push_back(edge_idx1)
+                        # Add it only if not already present
+                        if squares_set.find(square) == squares_set.end():
+                            # Add the suqares (A, B, C, D) and (C, D, A, B) but avoid duplicates
+                            squares_rows.push_back(edge_idx1)
+                            squares_cols.push_back(edge_idx2)
+                            if edge_idx1 != edge_idx2:
+                                squares_rows.push_back(edge_idx2)
+                                squares_cols.push_back(edge_idx1)
+
+                            squares_set.insert(square)
 
                         omp_unset_lock(&lock)
 
