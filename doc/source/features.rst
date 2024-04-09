@@ -142,11 +142,11 @@ How to choose features ?
 
 Choosing features can be tedious depending on the binary under hand. 
 
-In general, enabling all the features will give satisfiable results. However, in some cases, feature fine-tuning can be necessary. These cases are numerious an we do not cover all of them. 
+In general, enabling all the features will give satisfiable results. However, in some cases, feature fine-tuning can be necessary. These cases are numerous and we do not cover all of them. 
 
-We provide a list of features that should be used when either the primary or the secondary (or both) are suspected to be obfuscated. Depending of the suspected obfuscation, specific features should be chosen. 
+We provide a list of features that should be used when either the primary or the secondary (or both) are suspected to be obfuscated. Depending on the suspected obfuscation, specific features should be chosen. 
 
-For example, if an intra-procedural obfuscation, such as the Controlflow Graph Flattening, is suspected to be applied on a binary (Controlflow Graph Flattening exhibits a very specific pattern), then the Cyclomatic Complexity will not be a features that will lead to better diffing results, whereas the MnemonicSimple will probably. 
+For example, if an intra-procedural obfuscation, such as the Controlflow Graph Flattening, is suspected to be applied on a binary (Controlflow Graph Flattening exhibits a very specific pattern), then the Cyclomatic Complexity will not be a feature that will lead to better diffing results, whereas the MnemonicSimple will probably. 
 
 
 .. figure:: _static/feature_obfu.png
