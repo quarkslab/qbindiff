@@ -135,3 +135,25 @@ Operand level features
 * :py:class:`~qbindiff.features.Constant`: TODO write description
 
 * :py:class:`~qbindiff.features.ReadWriteAccess`: Number of Read and Write Access to the memory. This feature should be resistant to some obfuscation techniques and compilation options.
+
+
+How to choose features ?
+------------------------
+
+Choosing features can be tedious depending on the binary under hand. 
+
+In general, enabling all the features will give satisfiable results. However, in some cases, feature fine-tuning can be necessary. These cases are numerous and we do not cover all of them. 
+
+We provide a list of features that should be used when either the primary or the secondary (or both) are suspected to be obfuscated. Depending on the suspected obfuscation, specific features should be chosen. 
+
+Here are the different obfuscation techniques considered in the table below:
+
+* **Split** refers to the inter-procedural `Split obfuscation <https://tigress.wtf/split.html>`_, that breaks a function into different chunks.
+* `Merge <https://tigress.wtf/merge.html>`_ obfuscation is also an inter-procedural obfuscation that consists of merging different functions together.
+* `Copy <https://tigress.wtf/copy.html>`_ obfuscation (inter-procedural) creates a clone of a given function.
+* **Data** obfuscations refer to any obfuscation that modifies the data-flow (such as `Mixed Boolean Arithmetic` or `MBA`).
+* **Intra** obfuscations refer to any obfuscation that modifies the function controlflow (such as `Controlflow-Graph Flattening` or `CFF`).
+
+For example, if an intra-procedural obfuscation, such as the Controlflow Graph Flattening, is suspected to be applied on a binary (Controlflow Graph Flattening exhibits a very specific pattern), then the Cyclomatic Complexity will not be a feature that will lead to better diffing results, whereas the MnemonicSimple probably will.
+
+.. figure:: _static/feature_obfu.png
