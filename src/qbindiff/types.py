@@ -32,6 +32,7 @@ from enum import IntEnum
 from qbindiff.abstract import GenericGraph, GenericNode
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from qbindiff import Program
     from qbindiff.features.extractor import FeatureCollector
 
@@ -141,7 +142,7 @@ class GenericPrePass(Protocol):
         primary_mapping: dict[Addr, Idx],
         secondary_mapping: dict[Addr, Idx],
         **kwargs,
-    ) -> None:
+    ) -> Iterator[int] | None:
         """
         Execute the pass that operates on the similarity matrix inplace
 
@@ -151,6 +152,7 @@ class GenericPrePass(Protocol):
         :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
         :param primary_mapping: Mapping between the primary function addresses and their corresponding index
         :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
+        :returns: Either an iterator in the range [0, 1000] (used for tracking progress) or None.
         """
         raise NotImplementedError()
 
@@ -168,7 +170,7 @@ class GenericPostPass(Protocol):
         primary_features: dict[Addr, FeatureCollector],
         secondary_features: dict[Addr, FeatureCollector],
         **kwargs,
-    ) -> None:
+    ) -> Iterator[int] | None:
         """
         Execute the pass that operates on the similarity matrix inplace
 
@@ -182,6 +184,7 @@ class GenericPostPass(Protocol):
                                     object for the primary program
         :param secondary_features: Mapping between function addresses and the associated FeatureCollector
                                     object for the secondary program
+        :returns: Either an iterator in the range [0, 1000] (used for tracking progress) or None.
         """
         raise NotImplementedError()
 

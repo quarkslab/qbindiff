@@ -199,7 +199,7 @@ class Mapping:
         """
         return self.match_secondary(node) is not None
 
-    def to_csv(self, path: PathLike, *extra_attrs: *ExtraAttrsType) -> None:  # type: ignore[valid-type]
+    def to_csv(self, path: PathLike, *extra_attrs: ExtraAttrsType) -> None:  # type: ignore[valid-type]
         """
         Write the mapping into a csv file.
         Additional attributes of the nodes to put in the csv can be optionally specified.

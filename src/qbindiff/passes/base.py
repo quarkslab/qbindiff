@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 import logging
-import tqdm
 import numpy as np
 from scipy.sparse import lil_matrix  # type: ignore[import-untyped]
 from collections import defaultdict
@@ -27,13 +26,14 @@ from typing import Any, TYPE_CHECKING
 from qbindiff.loader import Program
 from qbindiff.visitor import ProgramVisitor
 from qbindiff.features.manager import FeatureKeyManager
-from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
 from qbindiff.passes.metrics import pairwise_distances
 from qbindiff.utils import is_debug
 from qbindiff.types import SimMatrix, Distance
 
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from qbindiff.features.extractor import FeatureExtractor, FeatureCollector
     from qbindiff.types import Addr, Idx
 
 
@@ -98,9 +98,7 @@ class FeaturePass:
         """
 
         feature_matrix = lil_matrix(shape, dtype=dtype)
-        for node_label, feature in tqdm.tqdm(
-            features.items(), total=len(features), disable=not is_debug()
-        ):
+        for node_label, feature in features.items():
             vec = feature.to_sparse_vector(dtype, features_main_keys)
             feature_matrix[node_to_index[node_label]] = vec
         return feature_matrix.tocsr()
@@ -200,12 +198,13 @@ class FeaturePass:
         primary_mapping: dict[Addr, Idx],
         secondary_mapping: dict[Addr, Idx],
         fill: bool = False,
-    ) -> None:
+    ) -> Iterator[int]:
         """
         Generate the similarity matrix by calculating the distance between the feature
         vectors.
 
         :param fill: if True the whole matrix will be erased before writing in it
+        :returns: An iterator in the range [0, 1000] (used for tracking progress).
         """
 
         # fill the matrix with -1 (not-set value)
@@ -228,14 +227,33 @@ class FeaturePass:
         # Extract the features
         primary.set_function_filter(lambda label: label not in ignore_primary)
         secondary.set_function_filter(lambda label: label not in ignore_secondary)
+
+        # Dirty hack to count the number of functions that pass the filter
+        primary_count = 0
+        secondary_count = 0
+        for _ in primary.items():
+            primary_count += 1
+        for _ in secondary.items():
+            secondary_count += 1
+
+        # scale factor for the iterator
+        scale = 1000 / (primary_count + secondary_count)
+
         key_fun = lambda *args: args[0][0]  # ((label, node), iteration)
 
-        primary_features = self._visitor.visit(primary, key_fun=key_fun)
-        secondary_features = self._visitor.visit(secondary, key_fun=key_fun)
+        # { node_label : FeatureCollector } In this case node_label is the function address
+        primary_features: dict[Addr, FeatureCollector] = {}
+        secondary_features: dict[Addr, FeatureCollector] = {}
+        for i, (addr, collector) in enumerate(self._visitor.visit(primary, key_fun=key_fun)):
+            primary_features[addr] = collector
+            yield min(1000, round(scale * i))
+        for i, (addr, collector) in enumerate(self._visitor.visit(secondary, key_fun=key_fun)):
+            secondary_features[addr] = collector
+            yield min(1000, round(scale * (primary_count + i)))
         primary.set_function_filter(lambda _: True)
         secondary.set_function_filter(lambda _: True)
 
-        # { node_label : FeatureCollector } In this case node_label is the function address
+        # Populate it only when they are both filled
         self.primary_features = primary_features
         self.secondary_features = secondary_features
 

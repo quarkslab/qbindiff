@@ -22,7 +22,6 @@ and for directed graphs diffing (class DiGraphDiffing)
 
 from __future__ import annotations
 import logging
-import tqdm
 import numpy as np
 import networkx
 from datasketch import MinHash  # type: ignore[import-untyped]
@@ -40,7 +39,7 @@ from qbindiff.matcher import Matcher
 from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
 from qbindiff.passes import FeaturePass, ZeroPass
-from qbindiff.utils import is_debug
+from qbindiff.utils import is_debug, wrapper_iter
 from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, Distance
 from qbindiff.mapping.bindiff import export_to_bindiff
 
@@ -231,24 +230,41 @@ class Differ:
 
         self._pre_passes.append((pass_func, extra_args))
 
-    def run_passes(self) -> None:
+    def _run_passes(self) -> Iterator[int]:
         """
         Run all the passes that have been previously registered.
+        It returns an iterator that can be used for tracking the progress.
+
+        :returns: An iterator of values in the range [0, 1000] used for tracking progress.
+                  It might contain more than 1000 elements.
         """
+
+        # If no passess have been registered, returns immediately 1000
+        if len(self._pre_passes) == 0:
+            yield 1000
 
         for pass_func, extra_args in self._pre_passes:
-            pass_func(
-                self.sim_matrix,
-                self.primary,
-                self.secondary,
-                self.primary_n2i,
-                self.secondary_n2i,
-                **extra_args,
-            )
+            for s in wrapper_iter(
+                pass_func(
+                    self.sim_matrix,
+                    self.primary,
+                    self.secondary,
+                    self.primary_n2i,
+                    self.secondary_n2i,
+                    **extra_args,
+                )
+            ):
+                # The single steps are within [0, 1000]. Normalize them.
+                # Due to rounding errors, clip it to 1000
+                yield min(1000, round(s / len(self._pre_passes)))
 
-    def process(self) -> None:
+    def process_iterator(self) -> Iterator[int]:
         """
-        Initialize all the variables for the NAP algorithm.
+        Initialize all the variables for the NAP algorithm in an iterative way.
+        It returns an iterator that can be used for tracking the progress.
+
+        :returns: An iterator of values in the range [0, 1000] used for tracking progress.
+                  It might contain more than 1000 elements.
         """
 
         # Perform the initialization only once
@@ -256,7 +272,15 @@ class Differ:
             return
         self._already_processed = True
 
-        self.run_passes()  # User registered passes
+        yield from self._run_passes()  # User registered passes
+
+    def process(self) -> None:
+        """
+        Initialize all the variables for the NAP algorithm.
+        """
+
+        for _ in self.process_iterator():
+            pass
 
     def compute_matching(self) -> Mapping | None:
         """
@@ -266,11 +290,11 @@ class Differ:
         :return: Mapping between items of the primary and items of the secondary
         """
 
-        for _ in tqdm.tqdm(self._matching_iterator(), total=self.maxiter, disable=not is_debug()):
+        for _ in self.matching_iterator():
             pass
         return self.mapping
 
-    def _matching_iterator(self) -> Generator[int, None, None]:
+    def matching_iterator(self) -> Generator[int, None, None]:
         """
         Run the belief propagation algorithm.
 
@@ -485,7 +509,7 @@ class QBinDiff(Differ):
     def register_feature_extractor(
         self,
         extractor_class: type[FeatureExtractor],
-        weight: Positive = 1.0,
+        weight: Positive | None = 1.0,
         distance: Distance | None = None,
         **extra_args,
     ) -> None:
@@ -502,28 +526,41 @@ class QBinDiff(Differ):
         extractor = extractor_class(weight, **extra_args)
         self._feature_pass.register_extractor(extractor, distance=distance)
 
-    def run_passes(self) -> None:
+    def _run_passes(self) -> Iterator[int]:
         """
         Run all the pre passes and post passes that have been previously registered.
+        It returns an iterator that can be used for tracking the progress.
+
+        :returns: An iterator of values in the range [0, 1000] used for tracking progress.
+                  It might contain more than 1000 elements.
         """
 
-        super().run_passes()
+        # Dirty hack to force the progress bar to display only the feature pass iterator
+        for _ in super()._run_passes():
+            pass
 
-        self._feature_pass(
+        # Call feature pass
+        yield from self._feature_pass(
             self.sim_matrix, self.primary, self.secondary, self.primary_n2i, self.secondary_n2i
         )
 
         for pass_func, extra_args in self._post_passes:
-            pass_func(
-                self.sim_matrix,
-                self.primary,
-                self.secondary,
-                self.primary_n2i,
-                self.secondary_n2i,
-                self._feature_pass.primary_features,
-                self._feature_pass.secondary_features,
-                **extra_args,
-            )
+            for _ in wrapper_iter(
+                pass_func(
+                    self.sim_matrix,
+                    self.primary,
+                    self.secondary,
+                    self.primary_n2i,
+                    self.secondary_n2i,
+                    self._feature_pass.primary_features,
+                    self._feature_pass.secondary_features,
+                    **extra_args,
+                )
+            ):
+                pass
+
+        # Dirty hack to still provide a last step
+        yield 1000
 
     def match_import_functions(
         self,

@@ -20,11 +20,14 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from collections import defaultdict
 from typing import TYPE_CHECKING
 
 # Third-party imports
-import click
+import rich_click as click
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.progress import Progress
+from rich.table import Table
 
 # Local imports
 from qbindiff import __version__ as qbindiff_version
@@ -37,7 +40,11 @@ if TYPE_CHECKING:
 
 
 def configure_logging(verbose: int):
-    logging.basicConfig(format="[%(levelname)s] %(message)s", level=logging.INFO)
+    logging.basicConfig(
+        format="%(message)s",
+        level=logging.INFO,
+        handlers=[RichHandler(rich_tracebacks=True, show_time=False)],
+    )
 
     logger = logging.getLogger()
     if verbose >= 2:
@@ -53,24 +60,37 @@ def display_statistics(differ: QBinDiff, mapping: Mapping) -> None:
     similarity = mapping.similarity
     nb_squares = mapping.squares
 
-    output = (
-        "Score: {:.4f} | "
-        "Similarity: {:.4f} | "
-        "Squares: {:.0f} | "
-        "Nb matches: {}\n".format(similarity + nb_squares, similarity, nb_squares, nb_matches)
+    console = Console()
+
+    table = Table(show_header=False)
+    table.add_column(style="dim")
+    table.add_column(justify="right")
+
+    table.add_row("Score", "{:.4f}".format(similarity + nb_squares))
+    table.add_row("Similarity", "{:.4f}".format(similarity))
+    table.add_row("Squares", "{:.0f}".format(nb_squares))
+    table.add_row("Nb matches", "{}".format(nb_matches), end_section=True)
+    table.add_row(
+        "Node cover",
+        "{:.3f}% / {:.3f}%".format(
+            100 * nb_matches / len(differ.primary_adj_matrix),
+            100 * nb_matches / len(differ.secondary_adj_matrix),
+        ),
     )
-    output += "Node cover:  {:.3f}% / {:.3f}% | " "Edge cover:  {:.3f}% / {:.3f}%\n".format(
-        100 * nb_matches / len(differ.primary_adj_matrix),
-        100 * nb_matches / len(differ.secondary_adj_matrix),
-        100 * nb_squares / differ.primary_adj_matrix.sum(),
-        100 * nb_squares / differ.secondary_adj_matrix.sum(),
+    table.add_row(
+        "Edge cover",
+        "{:.3f}% / {:.3f}%".format(
+            100 * nb_squares / differ.primary_adj_matrix.sum(),
+            100 * nb_squares / differ.secondary_adj_matrix.sum(),
+        ),
     )
-    print(output)
+
+    console.print(table)
 
 
 FEATURES_KEYS = {x.key: x for x in FEATURES}
 
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"], max_content_width=120)
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 DEFAULT_FEATURES = tuple(x.key for x in DEFAULT_FEATURES)
 DEFAULT_DISTANCE = Distance.haussmann.name
@@ -78,8 +98,41 @@ DEFAULT_SPARSITY_RATIO = 0.6
 DEFAULT_TRADEOFF = 0.8
 DEFAULT_EPSILON = 0.9
 DEFAULT_MAXITER = 1000
+DEFAULT_OUTPUT = Path("qbindiff_results.csv")
 
 LOADERS_KEYS = list(LOADERS.keys())
+
+click.rich_click.SHOW_METAVARS_COLUMN = False
+click.rich_click.APPEND_METAVARS_HELP = True
+click.rich_click.STYLE_METAVAR_APPEND = "yellow"
+click.rich_click.OPTION_GROUPS = {
+    "qbindiff": [
+        {"name": "Output parameters", "options": ["--output", "--format"]},
+        {
+            "name": "Primary file options",
+            "options": ["--primary-loader", "--primary-executable", "--primary-arch"],
+        },
+        {
+            "name": "Secondary file options",
+            "options": ["--secondary-loader", "--secondary-executable", "--secondary-arch"],
+        },
+        {"name": "Global options", "options": ["--verbose", "--quiet", "--help", "--version"]},
+        {
+            "name": "Diffing parameters",
+            "options": [
+                "--feature",
+                "--list-features",
+                "--normalize",
+                "--distance",
+                "--tradeoff",
+                "--sparsity-ratio",
+                "--sparse-row",
+                "--epsilon",
+                "--maxiter",
+            ],
+        },
+    ]
+}
 
 
 def list_features(ctx: click.Context, param: click.Parameter, value: Any) -> None:
@@ -104,23 +157,31 @@ For a list of all the features available see --list-features."""
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
     "-l1",
-    "--loader1",
-    "loader_primary",
+    "--primary-loader",
+    "primary_loader",
     type=click.Choice(LOADERS_KEYS),
-    show_default=True,
-    default="binexport",
-    metavar="<loader>",
-    help=f"Loader type to be used for the primary. Must be one of these {LOADERS_KEYS}",
+    help=f"Enforce loader type.",
 )
 @click.option(
     "-l2",
-    "--loader2",
-    "loader_secondary",
+    "--secondary-loader",
+    "secondary_loader",
     type=click.Choice(LOADERS_KEYS),
-    show_default=True,
-    default="binexport",
-    metavar="<loader>",
-    help=f"Loader type to be used for the secondary. Must be one of these {LOADERS_KEYS}",
+    help=f"Enforce loader type.",
+)
+@click.option(
+    "-e1",
+    "--primary-executable",
+    "primary_exec",
+    type=Path,
+    help="Path to the raw executable (required for quokka exports).",
+)
+@click.option(
+    "-e2",
+    "--secondary-executable",
+    "secondary_exec",
+    type=Path,
+    help="Path to the raw executable (required for quokka exports).",
 )
 @click.option(
     "-f",
@@ -136,7 +197,8 @@ For a list of all the features available see --list-features."""
     "-n",
     "--normalize",
     is_flag=True,
-    help="Normalize the Call Graph (can potentially lead to a partial matching). [default disabled]",
+    show_default=True,
+    help="Normalize the Call Graph (can potentially lead to a partial matching).",
 )
 @click.option(
     "-d",
@@ -144,8 +206,7 @@ For a list of all the features available see --list-features."""
     type=click.Choice([d.name for d in Distance]),
     show_default=True,
     default=DEFAULT_DISTANCE,
-    metavar="<function>",
-    help=f"The following distances are available {[d.name for d in Distance]}",
+    help=f"Available distances:",
 )
 @click.option(
     "-s",
@@ -159,7 +220,7 @@ For a list of all the features available see --list-features."""
     "-sr",
     "--sparse-row",
     is_flag=True,
-    help="Whether to build the sparse similarity matrix considering its entirety or processing it row per row",
+    help="Whether to build the sparse similarity matrix considering its entirety or processing it row per row.",
 )
 @click.option(
     "-t",
@@ -167,7 +228,7 @@ For a list of all the features available see --list-features."""
     type=float,
     show_default=True,
     default=DEFAULT_TRADEOFF,
-    help=f"Tradeoff between function content (near 1.0) and call-graph information (near 0.0)",
+    help=f"Tradeoff between function content (near 1.0) and call-graph information (near 0.0).",
 )
 @click.option(
     "-e",
@@ -175,7 +236,7 @@ For a list of all the features available see --list-features."""
     type=float,
     show_default=True,
     default=DEFAULT_EPSILON,
-    help=f"Relaxation parameter to enforce convergence",
+    help=f"Relaxation parameter to enforce convergence.",
 )
 @click.option(
     "-i",
@@ -183,52 +244,43 @@ For a list of all the features available see --list-features."""
     type=int,
     show_default=True,
     default=DEFAULT_MAXITER,
-    help=f"Maximum number of iteration for belief propagation",
-)
-@click.option(
-    "-e1",
-    "--executable1",
-    "exec_primary",
-    type=Path,
-    help="Path to the primary raw executable. Must be provided if using quokka loader",
-)
-@click.option(
-    "-e2",
-    "--executable2",
-    "exec_secondary",
-    type=Path,
-    help="Path to the secondary raw executable. Must be provided if using quokka loader",
+    help=f"Maximum number of iteration for belief propagation.",
 )
 @click.option(
     "-o",
     "--output",
-    type=Path,
-    help="Write output to PATH",
+    type=click.Path(file_okay=True, dir_okay=False),
+    default=DEFAULT_OUTPUT,
+    show_default=True,
+    help="Output file path.",
 )
 @click.option(
     "-ff",
-    "--file-format",
+    "--format",
     show_default=True,
     default="csv",
     type=click.Choice(["bindiff", "csv"]),
-    help=f"The file format of the output file",
+    help=f"Output file format.",
 )
 @click.option(
     "-v",
     "--verbose",
     count=True,
-    help="Activate debugging messages. Can be supplied multiple times to increase verbosity",
+    metavar="-v|-vv|-vvv",
+    help="Activate debugging messages.",
 )
 @click.version_option(qbindiff_version)
 @click.option(
-    "--arch-primary",
+    "-a1",
+    "--primary-arch",
     type=str,
-    help="Force the architecture when disassembling for the primary. Format is 'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'",
+    help="Enforce disassembling architecture. Format is like 'CS_ARCH_X86:CS_MODE_64'.",
 )
 @click.option(
-    "--arch-secondary",
+    "-a2",
+    "--secondary-arch",
     type=str,
-    help="Force the architecture when disassembling for the secondary. Format is 'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'",
+    help="Enforce disassembling architecture. Format is like 'CS_ARCH_X86:CS_MODE_64'.",
 )
 @click.option(
     "--list-features",
@@ -236,13 +288,21 @@ For a list of all the features available see --list-features."""
     callback=list_features,
     expose_value=False,
     is_eager=True,
-    help="List all the available features",
+    help="List all the available features.",
+)
+@click.option(
+    "-q",
+    "--quiet",
+    is_flag=True,
+    default=False,
+    type=click.BOOL,
+    help="Do not display progress bars and final statistics.",
 )
 @click.argument("primary", type=Path, metavar="<primary file>")
 @click.argument("secondary", type=Path, metavar="<secondary file>")
 def main(
-    loader_primary,
-    loader_secondary,
+    primary_loader,
+    secondary_loader,
     features,
     normalize,
     distance,
@@ -251,143 +311,210 @@ def main(
     tradeoff,
     epsilon,
     maxiter,
-    exec_primary,
-    exec_secondary,
+    primary_exec,
+    secondary_exec,
     output,
-    file_format,
-    arch_primary,
-    arch_secondary,
+    format,
+    primary_arch,
+    secondary_arch,
+    quiet,
     verbose,
     primary,
     secondary,
 ):
     """
-    QBinDiff is an experimental binary diffing tool based on
+        QBinDiff is an experimental binary diffing tool based on
     machine learning technics, namely Belief propagation.
+
+        Examples:
+
+    - For Quokka exports:
+    qbindiff -e1 file1.bin -e2 file2.bin file1.quokka file2.quokka
+
+    - For BinExport exports, changing the output path:
+    qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport
     """
 
     configure_logging(verbose)
 
-    if 0.0 > sparsity_ratio > 1:
+    if 0 > sparsity_ratio or sparsity_ratio > 1:
         logging.warning(
             "[-] Sparsity ratio should be within 0..1 (set it to %.2f)" % DEFAULT_SPARSITY_RATIO
         )
         sparsity_ratio = DEFAULT_SPARSITY_RATIO
 
-    if 0.0 > tradeoff > 1:
+    if 0 > tradeoff or tradeoff > 1:
         logging.warning(
             "[-] Trade-off parameter should be within 0..1 (set it to %.2f)" % DEFAULT_TRADEOFF
         )
         tradeoff = DEFAULT_TRADEOFF
 
-    if 0.0 > epsilon:
+    if 0 > epsilon:
         logging.warning(
             "[-] Epsilon parameter should be positive (set it to %.3f)" % DEFAULT_EPSILON
         )
         epsilon = DEFAULT_EPSILON
 
-    if not output:
-        logging.warning("[-] You have not specified an output file")
-
-    loader_p = LOADERS[loader_primary]
-    loader_s = LOADERS[loader_secondary]
-
-    # Check that the executables have been provided
-    if loader_p == LoaderType.quokka:
-        if not (exec_primary and os.path.exists(exec_primary)):
-            logging.error("When using the quokka loader you have to provide the raw binaries")
-            exit(1)
-        logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader_p, primary, exec_primary)
-    elif loader_p == LoaderType.ida:
-        logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader_p, primary)
-    else:
-        # BinExport
-        logging.info(f"[+] Loading primary: {primary.name}")
-        primary = Program(loader_p, primary, arch=arch_primary)
-
-    # Check that the executables have been provided
-    if loader_s == LoaderType.quokka:
-        if not (exec_secondary and os.path.exists(exec_secondary)):
-            logging.error("When using the quokka loader you have to provide the raw binaries")
-            exit(1)
-        logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader_s, secondary, exec_secondary)
-    elif loader_p == LoaderType.ida:
-        logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader_p, secondary)
-    else:
-        # BinExport
-        logging.info(f"[+] Loading secondary: {secondary.name}")
-        secondary = Program(loader_s, secondary, arch=arch_secondary)
-
-    try:
-        qbindiff = QBinDiff(
-            primary,
-            secondary,
-            sparsity_ratio=sparsity_ratio,
-            tradeoff=tradeoff,
-            epsilon=epsilon,
-            distance=Distance[distance],
-            maxiter=maxiter,
-            normalize=normalize,
-            sparse_row=sparse_row,
-        )
-    except Exception as e:
-        logging.error(e)
-        exit(1)
-
-    if not features:
-        logging.error("no feature provided")
-        exit(1)
-
-    # Check for the 'all' option
-    if "all" in set(features):
-        # Add all features with default weight and distance
-        for f in FEATURES_KEYS:
-            qbindiff.register_feature_extractor(
-                FEATURES_KEYS[f], float(1.0), distance=Distance[distance]
+    if not primary_loader:
+        if primary.suffix.casefold() == ".quokka".casefold():
+            loader_p = LOADERS["quokka"]
+        elif primary.suffix.casefold() == ".BinExport".casefold():
+            loader_p = LOADERS["binexport"]
+        else:
+            logging.error(
+                "Cannot detect automatically the loader for the primary, please specify it with `-l1`."
             )
+            exit(1)
     else:
-        for feature in set(features):
-            weight = 1.0
-            distance = None
-            if ":" in feature:
-                feature, *opts = feature.split(":")
-                if len(opts) == 2:
-                    weight, distance = opts
-                elif len(opts) == 1:
-                    try:
-                        weight = float(opts[0])
-                    except ValueError:
-                        distance = opts[0]
-                else:
-                    logging.error(f"Malformed feature {feature}")
+        loader_p = LOADERS[primary_loader]
+    if not secondary_loader:
+        if secondary.suffix.casefold() == ".quokka".casefold():
+            loader_s = LOADERS["quokka"]
+        elif secondary.suffix.casefold() == ".BinExport".casefold():
+            loader_s = LOADERS["binexport"]
+        else:
+            logging.error(
+                "Cannot detect automatically the loader for the primary, please specify it with `-l1`."
+            )
+            exit(1)
+    else:
+        loader_s = LOADERS[secondary_loader]
+
+    with Progress() as progress:
+        if not quiet:
+            load_bar_total = 2
+            load_bar = progress.add_task("File loading", total=load_bar_total)
+            init_bar = progress.add_task("Initialization", start=False)
+            match_bar = progress.add_task("Matching", start=False)
+            save_bar_total = 1
+            save_bar = progress.add_task("Saving Results", total=save_bar_total, start=False)
+
+        # Check that the executables have been provided
+        if loader_p == LoaderType.quokka:
+            if not (primary_exec and os.path.exists(primary_exec)):
+                logging.error(
+                    "When using the quokka loader you have to provide the raw binaries (option `-e1`)."
+                )
+                exit(1)
+            logging.info(f"[+] Loading primary: {primary.name}")
+            primary = Program(loader_p, primary, primary_exec)
+        elif loader_p == LoaderType.ida:
+            logging.info(f"[+] Loading primary: {primary.name}")
+            primary = Program(loader_p, primary)
+        else:
+            # BinExport
+            logging.info(f"[+] Loading primary: {primary.name}")
+            primary = Program(loader_p, primary, arch=primary_arch)
+        progress.update(load_bar, advance=1) if not quiet else None
+
+        # Check that the executables have been provided
+        if loader_s == LoaderType.quokka:
+            if not (secondary_exec and os.path.exists(secondary_exec)):
+                logging.error(
+                    "When using the quokka loader you have to provide the raw binaries (option `-e2`)."
+                )
+                exit(1)
+            logging.info(f"[+] Loading secondary: {secondary.name}")
+            secondary = Program(loader_s, secondary, secondary_exec)
+        elif loader_p == LoaderType.ida:
+            logging.info(f"[+] Loading secondary: {secondary.name}")
+            secondary = Program(loader_p, secondary)
+        else:
+            # BinExport
+            logging.info(f"[+] Loading secondary: {secondary.name}")
+            secondary = Program(loader_s, secondary, arch=secondary_arch)
+        progress.update(load_bar, advance=1) if not quiet else None
+        progress.start_task(init_bar) if not quiet else None
+        try:
+            qbindiff = QBinDiff(
+                primary,
+                secondary,
+                sparsity_ratio=sparsity_ratio,
+                tradeoff=tradeoff,
+                epsilon=epsilon,
+                distance=Distance[distance],
+                maxiter=maxiter,
+                normalize=normalize,
+                sparse_row=sparse_row,
+            )
+        except Exception as e:
+            logging.error(e)
+            exit(1)
+
+        if not features:
+            logging.error("no feature provided")
+            exit(1)
+
+        # Check for the 'all' option
+        if "all" in set(features):
+            # Add all features with default weight and distance
+            for f in FEATURES_KEYS:
+                qbindiff.register_feature_extractor(
+                    FEATURES_KEYS[f], float(1.0), distance=Distance[distance]
+                )
+        else:
+            for feature in set(features):
+                weight = 1.0
+                distance = None
+                if ":" in feature:
+                    feature, *opts = feature.split(":")
+                    if len(opts) == 2:
+                        weight, distance = opts
+                    elif len(opts) == 1:
+                        try:
+                            weight = float(opts[0])
+                        except ValueError:
+                            distance = opts[0]
+                    else:
+                        logging.error(f"Malformed feature {feature}")
+                        continue
+                if feature not in FEATURES_KEYS:
+                    logging.warning(f"Feature '{feature}' not recognized - ignored.")
                     continue
-            if feature not in FEATURES_KEYS:
-                logging.warning(f"Feature '{feature}' not recognized - ignored.")
-                continue
-            extractor_class = FEATURES_KEYS[feature]
-            if distance is not None:
-                distance = Distance[distance]
-            qbindiff.register_feature_extractor(extractor_class, float(weight), distance=distance)
+                extractor_class = FEATURES_KEYS[feature]
+                if distance is not None:
+                    distance = Distance[distance]
+                qbindiff.register_feature_extractor(
+                    extractor_class, float(weight), distance=distance
+                )
 
-    logging.info("[+] Initializing NAP")
-    qbindiff.process()
+        logging.info("[+] Initializing NAP")
+        if not quiet:
+            init_bar_total = 1000
+            progress.update(init_bar, total=init_bar_total)
+            prev_step = 0
+            for step in qbindiff.process_iterator():
+                progress.update(init_bar, advance=step - prev_step)
+                prev_step = step
+            progress.update(init_bar, completed=init_bar_total)
+            progress.stop_task(init_bar)
+            progress.start_task(match_bar)
+        else:
+            qbindiff.process()
 
-    logging.info("[+] Computing NAP")
-    qbindiff.compute_matching()
+        logging.info("[+] Computing NAP")
+        if not quiet:
+            match_bar_total = qbindiff.maxiter
+            progress.update(match_bar, total=match_bar_total)
+            for _ in qbindiff.matching_iterator():
+                progress.update(match_bar, advance=1)
+            progress.update(match_bar, completed=match_bar_total)
+            progress.stop_task(match_bar)
+            progress.start_task(save_bar)
+        else:
+            qbindiff.compute_matching()
 
-    display_statistics(qbindiff, qbindiff.mapping)
-
-    if output:
         logging.info("[+] Saving")
-        if file_format == "bindiff":
+        if format == "bindiff":
             qbindiff.export_to_bindiff(output)
-        elif file_format == "csv":
+        elif format == "csv":
             qbindiff.mapping.to_csv(output, ("name", lambda f: f.name))
         logging.info("[+] Mapping successfully saved to: %s" % output)
+        if not quiet:
+            progress.update(save_bar, advance=save_bar_total)
+            progress.stop_task(save_bar)
+    if not quiet:
+        display_statistics(qbindiff, qbindiff.mapping)
 
 
 if __name__ == "__main__":
