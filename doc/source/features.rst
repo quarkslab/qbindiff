@@ -146,7 +146,14 @@ In general, enabling all the features will give satisfiable results. However, in
 
 We provide a list of features that should be used when either the primary or the secondary (or both) are suspected to be obfuscated. Depending on the suspected obfuscation, specific features should be chosen. 
 
+Here are the different obfuscation techniques considered in the table below:
+
+* **Split** refers to the inter-procedural `Split obfuscation <https://tigress.wtf/split.html>`_, that breaks a function into different chunks.
+* `Merge <https://tigress.wtf/merge.html>`_ obfuscation is also an inter-procedural obfuscation that consists of merging different functions together.
+* `Copy <https://tigress.wtf/copy.html>`_ obfuscation (inter-procedural) creates a clone of a given function.
+* **Data** obfuscations refer to any obfuscation that modifies the data-flow (such as `Mixed Boolean Arithmetic` or `MBA`).
+* **Intra** obfuscations refer to any obfuscation that modifies the function controlflow (such as `Controlflow-Graph Flattening` or `CFF`).
+
+For example, if an intra-procedural obfuscation, such as the Controlflow Graph Flattening, is suspected to be applied on a binary (Controlflow Graph Flattening exhibits a very specific pattern), then the Cyclomatic Complexity will not be a feature that will lead to better diffing results, whereas the MnemonicSimple probably will.
+
 .. figure:: _static/feature_obfu.png
-
-In this Table, Split refers to the inter-procedural `Split obfuscation <https://tigress.wtf/split.html>`, that breaks a function into different chunks. `Merge obfuscation <https://tigress.wtf/merge.html>` is also an inter-procedural obfuscation that consists of merging different functions together. `Copy obfuscation <https://tigress.wtf/copy.html>` (inter-procedural) creates a clone of a given function. Data obfuscations refer to any obfuscation that modifies the data-flow (such as Mixed Boolean Arithmetic or MBA). The same holds for intra-procedural obfuscations, that refer to any obfuscation that modifies the function controlflow (such as Controlflow-Graph Flattening or CFF). For example, if an intra-procedural obfuscation, such as the Controlflow Graph Flattening, is suspected to be applied on a binary (Controlflow Graph Flattening exhibits a very specific pattern), then the Cyclomatic Complexity will not be a feature that will lead to better diffing results, whereas the MnemonicSimple will probably. 
-
