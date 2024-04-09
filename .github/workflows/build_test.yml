@@ -15,7 +15,6 @@ jobs:
         python-version:
           - ["3.10", "py310"]
           - ["3.11", "py311"]
-          - ["3.12", "py312"]
     steps:
       - uses: actions/checkout@v4
 
