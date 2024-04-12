@@ -84,48 +84,55 @@ After installation, the binary ``qbindiff`` is available in the path.
 It takes in input two exported files and start the diffing analysis. The result can then
 be exported in a BinDiff file format.
 The default format for input files is [BinExport](https://github.com/google/binexport),
-for a complete list of backend loader look at the `-l1, --loader1` option in the help.
+for a complete list of backend loader look at the `-l1, --primary-loader` option in the help.
 The complete command line options are:
 
-    Usage: qbindiff [OPTIONS] <primary file> <secondary file>
 
-      QBinDiff is an experimental binary diffing tool based on machine learning technics, namely Belief propagation.
+```commandline
+ Usage: qbindiff [OPTIONS] <primary file> <secondary file>                                                                                                                                    
+                                                                                                                                                                                              
+ QBinDiff is an experimental binary diffing tool based on machine learning technics, namely Belief propagation.                                                                               
+ Examples:                                                                                                                                                                                    
+ - For Quokka exports: qbindiff -e1 file1.bin -e2 file2.bin file1.quokka file2.quokka                                                                                                         
+ - For BinExport exports, changing the output path: qbindiff -o my_diff.bindiff file1.BinExport file2.BinExport                                                                               
+                                                                                                                                                                                              
+╭─ Output parameters ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ --output  -o   Output file path. (FILE) [default: qbindiff_results.csv]                                                                                                
+ --format  -ff  Output file format. (bindiff|csv) [default: csv]                                                                                                        
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+╭─ Primary file options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ --primary-loader      -l1  Enforce loader type. (binexport|quokka|ida)                                                                                                
+ --primary-executable  -e1  Path to the raw executable (required for quokka exports). (PATH)                                                                           
+ --primary-arch        -a1  Enforce disassembling architecture. Format is like 'CS_ARCH_X86:CS_MODE_64'. (TEXT)                                                        
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+╭─ Secondary file options ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ --secondary-loader      -l2  Enforce loader type. (binexport|quokka|ida)                                                                                              
+ --secondary-executable  -e2  Path to the raw executable (required for quokka exports). (PATH)                                                                         
+ --secondary-arch        -a2  Enforce disassembling architecture. Format is like 'CS_ARCH_X86:CS_MODE_64'. (TEXT)                                                      
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+╭─ Global options ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ --verbose  -v  Activate debugging messages. (-v|-vv|-vvv)                                                                                                             
+ --quiet    -q  Do not display progress bars and final statistics.                                                                                                     
+ --help     -h  Show this message and exit.                                                                                                                            
+ --version      Show the version and exit.                                                                                                                             
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+╭─ Diffing parameters ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ --feature         -f   Features to use for the binary analysis, it can be specified multiple times.                  (<feature>)                                      
+                        Features may be weighted by a positive value (default 1.0) and/or compared with a                                                              
+                        specific distance (by default the option -d is used) like this <feature>:<weight>:<distance>.                                                  
+                        For a list of all the features available see --list-features.                                                                                  
+ --list-features        List all the available features.                                                                                                               
+ --normalize       -n   Normalize the Call Graph (can potentially lead to a partial matching).                                                                         
+ --distance        -d   Available distances: (canberra|euclidean|cosine|haussmann) [default: haussmann]                                                                
+ --tradeoff        -t   Tradeoff between function content (near 1.0) and call-graph information (near 0.0). (FLOAT) [default: 0.8]                                     
+ --sparsity-ratio  -s   Ratio of least probable matches to ignore. Between 0.0 (nothing is ignored) to 1.0 (only perfect matches are considered) (FLOAT) [default: 0.6]
+ --sparse-row      -sr  Whether to build the sparse similarity matrix considering its entirety or processing it row per row.                                           
+ --epsilon         -e   Relaxation parameter to enforce convergence. (FLOAT) [default: 0.9]                                                                            
+ --maxiter         -i   Maximum number of iteration for belief propagation. (INTEGER) [default: 1000]                                                                  
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Options:
-      -l1, --loader1 <loader>       Loader type to be used for the primary. Must be one of these ['binexport', 'quokka',
-                                    'ida']  [default: binexport]
-      -l2, --loader2 <loader>       Loader type to be used for the secondary. Must be one of these ['binexport', 'quokka',
-                                    'ida']  [default: binexport]
-      -f, --feature <feature>       Features to use for the binary analysis, it can be specified multiple times.
-                                    Features may be weighted by a positive value (default 1.0) and/or compared with a
-                                    specific distance (by default the option -d is used) like this <feature>:<weight>:<distance>.
-                                    For a list of all the features available see --list-features.
-      -n, --normalize               Normalize the Call Graph (can potentially lead to a partial matching). [default
-                                    disabled]
-      -d, --distance <function>     The following distances are available ['canberra', 'euclidean', 'cosine',
-                                    'jaccard_strong']  [default: canberra]
-      -s, --sparsity-ratio FLOAT    Ratio of least probable matches to ignore. Between 0.0 (nothing is ignored) to 1.0
-                                    (only perfect matches are considered)  [default: 0.75]
-      -sr, --sparse-row             Whether to build the sparse similarity matrix considering its entirety or processing
-                                    it row per row
-      -t, --tradeoff FLOAT          Tradeoff between function content (near 1.0) and call-graph information (near 0.0)
-                                    [default: 0.75]
-      -e, --epsilon FLOAT           Relaxation parameter to enforce convergence  [default: 0.5]
-      -i, --maxiter INTEGER         Maximum number of iteration for belief propagation  [default: 1000]
-      -e1, --executable1 PATH       Path to the primary raw executable. Must be provided if using quokka loader
-      -e2, --executable2 PATH       Path to the secondary raw executable. Must be provided if using quokka loader
-      -o, --output PATH             Write output to PATH
-      -ff, --file-format [bindiff|csv]
-                                    The file format of the output file  [default: csv]
-      -v, --verbose                 Activate debugging messages. Can be supplied multiple times to increase verbosity
-      --version                     Show the version and exit.
-      --arch-primary TEXT           Force the architecture when disassembling for the primary. Format is
-                                    'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'
-      --arch-secondary TEXT         Force the architecture when disassembling for the secondary. Format is
-                                    'CS_ARCH_X:CS_MODE_Ya,CS_MODE_Yb,...'
-      --list-features               List all the available features
-      -h, --help                    Show this message and exit.
 
+```
 ## Library usage
 
 The strength of qBinDiff is to be usable as a python library. The following snippet shows an example
