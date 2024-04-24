@@ -1,7 +1,7 @@
 project(
     'qbindiff',
     'cython', 'c', 'cpp',
-    version: '1.2.0',
+    version: '1.2.1',
     license: 'Apache-2.0',
     license_files: 'LICENSE',
     meson_version: '>= 1.1.0',
