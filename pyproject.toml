@@ -31,7 +31,7 @@ dependencies = [
     "python-louvain",
     "enum_tools",
     "python-bindiff",
-    "python-binexport>=0.2.0",
+    "python-binexport>=0.3.2",
     "quokka-project",
     "idascript",
 ]
