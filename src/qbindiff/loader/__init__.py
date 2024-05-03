@@ -28,9 +28,3 @@ from qbindiff.loader.function import Function
 from qbindiff.loader.program import Program
 from qbindiff.loader.types import LoaderType
 from qbindiff.types import Distance
-
-LOADERS = {
-    "binexport": LoaderType.binexport,
-    "quokka": LoaderType.quokka,
-    "ida": LoaderType.ida,
-}

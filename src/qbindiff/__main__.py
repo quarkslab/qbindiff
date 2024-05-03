@@ -32,7 +32,6 @@ from rich.table import Table
 # Local imports
 from qbindiff import __version__ as qbindiff_version
 from qbindiff import LoaderType, Program, QBinDiff, Mapping, Distance
-from qbindiff.loader import LOADERS
 from qbindiff.features import FEATURES, DEFAULT_FEATURES
 from qbindiff.utils import log_once
 
@@ -101,7 +100,9 @@ DEFAULT_EPSILON = 0.9
 DEFAULT_MAXITER = 1000
 DEFAULT_OUTPUT = Path("qbindiff_results.csv")
 
-LOADERS_KEYS = list(LOADERS.keys())
+# mapping from loader name to loader enum type
+LOADERS = {x.name: x for x in LoaderType}
+
 
 click.rich_click.SHOW_METAVARS_COLUMN = False
 click.rich_click.APPEND_METAVARS_HELP = True
@@ -147,6 +148,37 @@ def list_features(ctx: click.Context, param: click.Parameter, value: Any) -> Non
     click.echo(f"  - all: Enable every working features\n")
     ctx.exit()
 
+def load_program(name: str, loader_s: str, export: Path, exec_file: Path, arch: str = "") -> Program:
+    if not loader_s:
+        if export.suffix.casefold() == ".quokka".casefold():
+            loader_p = LOADERS["quokka"]
+        elif export.suffix.casefold() == ".BinExport".casefold():
+            loader_p = LOADERS["binexport"]
+        else:
+            logging.error(
+                f"Cannot detect automatically the loader for the {name}, please specify it with `-l1`/`-l2`."
+            )
+            exit(1)
+    else:
+        loader_p = LOADERS[loader_s]
+
+    # Check that the executables have been provided
+    logging.info(f"[+] Loading {name}: {export.name}")
+    if loader_p == LoaderType.quokka:
+        if not (exec_file and os.path.exists(exec_file)):
+            logging.error(
+                "When using the quokka loader you have to provide the raw binaries (option `-e1`/`-e2`)."
+            )
+            exit(1)
+        program = Program(loader_p, export, exec_file)
+    elif loader_p == LoaderType.ida:
+        program = Program(loader_p, export)
+    elif loader_p == LoaderType.binexport:
+        program = Program(loader_p, export, arch=arch)
+    else:
+        assert False
+    return program
+
 
 help_features = """\b
 Features to use for the binary analysis, it can be specified multiple times.
@@ -160,14 +192,14 @@ For a list of all the features available see --list-features."""
     "-l1",
     "--primary-loader",
     "primary_loader",
-    type=click.Choice(LOADERS_KEYS),
+    type=click.Choice(list(LOADERS.keys())),
     help=f"Enforce loader type.",
 )
 @click.option(
     "-l2",
     "--secondary-loader",
     "secondary_loader",
-    type=click.Choice(LOADERS_KEYS),
+    type=click.Choice(list(LOADERS.keys())),
     help=f"Enforce loader type.",
 )
 @click.option(
@@ -356,30 +388,6 @@ def main(
         )
         epsilon = DEFAULT_EPSILON
 
-    if not primary_loader:
-        if primary.suffix.casefold() == ".quokka".casefold():
-            loader_p = LOADERS["quokka"]
-        elif primary.suffix.casefold() == ".BinExport".casefold():
-            loader_p = LOADERS["binexport"]
-        else:
-            logging.error(
-                "Cannot detect automatically the loader for the primary, please specify it with `-l1`."
-            )
-            exit(1)
-    else:
-        loader_p = LOADERS[primary_loader]
-    if not secondary_loader:
-        if secondary.suffix.casefold() == ".quokka".casefold():
-            loader_s = LOADERS["quokka"]
-        elif secondary.suffix.casefold() == ".BinExport".casefold():
-            loader_s = LOADERS["binexport"]
-        else:
-            logging.error(
-                "Cannot detect automatically the loader for the primary, please specify it with `-l1`."
-            )
-            exit(1)
-    else:
-        loader_s = LOADERS[secondary_loader]
 
     with Progress() as progress:
         if not quiet:
@@ -391,40 +399,13 @@ def main(
             save_bar = progress.add_task("Saving Results", total=save_bar_total, start=False)
 
         # Check that the executables have been provided
-        if loader_p == LoaderType.quokka:
-            if not (primary_exec and os.path.exists(primary_exec)):
-                logging.error(
-                    "When using the quokka loader you have to provide the raw binaries (option `-e1`)."
-                )
-                exit(1)
-            logging.info(f"[+] Loading primary: {primary.name}")
-            primary = Program(loader_p, primary, primary_exec)
-        elif loader_p == LoaderType.ida:
-            logging.info(f"[+] Loading primary: {primary.name}")
-            primary = Program(loader_p, primary)
-        else:
-            # BinExport
-            logging.info(f"[+] Loading primary: {primary.name}")
-            primary = Program(loader_p, primary, arch=primary_arch)
+        primary = load_program("primary", primary_loader, primary, primary_exec, primary_arch)
         progress.update(load_bar, advance=1) if not quiet else None
 
         # Check that the executables have been provided
-        if loader_s == LoaderType.quokka:
-            if not (secondary_exec and os.path.exists(secondary_exec)):
-                logging.error(
-                    "When using the quokka loader you have to provide the raw binaries (option `-e2`)."
-                )
-                exit(1)
-            logging.info(f"[+] Loading secondary: {secondary.name}")
-            secondary = Program(loader_s, secondary, secondary_exec)
-        elif loader_p == LoaderType.ida:
-            logging.info(f"[+] Loading secondary: {secondary.name}")
-            secondary = Program(loader_p, secondary)
-        else:
-            # BinExport
-            logging.info(f"[+] Loading secondary: {secondary.name}")
-            secondary = Program(loader_s, secondary, arch=secondary_arch)
+        secondary = load_program("secondary", secondary_loader, secondary, secondary_exec, secondary_arch)
         progress.update(load_bar, advance=1) if not quiet else None
+
         progress.start_task(init_bar) if not quiet else None
         try:
             qbindiff = QBinDiff(
