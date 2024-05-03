@@ -104,8 +104,8 @@ Now that we have our exported backend files, we can start to use QBinDiff. The r
 
    import qbindiff
    from qbindiff import LoaderType 
-   primary = qbindiff.Program(LoaderType.binexport, "/path/to/primary.BinExport")
-   secondary = qbindiff.Program(LoaderType.binexport, "/path/to/secondary.BinExport")
+   primary = qbindiff.Program("/path/to/primary.BinExport")
+   secondary = qbindiff.Program("/path/to/secondary.BinExport")
 
 
 At this point, we can create our differ object configuring all the **parameters** by passing them to the constructor

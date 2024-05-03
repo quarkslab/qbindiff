@@ -97,7 +97,7 @@ class Program(MutableMapping, GenericGraph):
         :return: Program instance
         """
 
-        return Program(LoaderType.binexport, file_path, arch=arch)
+        return Program(file_path, arch=arch, loader=LoaderType.binexport)
 
     @staticmethod
     def from_quokka(file_path: str, exec_path: str) -> Program:
@@ -109,7 +109,7 @@ class Program(MutableMapping, GenericGraph):
         :return: Program instance
         """
 
-        return Program(LoaderType.quokka, file_path, exec_path=exec_path)
+        return Program(file_path, exec_path=exec_path, loader=LoaderType.quokka)
 
     @staticmethod
     def from_ida() -> Program:
@@ -119,7 +119,7 @@ class Program(MutableMapping, GenericGraph):
         :return: Program instance
         """
 
-        return Program(LoaderType.ida)
+        return Program("", LoaderType.ida)
 
     @staticmethod
     def from_backend(backend: AbstractProgramBackend) -> Program:
