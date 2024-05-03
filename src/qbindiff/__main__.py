@@ -34,6 +34,7 @@ from qbindiff import __version__ as qbindiff_version
 from qbindiff import LoaderType, Program, QBinDiff, Mapping, Distance
 from qbindiff.loader import LOADERS
 from qbindiff.features import FEATURES, DEFAULT_FEATURES
+from qbindiff.utils import log_once
 
 if TYPE_CHECKING:
     from typing import Any
@@ -479,18 +480,23 @@ def main(
                 )
 
         logging.info("[+] Initializing NAP")
-        if not quiet:
-            init_bar_total = 1000
-            progress.update(init_bar, total=init_bar_total)
-            prev_step = 0
-            for step in qbindiff.process_iterator():
-                progress.update(init_bar, advance=step - prev_step)
-                prev_step = step
-            progress.update(init_bar, completed=init_bar_total)
-            progress.stop_task(init_bar)
-            progress.start_task(match_bar)
-        else:
-            qbindiff.process()
+        try:
+            if not quiet:
+                init_bar_total = 1000
+                progress.update(init_bar, total=init_bar_total)
+                prev_step = 0
+                for step in qbindiff.process_iterator():
+                    progress.update(init_bar, advance=step - prev_step)
+                    prev_step = step
+                progress.update(init_bar, completed=init_bar_total)
+                progress.stop_task(init_bar)
+                progress.start_task(match_bar)
+            else:
+                qbindiff.process()
+        except TypeError as e:  # Catch ISA issue for binexport
+            progress.stop()
+            log_once(logging.ERROR, str(e))
+            exit(1)
 
         logging.info("[+] Computing NAP")
         if not quiet:
