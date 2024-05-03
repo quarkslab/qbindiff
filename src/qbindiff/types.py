@@ -147,9 +147,9 @@ class GenericPrePass(Protocol):
         Execute the pass that operates on the similarity matrix inplace
 
         :param sim_matrix: The similarity matrix of between the primary and secondary, of
-                            type py:class:`qbindiff.types:SimMatrix`
-        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
-        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+                            type :py:class:`qbindiff.types:SimMatrix`
+        :param primary: The primary binary of type :py:class:`qbindiff.loader.Program`
+        :param secondary: The secondary binary of type :py:class:`qbindiff.loader.Program`
         :param primary_mapping: Mapping between the primary function addresses and their corresponding index
         :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
         :returns: Either an iterator in the range [0, 1000] (used for tracking progress) or None.
@@ -175,9 +175,9 @@ class GenericPostPass(Protocol):
         Execute the pass that operates on the similarity matrix inplace
 
         :param sim_matrix: The similarity matrix of between the primary and secondary, of
-                            type py:class:`qbindiff.types:SimMatrix`
-        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
-        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+                            type :py:class:`qbindiff.types:SimMatrix`
+        :param primary: The primary binary of type :py:class:`qbindiff.loader.Program`
+        :param secondary: The secondary binary of type :py:class:`qbindiff.loader.Program`
         :param primary_mapping: Mapping between the primary function addresses and their corresponding index
         :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
         :param primary_features: Mapping between function addresses and the associated FeatureCollector

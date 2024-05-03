@@ -78,11 +78,11 @@ class Differ:
         :param primary: primary graph
         :param secondary: secondary graph
         :param sparsity_ratio: the sparsity ratio enforced to the similarity matrix
-            of type py:class:`qbindiff.types.Ratio`
+            of type :py:class:`qbindiff.types.Ratio`
         :param tradeoff: tradeoff ratio bewteen node similarity (tradeoff=1.0)
-            and edge similarity (tradeoff=0.0) of type py:class:`qbindiff.types.Ratio`
+            and edge similarity (tradeoff=0.0) of type :py:class:`qbindiff.types.Ratio`
         :param epsilon: perturbation parameter to enforce convergence and speed up computation,
-            of type py:class:`qbindiff.types.Positive`. The greatest the fastest, but least accurate
+            of type :py:class:`qbindiff.types.Positive`. The greatest the fastest, but least accurate
         :param maxiter: maximum number of message passing iterations
         :param sparse_row: Whether to build the sparse similarity matrix considering its
             entirety or processing it row per row
@@ -373,7 +373,7 @@ class GraphDiffer(Differ):
         """
         Initialize the similarity matrix
 
-        :param sim_matrix: The similarity matrix of type py:class:`qbindiff.types.SimMatrix`
+        :param sim_matrix: The similarity matrix of type :py:class:`qbindiff.types.SimMatrix`
         """
 
         sim_matrix[:] = 1
@@ -442,7 +442,7 @@ class DiGraphDiffer(Differ):
         """
         Initialize the similarity matrix
 
-        :param sim_matrix: The similarity matrix of type py:class:`qbindiff.types.SimMatrix`
+        :param sim_matrix: The similarity matrix of type :py:class:`qbindiff.types.SimMatrix`
         :return: None
         """
 
@@ -463,12 +463,12 @@ class QBinDiff(Differ):
         """
         QBinDiff class that provides a high-level interface to trigger a diff between two binaries.
 
-        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
-        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+        :param primary: The primary binary of type :py:class:`qbindiff.loader.Program`
+        :param secondary: The secondary binary of type :py:class:`qbindiff.loader.Program`
         :param distance: the distance function used when comparing the feature vector
             extracted from the graphs.
         :param normalize: Normalize the two programs Call Graphs with a series of heuristics. Look at
-            :py:method:`normalize` for more information.
+            :py:meth:`normalize` for more information.
         """
 
         if normalize:  # Optional normalization step
@@ -517,7 +517,7 @@ class QBinDiff(Differ):
         Register a feature extractor class. This will include the corresponding feature in the similarity matrix
         computation
 
-        :param extractor_class: A feature extractor of type py:class:`qbindiff.features.extractor`
+        :param extractor_class: A feature extractor of type :py:class:`qbindiff.features.extractor`
         :param weight: Weight associated to the corresponding feature. Default is 1.
         :param distance: Distance used only for this feature. It does not make sense to use it with bnb feature,
             but it can be useful for the WeisfeilerLehman feature.
@@ -575,9 +575,9 @@ class QBinDiff(Differ):
         similarity to 1. This anchoring phase is necessary to obtain a good match.
 
         :param sim_matrix: The similarity matrix of between the primary and secondary, of
-            type py:class:`qbindiff.types:SimMatrix`
-        :param primary: The primary binary of type py:class:`qbindiff.loader.Program`
-        :param secondary: The secondary binary of type py:class:`qbindiff.loader.Program`
+            type :py:class:`qbindiff.types:SimMatrix`
+        :param primary: The primary binary of type :py:class:`qbindiff.loader.Program`
+        :param secondary: The secondary binary of type :py:class:`qbindiff.loader.Program`
         :param primary_mapping: Mapping between the primary function addresses and their corresponding index
         :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
         """
@@ -600,7 +600,7 @@ class QBinDiff(Differ):
         """
         Normalize the input Program. In some cases, this can create an exception, caused by a thunk function.
 
-        :param program: the program of type py:class:`qbindiff.loader.Program` to normalize.
+        :param program: the program of type :py:class:`qbindiff.loader.Program` to normalize.
         :returns: the normalized program
         """
 

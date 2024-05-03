@@ -46,7 +46,7 @@ class FeaturePass:
     def __init__(self, distance: Distance):
         """
 
-        :param distance: distance to compute the similarity of type py:class:`qbindiff.types.Distance`
+        :param distance: distance to compute the similarity of type :py:class:`qbindiff.types.Distance`
         """
 
         self._default_distance = distance
