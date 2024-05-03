@@ -170,11 +170,11 @@ def load_program(name: str, loader_s: str, export: Path, exec_file: Path, arch: 
                 "When using the quokka loader you have to provide the raw binaries (option `-e1`/`-e2`)."
             )
             exit(1)
-        program = Program(loader_p, export, exec_file)
+        program = Program(export, exec_file, loader=loader_p)
     elif loader_p == LoaderType.ida:
-        program = Program(loader_p, export)
+        program = Program("", loader=loader_p)
     elif loader_p == LoaderType.binexport:
-        program = Program(loader_p, export, arch=arch)
+        program = Program(export, loader=loader_p, arch=arch)
     else:
         assert False
     return program

@@ -130,9 +130,39 @@ The complete command line options are:
  --epsilon         -e   Relaxation parameter to enforce convergence. (FLOAT) [default: 0.9]                                                                            
  --maxiter         -i   Maximum number of iteration for belief propagation. (INTEGER) [default: 1000]                                                                  
 ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-
-
 ```
+
+### Quokka example
+
+Quokka exporter needs the path the executable file so one should also use ``-e1`` and ``-e2``.
+
+    $ qbindiff -e1 primary.exe -e2 secondary.exe primary.exe.Quokka secondary.exe.Quokka
+
+Note that we use default values for all parameters, but one can configure the different
+features used and the various parameters used.
+
+    $ qbindiff -e1 primary.exe \
+               -e2 secondary.exe \
+               -f bnb \             # basic block number
+               -f cc:3.0 \          # cyclomatic complexity feature
+               -f cst:5.0 \         # feature based on constants
+               --maxiter 100 \      # maximum number of iterations 
+               primary.exe.Quokka \
+               secondary.exe.Quokka
+
+### BinExport example
+
+The most simple example generating a diff file in a .BinDiff format is:
+
+    $ qbindiff primary.BinExport secondary.BinExport -ff bindiff -o out.BinDiff
+
+Binexport backend used, also relies on capstone for the disassembly of instructions and some features.
+Thus for some architecture and especially ARM/thumb mode, one should provide the exact disassembly mode
+using capstone naming for [architecture identifier](https://github.com/capstone-engine/capstone/blob/f81eb3affaa04a66411af12cf75522cb9649cf83/bindings/python/capstone/__init__.py#L207) and [mode identifiers](https://github.com/capstone-engine/capstone/blob/f81eb3affaa04a66411af12cf75522cb9649cf83/bindings/python/capstone/__init__.py#L231). Thus to diff two binexport files and specifying the exact architecture one can do:
+
+    $ qbindiff primary.BinExport secondary.BinExport -a1 CS_ARCH_ARM:CS_MODE_THUMB -a2 CS_ARCH_ARM:CS_MODE_THUMB
+
+
 ## Library usage
 
 The strength of qBinDiff is to be usable as a python library. The following snippet shows an example
@@ -140,14 +170,15 @@ of loading to binexport files and to compare them using the mnemonic feature.
 
 ```python
 from qbindiff import QBinDiff, Program
-from qbindiff.features import WeisfeilerLehman
+from qbindiff.features import MnemonicTyped
 from pathlib import Path
 
-p1 = Program(Path("primary.BinExport"))
-p2 = Program(Path("secondary.BinExport"))
+p1 = Program("primary.BinExport")
+p2 = Program("secondary.BinExport")
 
 differ = QBinDiff(p1, p2)
-differ.register_feature_extractor(WeisfeilerLehman, 1.0, distance='cosine')
+differ.register_feature_extractor(MnemonicTyped, 1.0)
+# Add other features if you want to
 
 differ.process()
 
