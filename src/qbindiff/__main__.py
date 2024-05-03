@@ -150,7 +150,7 @@ def list_features(ctx: click.Context, param: click.Parameter, value: Any) -> Non
 
 def load_program(name: str, loader_s: str, export: Path, exec_file: Path, arch: str = "") -> Program:
     if not loader_s:
-        if export.suffix.casefold() == ".quokka".casefold():
+        if export.suffix.casefold() == ".Quokka".casefold():
             loader_p = LOADERS["quokka"]
         elif export.suffix.casefold() == ".BinExport".casefold():
             loader_p = LOADERS["binexport"]

@@ -18,6 +18,7 @@
 from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING
+from pathlib import Path
 
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Function
@@ -39,32 +40,45 @@ class Program(MutableMapping, GenericGraph):
     It is a :py:class:`MutableMapping`, where keys are function addresses and
     values are :py:class:`Function` objects.
 
+    :param path: Path to the main file to load (depends on the underlying backend)
+    :param kwargs: Valid kwargs are:
+        * loader: LoaderType | None for the loader type
+        * backend: object, object instance implementing the appropriate interface
+
     The node label is the function address, the node itself is the :py:class:`Function` object
     """
 
-    def __init__(self, loader: LoaderType | None, /, *args, **kwargs):
+    def __init__(self, path: Path | str, *args, **kwargs):
         super().__init__()
+        path = Path(path)
+        loader = kwargs.pop("loader") if "loader" in kwargs else None
 
+        # if a backend instance is directly provided use it
         if loader is None and (backend := kwargs.get("backend")) is not None:
             self._backend = backend  # Load directly from instanciated backend
 
-        elif loader == LoaderType.ida:
-            from qbindiff.loader.backend.ida import ProgramBackendIDA
+        # Try to infer it
+        if loader is None:
+            if path.suffix.casefold() == ".Quokka".casefold():
+                loader = LoaderType.quokka
+            elif path.suffix.casefold() == ".BinExport".casefold():
+                loader = LoaderType.binexport
 
+        # Match the resulting loader
+        if loader == LoaderType.ida:
+            from qbindiff.loader.backend.ida import ProgramBackendIDA
             self._backend = ProgramBackendIDA(*args, **kwargs)
 
         elif loader == LoaderType.binexport:
             from qbindiff.loader.backend.binexport import ProgramBackendBinExport
-
-            self._backend = ProgramBackendBinExport(*args, **kwargs)
+            self._backend = ProgramBackendBinExport(str(path), *args, **kwargs)
 
         elif loader == LoaderType.quokka:
             from qbindiff.loader.backend.quokka import ProgramBackendQuokka
-
-            self._backend = ProgramBackendQuokka(*args, **kwargs)
+            self._backend = ProgramBackendQuokka(str(path), *args, **kwargs)
 
         else:
-            raise NotImplementedError("Loader: %s not implemented" % loader)
+            raise NotImplementedError(f"Loader: {loader} not implemented")
 
         self._filter = lambda x: True
         self._functions: dict[Addr, Function] = {}  # underlying dictionary containing the functions
