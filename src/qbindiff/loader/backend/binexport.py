@@ -263,12 +263,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         arch = self.program.architecture_name
 
         # Bruteforce-guessing the context
-        for i in range(2):
-            if i == 0:  # Try with regular arm
-                capstone_mode = capstone.CS_MODE_ARM
-            elif i == 1:  # Try with thumb
-                capstone_mode = capstone.CS_MODE_THUMB
-
+        for capstone_mode in [capstone.CS_MODE_ARM, capstone.CS_MODE_THUMB]:  # try both modes
             # Disassemble the instruction and check the mnemonic
             disassembler = _get_capstone_disassembler(arch, capstone_mode)
             disasm = disassembler.disasm(instr_bytes, self.addr)
@@ -281,11 +276,8 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                 pass
 
         # We have not being lucky
-        log_once(
-            logging.ERROR,
-            f"Cannot guess ISA of the program {self.program.name}." " Consider setting it manually",
-        )
-        raise Exception(f"Cannot guess ISA of the instruction at address {self.addr:#x}")
+        raise TypeError(f"Cannot guess {self.program.name} ISA for the instruction at address {self.addr:#x} "
+                        f"(consider setting it manually)")
 
     def _disassemble(
         self, bb_asm: bytes, correct_mnemonic: str, correct_size: int
