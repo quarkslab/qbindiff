@@ -148,7 +148,10 @@ def list_features(ctx: click.Context, param: click.Parameter, value: Any) -> Non
     click.echo(f"  - all: Enable every working features\n")
     ctx.exit()
 
-def load_program(name: str, loader_s: str, export: Path, exec_file: Path, arch: str = "") -> Program:
+
+def load_program(
+    name: str, loader_s: str, export: Path, exec_file: Path, arch: str = ""
+) -> Program:
     if not loader_s:
         if export.suffix.casefold() == ".Quokka".casefold():
             loader_p = LOADERS["quokka"]
@@ -388,7 +391,6 @@ def main(
         )
         epsilon = DEFAULT_EPSILON
 
-
     with Progress() as progress:
         if not quiet:
             load_bar_total = 2
@@ -403,7 +405,9 @@ def main(
         progress.update(load_bar, advance=1) if not quiet else None
 
         # Check that the executables have been provided
-        secondary = load_program("secondary", secondary_loader, secondary, secondary_exec, secondary_arch)
+        secondary = load_program(
+            "secondary", secondary_loader, secondary, secondary_exec, secondary_arch
+        )
         progress.update(load_bar, advance=1) if not quiet else None
 
         progress.start_task(init_bar) if not quiet else None
