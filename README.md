@@ -134,7 +134,7 @@ The complete command line options are:
 
 ### Quokka example
 
-Quokka exporter needs the path the executable file so one should also use ``-e1`` and ``-e2``.
+Quokka exporter needs the path of the executable file so one should also use ``-e1`` and ``-e2``.
 
     $ qbindiff -e1 primary.exe -e2 secondary.exe primary.exe.Quokka secondary.exe.Quokka
 
@@ -152,7 +152,7 @@ features used and the various parameters used.
 
 ### BinExport example
 
-The most simple example generating a diff file in a .BinDiff format is:
+The most simple example generating a diff file in a ``.BinDiff`` format is:
 
     $ qbindiff primary.BinExport secondary.BinExport -ff bindiff -o out.BinDiff
 

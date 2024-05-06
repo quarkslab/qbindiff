@@ -276,8 +276,10 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
                 pass
 
         # We have not being lucky
-        raise TypeError(f"Cannot guess {self.program.name} ISA for the instruction at address {self.addr:#x} "
-                        f"(consider setting it manually)")
+        raise TypeError(
+            f"Cannot guess {self.program.name} ISA for the instruction at address {self.addr:#x} "
+            f"(consider setting it manually)"
+        )
 
     def _disassemble(
         self, bb_asm: bytes, correct_mnemonic: str, correct_size: int
