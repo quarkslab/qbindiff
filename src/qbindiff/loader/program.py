@@ -41,44 +41,63 @@ class Program(MutableMapping, GenericGraph):
     values are :py:class:`Function` objects.
 
     :param path: Path to the main file to load (depends on the underlying backend)
-    :param kwargs: Valid kwargs are:
-        * loader: LoaderType | None for the loader type
-        * backend: object, object instance implementing the appropriate interface
+    :param loader: The loader type. If not provided, the loader is inferred from the path
+    :param backend: Optional parameter to provide the object instance implementing the
+                    AbstractProgramBackend interface
+    :param args: extra parameters passed to the Backend
+    :param kwargs: extra parameters forwarded to the backend constructor
 
     The node label is the function address, the node itself is the :py:class:`Function` object
     """
 
-    def __init__(self, path: Path | str, *args, **kwargs):
+    def __init__(
+        self,
+        path: Path | str,
+        *args,
+        loader: LoaderType | None = None,
+        backend: AbstractProgramBackend | None = None,
+        **kwargs,
+    ):
         super().__init__()
         path = Path(path)
-        loader = kwargs.pop("loader") if "loader" in kwargs else None
 
         # if a backend instance is directly provided use it
-        if loader is None and (backend := kwargs.get("backend")) is not None:
+        if loader is None and backend is not None:
             self._backend = backend  # Load directly from instanciated backend
 
-        # Try to infer it
-        if loader is None:
-            if path.suffix.casefold() == ".Quokka".casefold():
-                loader = LoaderType.quokka
-            elif path.suffix.casefold() == ".BinExport".casefold():
-                loader = LoaderType.binexport
-
-        # Match the resulting loader
-        if loader == LoaderType.ida:
-            from qbindiff.loader.backend.ida import ProgramBackendIDA
-            self._backend = ProgramBackendIDA(*args, **kwargs)
-
-        elif loader == LoaderType.binexport:
-            from qbindiff.loader.backend.binexport import ProgramBackendBinExport
-            self._backend = ProgramBackendBinExport(str(path), *args, **kwargs)
-
-        elif loader == LoaderType.quokka:
-            from qbindiff.loader.backend.quokka import ProgramBackendQuokka
-            self._backend = ProgramBackendQuokka(str(path), *args, **kwargs)
-
         else:
-            raise NotImplementedError(f"Loader: {loader} not implemented")
+            # Both loader and backend provided. Loader take precedence, warn the user.
+            if backend is not None:
+                logging.warning(
+                    f"Both backend and loader provided for program {path}."
+                    "The loader will take priority and the backend will be ignored."
+                )
+
+            # Try to infer it
+            if loader is None:
+                if path.suffix.casefold() == ".Quokka".casefold():
+                    loader = LoaderType.quokka
+                elif path.suffix.casefold() == ".BinExport".casefold():
+                    loader = LoaderType.binexport
+
+            # Match the resulting loader
+            if loader == LoaderType.ida:
+                from qbindiff.loader.backend.ida import ProgramBackendIDA
+
+                self._backend = ProgramBackendIDA(*args, **kwargs)
+
+            elif loader == LoaderType.binexport:
+                from qbindiff.loader.backend.binexport import ProgramBackendBinExport
+
+                self._backend = ProgramBackendBinExport(str(path), *args, **kwargs)
+
+            elif loader == LoaderType.quokka:
+                from qbindiff.loader.backend.quokka import ProgramBackendQuokka
+
+                self._backend = ProgramBackendQuokka(str(path), *args, **kwargs)
+
+            else:
+                raise NotImplementedError(f"Loader: {loader} not implemented")
 
         self._filter = lambda x: True
         self._functions: dict[Addr, Function] = {}  # underlying dictionary containing the functions
@@ -119,7 +138,7 @@ class Program(MutableMapping, GenericGraph):
         :return: Program instance
         """
 
-        return Program("", LoaderType.ida)
+        return Program("", loader=LoaderType.ida)
 
     @staticmethod
     def from_backend(backend: AbstractProgramBackend) -> Program:
@@ -127,7 +146,7 @@ class Program(MutableMapping, GenericGraph):
         Load the Program from an instanciated program backend object
         """
 
-        return Program(None, backend=backend)
+        return Program("", backend=backend)
 
     def __repr__(self) -> str:
         return "<Program:%s>" % self.name
