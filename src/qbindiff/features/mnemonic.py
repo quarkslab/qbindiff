@@ -16,15 +16,38 @@
 """
 
 from collections import defaultdict
+import pypcode
 
 from qbindiff.features.extractor import InstructionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Instruction
 from qbindiff.loader.types import ProgramCapability
 
 
+class PcodeMnemonicSimple(InstructionFeatureExtractor):
+    """
+    TODO
+    """
+
+    key = "PM"
+
+    def visit_instruction(
+        self, program: Program, instruction: Instruction, collector: FeatureCollector
+    ) -> None:
+        pcode_count = []
+        pypcode_context = program.pypcode
+        try:
+            translation = pypcode_context.translate(instruction.bytes)
+            for pcode_ins in translation.ops:
+                pcode_count.append(str(pcode_ins.opcode).split('.')[-1])
+            pcode_val = {k:pcode_count.count(k) for k in set(pcode_count)}
+        except pypcode.pypcode_native.BadDataError:
+            pcode_val = {}
+        
+        collector.add_dict_feature(self.key, pcode_val)
+
 class MnemonicSimple(InstructionFeatureExtractor):
     """
-    Mnemonic feature.
+    Pcode mnemonic feature.
     It extracts a dictionary with mnemonic as key and 1 as value.
     """
 
