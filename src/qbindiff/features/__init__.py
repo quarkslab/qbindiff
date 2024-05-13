@@ -27,6 +27,7 @@ This information should help to characterize the function.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from qbindiff.features.mnemonic import MnemonicSimple, MnemonicTyped, GroupsCategory
+from qbindiff.features.mnemonic import PcodeMnemonicSimple
 
 from qbindiff.features.graph import (
     BBlockNb,
