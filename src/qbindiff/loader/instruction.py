@@ -20,7 +20,7 @@ from functools import cached_property
 
 from qbindiff.loader.backend import AbstractInstructionBackend
 from qbindiff.loader import Data, Operand
-from qbindiff.loader.types import ReferenceType, ReferenceTarget
+from qbindiff.loader.types import ReferenceType, ReferenceTarget, InstructionGroup
 from qbindiff.types import Addr
 from typing import TYPE_CHECKING
 

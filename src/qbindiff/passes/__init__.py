@@ -20,7 +20,12 @@ There are already several standard implementations you can choose from, most
 notably the FeaturePass that uses the result of the features to populate the
 content of the similarity matrix.
 """
+from collections.abc import Callable
 
 from qbindiff.passes.base import FeaturePass
 from qbindiff.passes.utils import ZeroPass
-from qbindiff.passes.passes import match_same_hash_functions, match_custom_functions
+from qbindiff.passes.passes import (
+    match_same_hash_functions,
+    match_custom_functions,
+    match_same_flirt_hash,
+)
