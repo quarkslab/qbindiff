@@ -111,5 +111,29 @@ class ReferenceType(IntEnum):
     UNKNOWN = 3  # doc: Reference type is unknown
 
 
+@enum_tools.documentation.document_enum
+class InstructionGroup(IntEnum):
+    """
+    Abstraction for the instruction group, for now rely on capstone ones.
+    """
+
+    GRP_INVALID = 0  # doc: Uninitialized/invalid group
+    GRP_JUMP = 1  # doc: Jump instructions (conditional+direct+indirect jumps)
+    GRP_CALL = 2  # doc: Call instructions
+    GRP_RET = 3  # doc: Return group
+    GRP_INT = 4  # doc: Interrupt instructions (int+syscall)
+    GRP_IRET = 5  # doc: Interrupt return instructions
+    GRP_PRIVILEGE = 6  # doc: Privileged instructions
+    GRP_BRANCH_RELATIVE = 7  # doc: Relative branching instructions
+
+    @classmethod
+    def fromint(cls, value: int):
+        """Cast an integer to InstructionGroup type"""
+        # Return an invalid group if cast is not possible
+        return (
+            InstructionGroup(value) if value in InstructionGroup else InstructionGroup.GRP_INVALID
+        )
+
+
 ReferenceTarget: TypeAlias = "Data | Structure | StructureMember"
 """Data reference target"""

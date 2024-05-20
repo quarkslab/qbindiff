@@ -40,7 +40,13 @@ from qbindiff.loader.backend import (
 from qbindiff.loader.backend.utils import convert_operand_type
 from qbindiff.loader import Structure
 from qbindiff.utils import log_once
-from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
+from qbindiff.loader.types import (
+    FunctionType,
+    ReferenceType,
+    ReferenceTarget,
+    OperandType,
+    InstructionGroup,
+)
 
 if TYPE_CHECKING:
     from qbindiff.types import Addr
@@ -206,8 +212,13 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         )
 
     @property
-    def groups(self) -> list[int]:
-        return self.cs_instr.groups
+    def groups(self) -> list[InstructionGroup]:
+        """
+        Returns a list of groups of this instruction.
+        """
+        # Wrap capstone group using our custom type
+        # Note: This only works because the mappings between the enums are the same
+        return list(map(lambda e: InstructionGroup.fromint(e), self.cs_instr.groups))
 
     @property
     def id(self) -> int:

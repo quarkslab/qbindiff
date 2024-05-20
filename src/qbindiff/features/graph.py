@@ -21,7 +21,6 @@ import hashlib
 import community  # type: ignore[import-untyped]
 import numpy as np
 import math
-from capstone import CS_GRP_JUMP
 from typing import no_type_check, TYPE_CHECKING
 
 from qbindiff.features.extractor import (
@@ -31,7 +30,7 @@ from qbindiff.features.extractor import (
     FeatureCollector,
 )
 from qbindiff.loader import Program, Function, Instruction, Operand
-from qbindiff.loader.types import OperandType
+from qbindiff.loader.types import OperandType, InstructionGroup
 
 if TYPE_CHECKING:
     from qbindiff.loader import Operand
@@ -168,7 +167,7 @@ class JumpNb(InstructionFeatureExtractor):
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
-        if CS_GRP_JUMP in instruction.groups:
+        if InstructionGroup.GRP_JUMP in instruction.groups:
             collector.add_dict_feature(self.key, {"value": 1})
 
 

@@ -20,7 +20,13 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
 
 from qbindiff.loader import Structure
-from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
+from qbindiff.loader.types import (
+    FunctionType,
+    ReferenceType,
+    ReferenceTarget,
+    OperandType,
+    InstructionGroup,
+)
 from qbindiff.types import Addr
 
 
@@ -102,7 +108,7 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def groups(self) -> list[int]:
+    def groups(self) -> list[InstructionGroup]:
         """
         Returns a list of groups of this instruction
         """
