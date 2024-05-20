@@ -33,6 +33,7 @@ from rich.table import Table
 from qbindiff import __version__ as qbindiff_version
 from qbindiff import LoaderType, Program, QBinDiff, Mapping, Distance
 from qbindiff.features import FEATURES, DEFAULT_FEATURES
+from qbindiff.passes import match_same_hash_functions, match_custom_functions, match_same_flirt_hash
 from qbindiff.utils import log_once
 
 if TYPE_CHECKING:
@@ -132,6 +133,10 @@ click.rich_click.OPTION_GROUPS = {
                 "--epsilon",
                 "--maxiter",
             ],
+        },
+        {
+            "name": "Passes parameters",
+            "options": ["--pass-feature-hash", "--pass-user-defined", "--pass-flirt-hash"],
         },
     ]
 }
@@ -327,6 +332,19 @@ For a list of all the features available see --list-features."""
     help="List all the available features.",
 )
 @click.option(
+    "--pass-feature-hash",
+    is_flag=True,
+    help="Anchor matches when function have the same feature hash.",
+)
+@click.option(
+    "--pass-user-defined",
+    type=str,
+    help="Anchor matches using user defined matches. Format is like 'primary-addr1:secondary-addr2,...'.",
+)
+@click.option(
+    "--pass-flirt-hash", is_flag=True, help="Anchor matches using FLIRT/FunctionID like signatures."
+)
+@click.option(
     "-q",
     "--quiet",
     is_flag=True,
@@ -353,6 +371,9 @@ def main(
     format,
     primary_arch,
     secondary_arch,
+    pass_feature_hash,
+    pass_user_defined,
+    pass_flirt_hash,
     quiet,
     verbose,
     primary,
@@ -463,6 +484,31 @@ def main(
                 qbindiff.register_feature_extractor(
                     extractor_class, float(weight), distance=distance
                 )
+
+        # Register passes if set
+        if pass_user_defined:
+            # Parse custom anchors points
+            try:
+                anchors = []
+                addresses = pass_user_defined.replace(" ", "").split(",")
+                for addr in addresses:
+                    x, y = addr.split(":")
+                    if not x.isdigit():
+                        raise Exception(f"'{x}' is not a valid address")
+                    if not y.isdigit():
+                        raise Exception(f"'{y}' is not a valid address")
+                    anchors.append((int(x), int(y)))
+
+                # Register pass with custom anchors point
+                qbindiff.register_prepass(match_custom_functions, custom_anchors=anchors)
+            except Exception as e:
+                logging.error(f"Failed to register 'user-defined' pass: {e}")
+                exit()
+
+        if pass_flirt_hash:
+            qbindiff.register_prepass(match_same_flirt_hash)
+        if pass_feature_hash:
+            qbindiff.register_postpass(match_same_hash_functions)
 
         logging.info("[+] Initializing NAP")
         try:

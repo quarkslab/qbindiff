@@ -18,14 +18,16 @@
 from __future__ import annotations
 import logging
 from collections import defaultdict
+import hashlib
 
 from qbindiff.features import BytesHash
+from qbindiff.loader.types import InstructionGroup
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from qbindiff.loader import Program
-    from qbindiff.types import SimMatrix, FeatureValue, Addr, Idx
+    from qbindiff.types import SimMatrix, FeatureValue, Addr, Idx, Function
     from qbindiff.features.extractor import FeatureCollector
 
 
@@ -129,6 +131,75 @@ def match_custom_functions(
     """
 
     for addr1, addr2 in custom_anchors:
-        sim_matrix[primary_mapping[addr1], :] = 0
-        sim_matrix[:, secondary_mapping[addr2]] = 0
-        sim_matrix[primary_mapping[addr1], secondary_mapping[addr2]] = 1
+        if addr1 in primary_mapping and addr2 in secondary_mapping:
+            sim_matrix[primary_mapping[addr1], :] = 0
+            sim_matrix[:, secondary_mapping[addr2]] = 0
+            sim_matrix[primary_mapping[addr1], secondary_mapping[addr2]] = 1
+        else:
+            logging.warning(f"Addresses are out of bounds: ({addr1}, {addr2})")
+
+
+def compute_flirt_signature(function: Function) -> int:
+    """Recreate FLIRT/FunctionID like hashes. Basically FLIRT hashes are hashs
+    of the function bytes without the "address relative" instructions.
+    Since we don't have access to the real hash because of the backend, try
+    to mimic this feature on our own.
+    """
+
+    def is_relative(instr):
+        # More checks may come in futur version
+        return InstructionGroup.GRP_BRANCH_RELATIVE in instr.groups
+
+    data = b""
+    for bb_addr, bb in function.items():
+        for instr in bb.instructions:
+            # Check if instruction is address relative
+            if is_relative(instr):
+                data += b"\x00" * len(instr.bytes)
+            else:
+                data += instr.bytes
+
+    # Return the MD5 value of the masked
+    return int(hashlib.md5(data).hexdigest(), 16)
+
+
+def match_same_flirt_hash(
+    sim_matrix: SimMatrix,
+    primary: Program,
+    secondary: Program,
+    primary_mapping: dict[Addr, Idx],
+    secondary_mapping: dict[Addr, Idx],
+    *args,
+    **kwargs,
+) -> None:
+    """
+    Custom Anchoring pass. It enforces the matching between functions using the user
+    supplied anchors.
+    Determining these anchors can be done by a deeper look at the binaries.
+
+    :param sim_matrix: The similarity matrix of between the primary and secondary, of
+                       type :py:class:`qbindiff.types:SimMatrix`
+    :param primary: The primary binary of type :py:class:`qbindiff.loader.Program`
+    :param secondary: The secondary binary of type :py:class:`qbindiff.loader.Program`
+    :param primary_mapping: Mapping between the primary function addresses and their corresponding index
+    :param secondary_mapping: Mapping between the secondary function addresses and their corresponding index
+    """
+
+    matched = 0
+    hashmap = {}
+    # First compute all the hash from the primary
+    for addr, function in primary.items():
+        hashmap.update({compute_flirt_signature(function): addr})
+
+    # Now try to match with the functions from the secondary
+    for addr2, function in secondary.items():
+        hash = compute_flirt_signature(function)
+        addr1 = hashmap.get(hash)
+        if addr1:
+            # FLIRT signature matches, we can anchor this match
+            sim_matrix[primary_mapping[addr1], :] = 0
+            sim_matrix[:, secondary_mapping[addr2]] = 0
+            sim_matrix[primary_mapping[addr1], secondary_mapping[addr2]] = 1
+            matched += 1
+
+    logging.info(f"{matched} functions were anchored during pass 'match_same_flirt_hash'")

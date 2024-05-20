@@ -21,7 +21,13 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
 
 from qbindiff.loader import Structure
-from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
+from qbindiff.loader.types import (
+    FunctionType,
+    ReferenceType,
+    ReferenceTarget,
+    OperandType,
+    InstructionGroup,
+)
 from qbindiff.types import Addr
 from typing import TYPE_CHECKING
 
