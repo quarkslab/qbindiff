@@ -20,7 +20,7 @@ from functools import cached_property
 
 from qbindiff.loader.backend import AbstractInstructionBackend
 from qbindiff.loader import Data, Operand
-from qbindiff.loader.types import ReferenceType, ReferenceTarget
+from qbindiff.loader.types import ReferenceType, ReferenceTarget, InstructionGroup
 from qbindiff.types import Addr
 
 
@@ -87,7 +87,7 @@ class Instruction:
         return [Operand.from_backend(o) for o in self._backend.operands]
 
     @property
-    def groups(self) -> list[int]:
+    def groups(self) -> list[InstructionGroup]:
         """
         Returns a list of groups of this instruction.
         """

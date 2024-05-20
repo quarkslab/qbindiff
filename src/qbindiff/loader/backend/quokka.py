@@ -45,6 +45,7 @@ from qbindiff.loader.types import (
     ReferenceType,
     ReferenceTarget,
     OperandType,
+    InstructionGroup,
 )
 from qbindiff.types import Addr
 from qbindiff.loader.backend.utils import convert_operand_type
@@ -293,12 +294,13 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         )
 
     @property
-    def groups(self) -> list[int]:
+    def groups(self) -> list[InstructionGroup]:
         """
-        Returns a list of groups of this instruction. Groups are capstone based but enriched.
+        Returns a list of groups of this instruction.
         """
-
-        return []  # Not supported
+        # Wrap capstone group using our custom type
+        # Note: This only works because the mappings between the enums are the same
+        return list(map(lambda e: InstructionGroup.fromint(e), self.cs_instr.groups))
 
     @property
     def id(self) -> int:
