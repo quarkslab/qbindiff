@@ -16,7 +16,7 @@
 """
 
 from __future__ import annotations
-from enum import IntEnum
+from enum import IntEnum, IntFlag, auto
 from typing import TypeAlias, TYPE_CHECKING
 import enum_tools.documentation
 
@@ -146,6 +146,16 @@ class InstructionGroup(IntEnum):
         raise ValueError(
             f"Misalignment between capstone group {capstone_group} and InstructionGroup"
         )
+
+
+@enum_tools.documentation.document_enum
+class ProgramCapability(IntFlag):
+    """
+    Defines the capabilities that are supported by a Program backed
+    by a specific backend loader
+    """
+
+    PCODE = auto()
 
 
 ReferenceTarget: TypeAlias = "Data | Structure | StructureMember"

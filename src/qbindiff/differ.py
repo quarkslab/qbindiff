@@ -524,6 +524,23 @@ class QBinDiff(Differ):
         """
 
         extractor = extractor_class(weight, **extra_args)
+
+        # Check that the capabilities required by the feature are supported by the Programs
+        supported_cap = self.primary.capabilities & extractor.required_capabilities
+        if supported_cap != extractor.required_capabilities:
+            missing = supported_cap ^ extractor.required_capabilities
+            raise UnsupportedFeatException(
+                f"The capability {missing.name}, required by the feature"
+                f" {extractor.key} is not supported by the primary backend"
+            )
+        supported_cap = self.secondary.capabilities & extractor.required_capabilities
+        if supported_cap != extractor.required_capabilities:
+            missing = supported_cap ^ extractor.required_capabilities
+            raise UnsupportedFeatException(
+                f"The capability {missing.name}, required by the feature"
+                f" {extractor.key} is not supported by the secondary backend"
+            )
+
         self._feature_pass.register_extractor(extractor, distance=distance)
 
     def _run_passes(self) -> Iterator[int]:

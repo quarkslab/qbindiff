@@ -18,14 +18,20 @@
 from __future__ import annotations
 import networkx
 from abc import ABCMeta, abstractmethod
-from collections.abc import Iterator
 
 from qbindiff.loader import Structure
-from qbindiff.loader.types import FunctionType, ReferenceType, ReferenceTarget, OperandType
+from qbindiff.loader.types import (
+    FunctionType,
+    ReferenceType,
+    ReferenceTarget,
+    OperandType,
+    ProgramCapability,
+)
 from qbindiff.types import Addr
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from qbindiff.loader.types import InstructionGroup
 
 
@@ -304,3 +310,10 @@ class AbstractProgramBackend(metaclass=ABCMeta):
         Returns the executable path
         """
         raise NotImplementedError()
+
+    @property
+    def capabilities(self) -> ProgramCapability:
+        """
+        Returns the supported capabilities
+        """
+        return ProgramCapability(0)

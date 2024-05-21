@@ -21,6 +21,7 @@ from collections import defaultdict
 
 from qbindiff.features.manager import FeatureKeyManager
 from qbindiff.loader import Program, Function, BasicBlock, Instruction, Operand
+from qbindiff.loader.types import ProgramCapability
 from qbindiff.types import Positive, SparseVector, FeatureValue
 
 
@@ -145,6 +146,7 @@ class FeatureExtractor(metaclass=FeatureExtractorMeta):
 
     key: str = ""  #: feature name (short)
     help_msg: str = ""  #: CLI help message
+    required_capabilities = ProgramCapability(0)  #: By default there are no required capabilities
 
     def __init__(self, weight: Positive = 1.0):
         """
