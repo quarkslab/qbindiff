@@ -136,7 +136,7 @@ def match_custom_functions(
             sim_matrix[:, secondary_mapping[addr2]] = 0
             sim_matrix[primary_mapping[addr1], secondary_mapping[addr2]] = 1
         else:
-            logging.warning(f"Addresses are out of bounds: ({addr1}, {addr2})")
+            logging.warning(f"Addresses are out of bounds: ({addr1:#x}, {addr2:#x})")
 
 
 def compute_flirt_signature(function: Function) -> int:
@@ -173,9 +173,9 @@ def match_same_flirt_hash(
     **kwargs,
 ) -> None:
     """
-    Custom Anchoring pass. It enforces the matching between functions using the user
-    supplied anchors.
-    Determining these anchors can be done by a deeper look at the binaries.
+    FLIRT hash anchoring pass. It enforces the matching between functions that share the same hash.
+    If multiple functions shares the same hash, then all of them are set with a similarity of 1.
+    This works both as a PrePass and as a PostPass.
 
     :param sim_matrix: The similarity matrix of between the primary and secondary, of
                        type :py:class:`qbindiff.types:SimMatrix`
@@ -186,20 +186,29 @@ def match_same_flirt_hash(
     """
 
     matched = 0
-    hashmap = {}
     # First compute all the hash from the primary
+    hashmap_primary = defaultdict(set)
     for addr, function in primary.items():
-        hashmap.update({compute_flirt_signature(function): addr})
+        hashmap_primary[compute_flirt_signature(function)].add(addr)
+
+    # First compute all the hash from the primary
+    hashmap_secondary = defaultdict(set)
+    for addr, function in secondary.items():
+        hashmap_secondary[compute_flirt_signature(function)].add(addr)
 
     # Now try to match with the functions from the secondary
-    for addr2, function in secondary.items():
-        hash = compute_flirt_signature(function)
-        addr1 = hashmap.get(hash)
-        if addr1:
-            # FLIRT signature matches, we can anchor this match
-            sim_matrix[primary_mapping[addr1], :] = 0
-            sim_matrix[:, secondary_mapping[addr2]] = 0
-            sim_matrix[primary_mapping[addr1], secondary_mapping[addr2]] = 1
-            matched += 1
+    for h in hashmap_primary.keys() & hashmap_secondary.keys():
+        # First zero-out the rows and cols
+        for addr in hashmap_primary[h]:
+            sim_matrix[primary_mapping[addr], :] = 0
+        for addr in hashmap_secondary[h]:
+            sim_matrix[:, secondary_mapping[addr]] = 0
+
+        # FLIRT signature matches, we can anchor this match
+        for addr1 in hashmap_primary[h]:
+            for addr2 in hashmap_secondary[h]:
+                sim_matrix[primary_mapping[addr1], secondary_mapping[addr2]] = 1
+
+        matched += len(hashmap_primary[h]) * len(hashmap_secondary[h])
 
     logging.info(f"{matched} functions were anchored during pass 'match_same_flirt_hash'")
