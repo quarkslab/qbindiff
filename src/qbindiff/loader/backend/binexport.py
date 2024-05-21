@@ -216,9 +216,7 @@ class InstructionBackendBinExport(AbstractInstructionBackend):
         """
         Returns a list of groups of this instruction.
         """
-        # Wrap capstone group using our custom type
-        # Note: This only works because the mappings between the enums are the same
-        return list(map(lambda e: InstructionGroup.fromint(e), self.cs_instr.groups))
+        return list(map(InstructionGroup.from_capstone, self.cs_instr.groups))
 
     @property
     def id(self) -> int:
