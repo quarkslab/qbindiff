@@ -130,6 +130,11 @@ The complete command line options are:
  --epsilon         -e   Relaxation parameter to enforce convergence. (FLOAT) [default: 0.9]                                                                            
  --maxiter         -i   Maximum number of iteration for belief propagation. (INTEGER) [default: 1000]                                                                  
 ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+╭─ Passes parameters ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+│ --pass-feature-hash    Anchor matches when function have the same feature hash.                                                                                       
+│ --pass-user-defined    Anchor matches using user defined matches. Format is like 'primary-addr1:secondary-addr2,...'. (TEXT)                                          
+│ --pass-flirt-hash      Anchor matches using FLIRT/FunctionID like signatures.                                                                                         
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
 
 ### Quokka example
