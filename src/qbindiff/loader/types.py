@@ -134,6 +134,19 @@ class InstructionGroup(IntEnum):
             InstructionGroup(value) if value in InstructionGroup else InstructionGroup.GRP_INVALID
         )
 
+    @classmethod
+    def from_capstone(cls, capstone_group: int):
+        """Cast a capstone group to InstructionGroup type"""
+        # Wrap capstone group using our custom type
+        # Note: This only works because the mappings between the enums are the same
+        if capstone_group in InstructionGroup:
+            return InstructionGroup(capstone_group)
+
+        # Raise an exception if cast is not possible
+        raise ValueError(
+            f"Misalignment between capstone group {capstone_group} and InstructionGroup"
+        )
+
 
 ReferenceTarget: TypeAlias = "Data | Structure | StructureMember"
 """Data reference target"""
