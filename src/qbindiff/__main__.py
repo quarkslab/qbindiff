@@ -135,7 +135,7 @@ click.rich_click.OPTION_GROUPS = {
             ],
         },
         {
-            "name": "Passes parameters",
+            "name": "Similarity refinement passes",
             "options": ["--pass-feature-hash", "--pass-user-defined", "--pass-flirt-hash"],
         },
     ]
