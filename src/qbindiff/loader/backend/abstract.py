@@ -15,6 +15,7 @@
 """Interface of a backend loader
 """
 
+from __future__ import annotations
 import networkx
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterator
