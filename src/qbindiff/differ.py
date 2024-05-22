@@ -40,6 +40,7 @@ from qbindiff.mapping import Mapping
 from qbindiff.features.extractor import FeatureExtractor
 from qbindiff.passes import FeaturePass, ZeroPass
 from qbindiff.utils import is_debug, wrapper_iter
+from qbindiff.exceptions import *
 from qbindiff.types import RawMapping, Positive, Ratio, Graph, AdjacencyMatrix, Distance
 from qbindiff.mapping.bindiff import export_to_bindiff
 
@@ -529,14 +530,14 @@ class QBinDiff(Differ):
         supported_cap = self.primary.capabilities & extractor.required_capabilities
         if supported_cap != extractor.required_capabilities:
             missing = supported_cap ^ extractor.required_capabilities
-            raise UnsupportedFeatException(
+            raise UnsupportedFeatureException(
                 f"The capability {missing.name}, required by the feature"
                 f" {extractor.key} is not supported by the primary backend"
             )
         supported_cap = self.secondary.capabilities & extractor.required_capabilities
         if supported_cap != extractor.required_capabilities:
             missing = supported_cap ^ extractor.required_capabilities
-            raise UnsupportedFeatException(
+            raise UnsupportedFeatureException(
                 f"The capability {missing.name}, required by the feature"
                 f" {extractor.key} is not supported by the secondary backend"
             )
