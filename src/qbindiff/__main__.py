@@ -33,6 +33,7 @@ from rich.table import Table
 from qbindiff import __version__ as qbindiff_version
 from qbindiff import LoaderType, Program, QBinDiff, Mapping, Distance
 from qbindiff.features import FEATURES, DEFAULT_FEATURES
+from qbindiff.exceptions import *
 from qbindiff.passes import match_same_hash_functions, match_custom_functions, match_same_flirt_hash
 from qbindiff.utils import log_once
 
@@ -452,38 +453,42 @@ def main(
             logging.error("no feature provided")
             exit(1)
 
-        # Check for the 'all' option
-        if "all" in set(features):
-            # Add all features with default weight and distance
-            for f in FEATURES_KEYS:
-                qbindiff.register_feature_extractor(
-                    FEATURES_KEYS[f], float(1.0), distance=Distance[distance]
-                )
-        else:
-            for feature in set(features):
-                weight = 1.0
-                distance = None
-                if ":" in feature:
-                    feature, *opts = feature.split(":")
-                    if len(opts) == 2:
-                        weight, distance = opts
-                    elif len(opts) == 1:
-                        try:
-                            weight = float(opts[0])
-                        except ValueError:
-                            distance = opts[0]
-                    else:
-                        logging.error(f"Malformed feature {feature}")
+        try:
+            # Check for the 'all' option
+            if "all" in set(features):
+                # Add all features with default weight and distance
+                for f in FEATURES_KEYS:
+                    qbindiff.register_feature_extractor(
+                        FEATURES_KEYS[f], float(1.0), distance=Distance[distance]
+                    )
+            else:
+                for feature in set(features):
+                    weight = 1.0
+                    distance = None
+                    if ":" in feature:
+                        feature, *opts = feature.split(":")
+                        if len(opts) == 2:
+                            weight, distance = opts
+                        elif len(opts) == 1:
+                            try:
+                                weight = float(opts[0])
+                            except ValueError:
+                                distance = opts[0]
+                        else:
+                            logging.error(f"Malformed feature {feature}")
+                            continue
+                    if feature not in FEATURES_KEYS:
+                        logging.warning(f"Feature '{feature}' not recognized - ignored.")
                         continue
-                if feature not in FEATURES_KEYS:
-                    logging.warning(f"Feature '{feature}' not recognized - ignored.")
-                    continue
-                extractor_class = FEATURES_KEYS[feature]
-                if distance is not None:
-                    distance = Distance[distance]
-                qbindiff.register_feature_extractor(
-                    extractor_class, float(weight), distance=distance
-                )
+                    extractor_class = FEATURES_KEYS[feature]
+                    if distance is not None:
+                        distance = Distance[distance]
+                    qbindiff.register_feature_extractor(
+                        extractor_class, float(weight), distance=distance
+                    )
+        except UnsupportedFeatureException as e:
+            logging.error(f"Failed to register the feature '{feature}': {e}")
+            exit(1)
 
         # Register passes if set
         if pass_user_defined:

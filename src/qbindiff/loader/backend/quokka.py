@@ -21,7 +21,7 @@ import logging
 import weakref
 from functools import cached_property
 from collections.abc import Iterator
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, TYPE_CHECKING
 
 # third party imports
 import quokka
@@ -46,10 +46,14 @@ from qbindiff.loader.types import (
     ReferenceTarget,
     OperandType,
     InstructionGroup,
+    ProgramCapability,
 )
 from qbindiff.types import Addr
 from qbindiff.loader.backend.utils import convert_operand_type
 
+
+if TYPE_CHECKING:
+    from pypcode import PcodeOp
 
 # Aliases
 capstoneOperand: TypeAlias = Any  # Relaxed typing
@@ -323,6 +327,14 @@ class InstructionBackendQuokka(AbstractInstructionBackend):
         Returns the bytes representation of the instruction
         """
         return bytes(self.qb_instr.bytes)
+
+    @property
+    def pcode_ops(self) -> list[PcodeOp]:
+        """
+        List of PcodeOp associated with the instruction.
+        Provided with the PCODE capability
+        """
+        return self.qb_instr.pcode_insts
 
 
 class BasicBlockBackendQuokka(AbstractBasicBlockBackend):
@@ -599,3 +611,10 @@ class ProgramBackendQuokka(AbstractProgramBackend):
         """
 
         return self._exec_path
+
+    @property
+    def capabilities(self) -> ProgramCapability:
+        """
+        Returns the supported capabilities
+        """
+        return ProgramCapability.INSTR_GROUP | ProgramCapability.PCODE

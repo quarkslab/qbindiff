@@ -46,6 +46,7 @@ from qbindiff.loader.types import (
     ReferenceTarget,
     OperandType,
     InstructionGroup,
+    ProgramCapability,
 )
 
 if TYPE_CHECKING:
@@ -490,3 +491,10 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         Guess the raw binary name by removing the final .BinExport
         """
         return self.name.replace(".BinExport", "")
+
+    @property
+    def capabilities(self) -> ProgramCapability:
+        """
+        Returns the supported capabilities
+        """
+        return ProgramCapability.INSTR_GROUP

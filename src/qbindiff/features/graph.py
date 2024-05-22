@@ -30,7 +30,7 @@ from qbindiff.features.extractor import (
     FeatureCollector,
 )
 from qbindiff.loader import Program, Function, Instruction, Operand
-from qbindiff.loader.types import OperandType, InstructionGroup
+from qbindiff.loader.types import OperandType, InstructionGroup, ProgramCapability
 
 if TYPE_CHECKING:
     from qbindiff.loader import Operand
@@ -160,9 +160,11 @@ class MDIndex(FunctionFeatureExtractor):
 class JumpNb(InstructionFeatureExtractor):
     """
     Number of jumps in the function.
+    Requires INSTR_GROUP capability
     """
 
     key = "jnb"
+    required_capabilities = ProgramCapability.INSTR_GROUP
 
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector

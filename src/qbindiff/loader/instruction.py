@@ -25,6 +25,7 @@ from qbindiff.types import Addr
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pypcode import PcodeOp
     from qbindiff.loader.types import InstructionGroup
 
 
@@ -94,6 +95,9 @@ class Instruction:
     def groups(self) -> list[InstructionGroup]:
         """
         Returns a list of groups of this instruction.
+
+        .. warning::
+            Requires INSTR_GROUP capability
         """
 
         return self._backend.groups
@@ -121,6 +125,16 @@ class Instruction:
         """
 
         return self._backend.bytes
+
+    @property
+    def pcode_ops(self) -> list[PcodeOp]:
+        """
+        List of PcodeOp associated with the instruction.
+
+        .. warning::
+            Requires PCODE capability
+        """
+        return self._backend.pcode_ops
 
     def __str__(self) -> str:
         return "%s %s" % (

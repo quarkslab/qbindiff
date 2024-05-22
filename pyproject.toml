@@ -53,7 +53,7 @@ doc = [
     "enum-tools[sphinx]",
     "sphinx_autodoc_typehints",
 ]
-dev = ["tox"]
+dev = ["tox", "pypcode"]
 
 [tool.black]
 line-length = 100

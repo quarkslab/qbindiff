@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from qbindiff.loader import Structure
     from qbindiff.loader.backend.abstract import AbstractProgramBackend
+    from qbindiff.loader.types import ProgramCapability
     from qbindiff.types import Addr
 
 
@@ -347,3 +348,11 @@ class Program(MutableMapping, GenericGraph):
             self[c_addr].parents.remove(to_remove)
             self._backend.callgraph.remove_edge(to_remove, c_addr)
         self._backend.callgraph.remove_node(to_remove)
+
+    @property
+    def capabilities(self) -> ProgramCapability:
+        """
+        Returns the underlying backend capabilities
+        """
+
+        return self._backend.capabilities
