@@ -31,6 +31,7 @@ from qbindiff.types import Addr
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pypcode import PcodeOp
     from collections.abc import Iterator
     from qbindiff.loader.types import InstructionGroup
 
@@ -113,14 +114,6 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def groups(self) -> list[InstructionGroup]:
-        """
-        Returns a list of groups of this instruction
-        """
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
     def id(self) -> int:
         """
         Returns the instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
@@ -146,6 +139,22 @@ class AbstractInstructionBackend(metaclass=ABCMeta):
     def bytes(self) -> bytes:
         """
         Returns the bytes representation of the instruction
+        """
+        raise NotImplementedError()
+
+    @property
+    def groups(self) -> list[InstructionGroup]:
+        """
+        Returns a list of groups of this instruction.
+        Provided with the INSTR_GROUP capability
+        """
+        raise NotImplementedError()
+
+    @property
+    def pcode_ops(self) -> list[PcodeOp]:
+        """
+        List of PcodeOp associated with the instruction.
+        Provided with the PCODE capability
         """
         raise NotImplementedError()
 

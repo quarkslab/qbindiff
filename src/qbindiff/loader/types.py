@@ -156,6 +156,7 @@ class ProgramCapability(IntFlag):
     """
 
     PCODE = auto()
+    INSTR_GROUP = auto()
 
 
 ReferenceTarget: TypeAlias = "Data | Structure | StructureMember"

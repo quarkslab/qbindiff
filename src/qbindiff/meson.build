@@ -3,6 +3,7 @@ python_sources = [files(
     '__main__.py',
     'abstract.py',
     'differ.py',
+    'exceptions.py',
     'types.py',
     'version.py',
     'visitor.py',

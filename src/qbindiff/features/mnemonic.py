@@ -19,6 +19,7 @@ from collections import defaultdict
 
 from qbindiff.features.extractor import InstructionFeatureExtractor, FeatureCollector
 from qbindiff.loader import Program, Instruction
+from qbindiff.loader.types import ProgramCapability
 
 
 class MnemonicSimple(InstructionFeatureExtractor):
@@ -62,22 +63,24 @@ class GroupsCategory(InstructionFeatureExtractor):
     Categorization of instructions feature.
     It can correspond to instructions subset (XMM, AES etc..),
     or more generic grouping like (arithmetic, comparisons etc..).
-    As of now, rely on capstone groups.
+    Requires INSTR_GROUP capability.
+    It relies on :py:class:`InstructionGroups` for the different categories.
 
-    .. warning:: Feature in maintenance. Do nothing at the moment.
+    .. warning:: As of now there are not many categories. This might change in the future.
     """
 
     key = "Gp"
     help_msg = """
     Categorization of instructions feature.
-    It can correspond to instructions subset (XMM, AES etc..), or more generic grouping
-    like (arithmetic, comparisons etc..). As of now, rely on capstone groups.
+    It can correspond to instructions subset (XMM, AES etc..),
+    or more generic grouping like (arithmetic, comparisons etc..).
+    Requires INSTR_GROUP capability.
     """.strip()
+    required_capabilities = ProgramCapability.INSTR_GROUP
 
     def visit_instruction(
         self, program: Program, instruction: Instruction, collector: FeatureCollector
     ) -> None:
         for key in instruction.groups:
-            if key not in ["UNDEFINED", "NOTINCS", "NOTINIDA", "DEPRECATED"]:
-                # Key should be a str, not an int returned by hash
-                collector.add_dict_feature(self.key, {str(key): 1})
+            # Key should be a str, not an int returned by hash
+            collector.add_dict_feature(self.key, {key.name: 1})

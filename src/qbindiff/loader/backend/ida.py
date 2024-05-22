@@ -221,14 +221,6 @@ class InstructionBackendIDA(AbstractInstructionBackend):
         )
 
     @property
-    def groups(self) -> list[int]:
-        """
-        Returns a list of groups of this instruction
-        """
-
-        return []  # Not implemented for IDA backend
-
-    @property
     def id(self) -> int:
         """
         Returns the IDA instruction ID as a non negative int. The ID is in the range [0, MAX_ID].
