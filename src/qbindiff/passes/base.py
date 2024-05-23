@@ -300,7 +300,6 @@ class FeaturePass:
                 simple_feature_keys[self.distance(main_key)].append(main_key)
         # Add the simple features similarity
         for distance, features in simple_feature_keys.items():
-            print('features:', features)
             logging.debug(
                 "Computing similarity matrix for the simple features "
                 f"{features} using the distance {distance}"
