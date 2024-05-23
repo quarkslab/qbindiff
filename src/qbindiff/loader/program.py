@@ -254,13 +254,6 @@ class Program(MutableMapping, GenericGraph):
 
         return self._backend.exec_path
 
-    @property
-    def pypcode(self) -> str | None:
-        """
-        The executable path if it has been specified, None otherwise
-        """
-        return self._backend.pypcode
-
     def set_function_filter(self, func: Callable[[Addr], bool]) -> None:
         """
         Filter out some functions, to ignore them in later processing.
