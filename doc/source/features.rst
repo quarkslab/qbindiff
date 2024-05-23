@@ -121,6 +121,7 @@ Basic-block level features
 Instruction level features
 --------------------------
 
+* :py:class:`~qbindiff.features.PcodeMnemonicSimple`: Bag-of-word dictionary counting the pcode operands mnemonic.
 * :py:class:`~qbindiff.features.MnemonicSimple`: TODO write description
 * :py:class:`~qbindiff.features.MnemonicTyped`: TODO write description
 * :py:class:`~qbindiff.features.GroupsCategory`: TODO write description

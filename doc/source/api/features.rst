@@ -181,6 +181,16 @@ GraphCommunities
     :undoc-members:
     :exclude-members:
 
+PcodeMnemonicSimple
+-------------------
+
+.. autoclass:: qbindiff.features.PcodeMnemonicSimple
+    :members:
+    :show-inheritance:
+    :inherited-members:
+    :undoc-members:
+    :exclude-members:
+
 MnemonicSimple
 --------------
 
