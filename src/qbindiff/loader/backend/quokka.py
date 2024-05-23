@@ -28,7 +28,6 @@ import quokka
 import quokka.types
 import networkx
 import capstone  # type: ignore[import-untyped]
-import pypcode
 
 # local imports
 from qbindiff.loader import Data, Structure
