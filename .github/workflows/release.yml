@@ -9,14 +9,27 @@ permissions:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build wheel ${{ matrix.python }}-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}
+    runs-on: ${{ matrix.buildplat[0] }}
     strategy:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
 
       matrix:
-        os: [ubuntu-22.04]
+        buildplat:
+          - [ubuntu-22.04, manylinux_x86_64]
+          - [ubuntu-22.04, manylinux_i686]
+          - [ubuntu-22.04, musllinux_x86_64]
+          - [ubuntu-22.04, musllinux_i686]
+        python: ["cp310", "cp311", "cp312", "pp310"]
+        exclude:
+          - buildplat: [ubuntu-22.04, manylinux_i686]  # numpy error
+            python: "pp310"
+          # Invalid combinations below
+          - buildplat: [ubuntu-22.04, musllinux_x86_64]
+            python: "pp310"
+          - buildplat: [ubuntu-22.04, musllinux_i686]
+            python: "pp310"
 
     steps:
       - uses: actions/checkout@v4
@@ -26,25 +39,18 @@ jobs:
           python-version: '3.11'
 
       - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel
-
-      - name: Set CIBW_PLATFORM environment variable
-        run: |
-          if ${{ startsWith(matrix.os, 'ubuntu') }}; then
-            export CIBW_PLATFORM=linux
-          elif ${{ startsWith(matrix.os, 'windows') }}; then
-            export CIBW_PLATFORM=windows
-          else
-            export CIBW_PLATFORM=mac
-          fi
+        run: python -m pip install cibuildwheel>=2
 
       - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse-${{ matrix.os }}
+        env:
+          CIBW_PRERELEASE_PYTHONS: True
+          CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+        run: python -m cibuildwheel --output-dir wheelhouse-${{ matrix.python }}-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheelhouse-${{ matrix.os }}
-          path: ./wheelhouse-${{ matrix.os }}/*.whl
+          name: wheelhouse-${{ matrix.python }}-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}
+          path: ./wheelhouse-${{ matrix.python }}-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}/*.whl
 
   build_sdist:
     runs-on: ubuntu-latest
