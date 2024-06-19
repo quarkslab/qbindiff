@@ -1,15 +1,5 @@
 [build-system]
-requires = [
-    "meson-python>=0.7.0",
-    "meson>=1.1.0",
-    "cython",
-
-    # use oldest-supported-numpy which provides the oldest numpy version with
-    # wheels on PyPI
-    #
-    # see: https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
-    "oldest-supported-numpy",
-]
+requires = ["meson-python>=0.7.0", "meson>=1.1.0", "cython", "numpy>=2.0"]
 build-backend = "mesonpy"
 
 [project]
@@ -23,7 +13,11 @@ dependencies = [
     "rich-click",
     "numpy",
     "scipy",
-    "lapjv",
+
+    # Current hot-fix for supporting numpy 2.x until https://github.com/src-d/lapjv/pull/85 is merged
+    "lapjv-numpy2",
+    # "lapjv>=1.35",
+
     "networkx",
     "capstone>=5.0.1",
     "datasketch",
