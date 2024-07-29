@@ -65,7 +65,7 @@ def _get_capstone_disassembler(binexport_arch: str, mode: int = 0):
         context.detail = True
         return context
 
-    if binexport_arch == "x86-32":
+    if binexport_arch == "x86-32" or binexport_arch == "x86":
         return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_32 | mode)
     elif binexport_arch == "x86-64":
         return capstone_context(capstone.CS_ARCH_X86, capstone.CS_MODE_64 | mode)
@@ -313,7 +313,7 @@ class BasicBlockBackendBinExport(AbstractBasicBlockBackend):
         capstone_mode = 0
 
         # No need to guess the context for these arch
-        if arch in ("x86", "x86-64", "MIPS-32", "MIPS-64", "ARM-64"):
+        if arch in ("x86", "x86-32", "x86-64", "MIPS-32", "MIPS-64", "ARM-64"):
             pass
 
         # For arm thumb use appropriate context guessing heuristics
