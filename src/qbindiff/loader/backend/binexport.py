@@ -429,6 +429,7 @@ class ProgramBackendBinExport(AbstractProgramBackend):
 
         self.be_prog = binexport.ProgramBinExport(file)
         self.architecture_name = self.be_prog.architecture
+        self._exec_path: str | None = exec_path
         self._fun_names: dict[str, Addr] = {}  # {fun_name : fun_address}
         self.cs = None
 
@@ -488,9 +489,12 @@ class ProgramBackendBinExport(AbstractProgramBackend):
     @property
     def exec_path(self) -> str:
         """
-        Guess the raw binary name by removing the final .BinExport
+        Returns the executable path if it has been provided, otherwise try to guess it
+        by removing the final .BinExport suffix
         """
-        return self.name.replace(".BinExport", "")
+        if self._exec_path:
+            return self._exec_path
+        return self.name.replace(".BinExport", "")  # Try to guess it as best effort
 
     @property
     def capabilities(self) -> ProgramCapability:

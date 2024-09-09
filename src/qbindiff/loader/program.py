@@ -105,7 +105,7 @@ class Program(MutableMapping, GenericGraph):
         self._load_functions()
 
     @staticmethod
-    def from_binexport(file_path: str, arch: str | None = None) -> Program:
+    def from_binexport(file_path: str, arch: str | None = None, exec_path: str | None = None) -> Program:
         """
         Load the Program using the binexport backend
 
@@ -114,10 +114,11 @@ class Program(MutableMapping, GenericGraph):
                      useful when the binexport'ed architecture is not enough to
                      correctly disassemble the binary (for example with arm
                      thumb2 or some mips modes).
+        :param exec_path: Optional path to raw executable binary
         :return: Program instance
         """
 
-        return Program(file_path, arch=arch, loader=LoaderType.binexport)
+        return Program(file_path, arch=arch, exec_path=exec_path, loader=LoaderType.binexport)
 
     @staticmethod
     def from_quokka(file_path: str, exec_path: str) -> Program:
