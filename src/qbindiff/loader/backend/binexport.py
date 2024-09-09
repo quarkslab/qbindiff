@@ -424,7 +424,7 @@ class FunctionBackendBinExport(AbstractFunctionBackend):
 
 
 class ProgramBackendBinExport(AbstractProgramBackend):
-    def __init__(self, file: str, *, arch: str | None = None):
+    def __init__(self, file: str, *, arch: str | None = None, exec_path: str | None = None):
         super().__init__()
 
         self.be_prog = binexport.ProgramBinExport(file)
