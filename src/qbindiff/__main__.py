@@ -413,6 +413,13 @@ def main(
         )
         epsilon = DEFAULT_EPSILON
 
+    if format == "bindiff" and not (primary_exec and secondary_exec):
+        logging.error(
+            f"[!] The path to the raw {'primary' if primary_exec else 'secondary'} executable"
+            " is missing but it is required to export the result in BinDiff format."
+        )
+        return 1
+
     with Progress() as progress:
         if not quiet:
             load_bar_total = 2
