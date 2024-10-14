@@ -130,22 +130,23 @@ class InstructionGroup(IntEnum):
     def fromint(cls, value: int):
         """Cast an integer to InstructionGroup type"""
         # Return an invalid group if cast is not possible
-        return (
-            InstructionGroup(value) if value in InstructionGroup else InstructionGroup.GRP_INVALID
-        )
+        try:
+            return InstructionGroup(value)
+        except ValueError:
+            return InstructionGroup.GRP_INVALID
 
     @classmethod
     def from_capstone(cls, capstone_group: int):
         """Cast a capstone group to InstructionGroup type"""
         # Wrap capstone group using our custom type
         # Note: This only works because the mappings between the enums are the same
-        if capstone_group in InstructionGroup:
+        try:
             return InstructionGroup(capstone_group)
-
-        # Raise an exception if cast is not possible
-        raise ValueError(
-            f"Misalignment between capstone group {capstone_group} and InstructionGroup"
-        )
+        except ValueError:
+            # Raise an exception if cast is not possible
+            raise ValueError(
+                f"Misalignment between capstone group {capstone_group} and InstructionGroup"
+            )
 
 
 @enum_tools.documentation.document_enum
