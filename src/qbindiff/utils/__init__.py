@@ -17,4 +17,4 @@
 Collection of utilities used internally.
 """
 
-from .utils import is_debug, iter_csr_matrix, log_once, wrapper_iter
+from .utils import is_debug, iter_csr_matrix, lap, log_once, wrapper_iter
