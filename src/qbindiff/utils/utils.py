@@ -23,10 +23,17 @@ from collections.abc import Iterator
 import logging
 from typing import TYPE_CHECKING
 
+try:
+    from lapjv import lapjv as _lap # type: ignore[import-not-found]
+    _is_lapjv = True
+except ImportError:
+    from lap import lapjv as _lap
+    _is_lapjv = False
+
 if TYPE_CHECKING:
     from collections.abc import Generator
     from typing import Any
-    from qbindiff.types import SparseMatrix
+    from qbindiff.types import Matrix, RawMapping, SparseMatrix
 
 
 def is_debug() -> bool:
@@ -47,6 +54,15 @@ def iter_csr_matrix(matrix: SparseMatrix) -> Generator[tuple[int, int, Any], Non
     coo_matrix = matrix.tocoo()
     for x, y, v in zip(coo_matrix.row, coo_matrix.col, coo_matrix.data):
         yield (x, y, v)
+
+
+def lap(cost_matrix: Matrix) -> RawMapping:
+    if _is_lapjv:
+        row_ind_lapjv, _col_ind_lapjv, _ = _lap(cost_matrix)
+        return row_ind_lapjv
+    else:
+        _cost, x, _y = _lap(cost_matrix)
+        return x
 
 
 @cache

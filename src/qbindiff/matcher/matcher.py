@@ -22,12 +22,12 @@ from typing import TYPE_CHECKING
 
 # Third-party imports
 import numpy as np
-from lapjv import lapjv  # type: ignore[import-not-found]
 from scipy.sparse import csr_matrix, coo_matrix  # type: ignore[import-untyped]
 
 # Local imports
 from qbindiff.matcher.squares import find_squares  # type: ignore[import-untyped]
 from qbindiff.matcher.belief_propagation import BeliefMWM, BeliefQAP
+from qbindiff.utils import lap
 
 
 if TYPE_CHECKING:
@@ -50,7 +50,7 @@ def solve_linear_assignment(cost_matrix: Matrix) -> RawMapping:
         cost_matrix = cost_matrix.T
     full_cost_matrix = np.zeros((m, m), dtype=cost_matrix.dtype)
     full_cost_matrix[:n, :m] = cost_matrix
-    col_indices = lapjv(full_cost_matrix)[0][:n]
+    col_indices = lap(full_cost_matrix)[:n]
     if transposed:
         return col_indices, np.arange(n)
     return np.arange(n), col_indices
