@@ -190,7 +190,26 @@ differ.process()
 mapping = differ.compute_matching()
 output = {(match.primary.addr, match.secondary.addr) for match in mapping}
 ```
+## Citing this work
+If you use QBinDiff in your work, please consider to cite it using these references : 
 
+```
+@inproceedings{CAIDQBinDiff,
+  author    = "Cohen, Roxane and David, Robin and Mori, Riccardo and Yger, Florian and Rossi, Fabrice",
+  title     = "Improving binary diffing through similarity and matching intricacies",
+  booktitle = "Proc. of the 6th Conference on Artificial Intelligence for Defense",
+  year      = 2024,
+}
+```
+
+```
+@misc{SSTICQBinDiff,
+  title        = "QBinDiff: A modular differ to enhance binary diffing and graph alignment",
+  author       = "Cohen, Roxane and David, Robin and Mori, Riccardo and Yger, Florian and Rossi, Fabrice",
+  howpublished = "\url{https://www.sstic.org/2024/presentation/qbindiff_a_modular_differ/}",
+  year         = 2024,
+}
+```
 ## Contributing & Contributors
 
 Any help, or feedback is greatly appreciated via Github issues, pull requests.
