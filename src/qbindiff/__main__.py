@@ -233,6 +233,7 @@ For a list of all the features available see --list-features."""
     default=DEFAULT_FEATURES,
     multiple=True,
     metavar="<feature>",
+    show_default=True,
     help=help_features,
 )
 @click.option(
@@ -420,6 +421,11 @@ def main(
         )
         return 1
 
+    if not features:
+        logging.error("no feature provided")
+        return 1
+
+
     with Progress() as progress:
         if not quiet:
             load_bar_total = 2
@@ -454,10 +460,6 @@ def main(
             )
         except Exception as e:
             logging.error(e)
-            exit(1)
-
-        if not features:
-            logging.error("no feature provided")
             exit(1)
 
         try:
