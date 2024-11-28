@@ -497,6 +497,13 @@ class ProgramBackendBinExport(AbstractProgramBackend):
         return self.name.replace(".BinExport", "")  # Try to guess it as best effort
 
     @property
+    def export_path(self) -> str:
+        """
+        Returns the .Binexport path
+        """
+        return str(self.be_prog.path)
+
+    @property
     def capabilities(self) -> ProgramCapability:
         """
         Returns the supported capabilities

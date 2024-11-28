@@ -514,3 +514,10 @@ class ProgramBackendIDA(AbstractProgramBackend):
         """
 
         return ida_nalt.get_input_file_path()
+
+    @property
+    def export_path(self) -> str:
+        """
+        Returns empty string as IDA does not have exports
+        """
+        return ""

@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING
 from pathlib import Path
+import logging
 
 from qbindiff.abstract import GenericGraph
 from qbindiff.loader import Function
@@ -254,6 +255,14 @@ class Program(MutableMapping, GenericGraph):
         """
 
         return self._backend.exec_path
+
+    @property
+    def export_path(self) -> str | None:
+        """
+        The exported file path if it has been specified, None otherwise
+        """
+        exp = self._backend.export_path
+        return exp if exp else None
 
     def set_function_filter(self, func: Callable[[Addr], bool]) -> None:
         """

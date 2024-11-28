@@ -164,8 +164,8 @@ def export_to_bindiff(
 
     binfile = BindiffFile.create(
         filename,
-        primary.exec_path,
-        secondary.exec_path,
+        primary.export_path,
+        secondary.export_path,
         f"Qbindiff {__version__}",
         "",
         mapping.normalized_similarity,
