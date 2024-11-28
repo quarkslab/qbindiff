@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Mori"
+  given-names: "Riccardo"
+- family-names: "David"
+  given-names: "Robin"
+  orcid: "https://orcid.org/0009-0008-8214-875X"
+- family-names: "Cohen"
+  given-names: "Roxane"
+- family-names: "Challande"
+  given-names: "Alexis"
+- family-names: "Mengin"
+  given-names: "Elie"
+title: "QBindiff"
+version: 1.2.2
+date-released: "2023-10-12"
+license: Apache-2.0
+url: "https://github.com/quarkslab/qbindiff"
+preferred-citation:
+  type: conference
+  authors:
+  - family-names: "Cohen"
+    given-names: "Roxane"
+  - family-names: "David"
+    given-names: "Robin"
+    orcid: "https://orcid.org/0009-0008-8214-875X"
+  - family-names: "Mori"
+    given-names: "Riccardo"
+  - family-names: "Yger"
+    given-names: "Florian"
+  - family-names: "Rossi"
+    given-names: "Fabrice"
+#   doi: "10.0000/00000"
+  journal: "Conference on Artificial Intelligence for Defense"
+  month: 11
+#   start: XX # First page number
+#   end: XX # Last page number
+  title: "Improving binary diffing through similarity and matching intricacies"
+  issue: 1
+  volume: 1
+  year: 2024
