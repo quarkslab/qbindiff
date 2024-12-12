@@ -321,6 +321,15 @@ class AbstractProgramBackend(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @property
+    @abstractmethod
+    def export_path(self) -> str:
+        """
+        Returns the export file path (if any).
+        Empty string if not export file
+        """
+        raise NotImplementedError()
+
+    @property
     def capabilities(self) -> ProgramCapability:
         """
         Returns the supported capabilities

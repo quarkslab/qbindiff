@@ -16,9 +16,13 @@
 """
 
 from __future__ import annotations
+
+import logging
 from enum import IntEnum, IntFlag, auto
 from typing import TypeAlias, TYPE_CHECKING
 import enum_tools.documentation
+
+from qbindiff.utils import log_once
 
 if TYPE_CHECKING:
     from qbindiff.loader.data import Data
@@ -143,10 +147,11 @@ class InstructionGroup(IntEnum):
         try:
             return InstructionGroup(capstone_group)
         except ValueError:
-            # Raise an exception if cast is not possible
-            raise ValueError(
-                f"Misalignment between capstone group {capstone_group} and InstructionGroup"
+            # Log once the unsupported
+            log_once(logging.WARN,
+                     f"Misalignment between capstone group {capstone_group} and InstructionGroup"
             )
+            return InstructionGroup.GRP_INVALID
 
 
 @enum_tools.documentation.document_enum

@@ -609,8 +609,14 @@ class ProgramBackendQuokka(AbstractProgramBackend):
         """
         Returns the executable path
         """
-
         return self._exec_path
+
+    @property
+    def export_path(self) -> str:
+        """
+        Returns the Quokka export path
+        """
+        return str(self.qb_prog.export_file)
 
     @property
     def capabilities(self) -> ProgramCapability:
