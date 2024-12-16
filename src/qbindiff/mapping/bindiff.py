@@ -17,10 +17,12 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections import defaultdict
 from collections.abc import Generator
 from functools import lru_cache
 from typing import TYPE_CHECKING
+from pathlib import Path
 
 # third-party imports
 from bindiff import BindiffFile  # type: ignore[import-untyped]
@@ -140,6 +142,43 @@ def compute_instruction_match(
         yield from zip(primary_instr[k], secondary_instr[k])
 
 
+def _compute_file_info(program: Program) -> dict:
+    """
+    Compute a BinExport file information required for filling
+    .Bindiff database.
+
+    :param program: Binexport program
+    :return: dict of data
+    """
+    exec_path = Path(program.exec_path)
+    exp_path = Path(program.export_path)
+    hash = hashlib.sha256(exec_path.read_bytes() if exec_path.exists() else exp_path.read_bytes()).hexdigest()
+
+    funs = {True: 0, False: 0}
+    bbs = {True: 0, False: 0}
+    edges = {True: 0, False: 0}
+    insts = {True: 0, False: 0}
+    for fun in program:
+        islib = fun.is_library()
+        funs[islib] += 1
+        bbs[islib] += len(fun.flowgraph.nodes)
+        edges[islib] += len(fun.flowgraph.edges)
+        insts[islib] += sum(len(bb.instructions) for bb in fun)
+
+    return {"export_name": program.export_path,
+            "hash": hash,
+            "executable_name": program.exec_path,
+            "functions": funs[False],
+            "libfunctions": funs[True],
+            "calls": len(program.callgraph.edges),
+            "basicblocks": bbs[False],
+            "libbasicblocks": bbs[True],
+            "edges": edges[False],
+            "libedges": edges[True],
+            "instructions": insts[False],
+            "libinstructions": insts[True]}
+
+
 def export_to_bindiff(
     filename: str, primary: Program, secondary: Program, mapping: Mapping
 ) -> None:
@@ -153,29 +192,36 @@ def export_to_bindiff(
     """
     from qbindiff import __version__  # import the version here to avoid circular definition
 
-    def count_items(program: Program) -> tuple[int, int, int, int]:
-        fp, flib, bbs, inst = 0, 0, 0, 0
-        for f_addr, f in program.items():
-            fp += int(not (f.is_import()))
-            flib += int(f.is_import())
-            bbs += len(f)
-            inst += sum(len(x) for x in f)
-        return fp, flib, bbs, inst
-
     binfile = BindiffFile.create(
         filename,
-        primary.export_path,
-        secondary.export_path,
         f"Qbindiff {__version__}",
         "",
         mapping.normalized_similarity,
         0.0,
     )
 
+    # Add the two files
+    infos_primary = _compute_file_info(primary)
+    binfile.add_file_matched(**infos_primary)
+
+    infos_secondary = _compute_file_info(secondary)
+    binfile.add_file_matched(**infos_secondary)
+
     for m in mapping:  # iterate all the matchs
         with m.primary, m.secondary:  # Do not unload basic blocks
             # Add the function match
             faddr1, faddr2 = m.primary.addr, m.secondary.addr
+
+            # Add the function match here to provide the same_bb_count
+            funentry_id = binfile.add_function_match(
+                faddr1,
+                faddr2,
+                m.primary.name,
+                m.secondary.name,
+                float(m.similarity),
+                float(m.confidence),
+                0,
+            )
 
             # Compute the basic block match (bindiff style) and add it in database
             same_bb_count = 0
@@ -183,28 +229,13 @@ def export_to_bindiff(
             for addr1, addr2 in bb_matches:
                 bb1, bb2 = m.primary[addr1], m.secondary[addr2]
                 same_bb_count += 1
-                entry_id = binfile.add_basic_block_match(faddr1, faddr2, addr1, addr2)
+                bbentry_id = binfile.add_basic_block_match(funentry_id, addr1, addr2)
 
                 # Compute the instruction match (bindiff style) and add it in database
                 for instr_addr1, instr_addr2 in compute_instruction_match(bb1, bb2):
-                    binfile.add_instruction_match(entry_id, instr_addr1, instr_addr2)
+                    binfile.add_instruction_match(bbentry_id, instr_addr1, instr_addr2)
 
-            # Add the function match here to provide the same_bb_count
-            binfile.add_function_match(
-                faddr1,
-                faddr2,
-                m.primary.name,
-                m.secondary.name,
-                float(m.similarity),
-                float(m.confidence),
-                same_bb_count,
-            )
+            # Update a-posteriori identical basic blocks count
+            binfile.update_samebb_function_match(funentry_id, same_bb_count)
 
-    # Update file infos about primary
-    f, lib, bbs, insts = count_items(primary)
-    binfile.update_file_infos(1, f, lib, bbs, insts)
-    # Update file infos about secondary
-    f, lib, bbs, insts = count_items(secondary)
-    binfile.update_file_infos(2, f, lib, bbs, insts)
-
-    # binfile.commit()
+    binfile.commit()
