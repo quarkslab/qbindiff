@@ -87,6 +87,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: ./dist/wheelhouse-*
+          attestations: true
 
       - name: Upload Python packages for release notes
         uses: softprops/action-gh-release@v1
