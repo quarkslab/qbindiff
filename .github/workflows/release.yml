@@ -97,4 +97,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/wheelhouse-*/*
+            dist/wheelhouse-*
