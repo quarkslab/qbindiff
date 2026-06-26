@@ -90,15 +90,27 @@ class CyclomaticComplexity(FunctionFeatureExtractor):
 
     key = "cc"
 
+    @staticmethod
+    def _get_leaves_count(graph: networkx.DiGraph):
+        leaves_count = sum(1 for n in graph.nodes if graph.out_degree(n) == 0
+                           or (graph.out_degree(n) == 1 and graph.has_successor(n, n)))
+        return leaves_count
+
     def visit_function(
-        self, program: Program, function: Function, collector: FeatureCollector
+            self, program: Program, function: Function, collector: FeatureCollector
     ) -> None:
         e = len(function.edges)
         n = len([n for n in function.flowgraph.nodes()])
-        components = len([c for c in networkx.weakly_connected_components(function.flowgraph)])
-        value = e - n + 2 * components
-        collector.add_feature(self.key, value)
+        weakly_connected_components = [function.flowgraph.subgraph(c).copy() for c in
+                                       networkx.weakly_connected_components(function.flowgraph)]
+        exits_count = 0
+        for component in weakly_connected_components:
+            leaves_count = self._get_leaves_count(networkx.DiGraph(component))
+            exits_count += max(1, leaves_count)  # Each component has at least one exit node
 
+        components_count = len(weakly_connected_components)
+        value = e - n + components_count + exits_count
+        collector.add_feature(self.key, value)
 
 class MDIndex(FunctionFeatureExtractor):
     """
