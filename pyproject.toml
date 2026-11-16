@@ -14,11 +14,9 @@ dependencies = [
     "numpy",
     "scipy",
 
-    # Current hot-fix for supporting numpy 2.x until https://github.com/src-d/lapjv/pull/85 is merged
-    # "lapjv>=1.35",
-    # lapjv only supports Windows/Linux
-    "lapjv-numpy2; sys_platform == 'linux' or sys_platform == 'windows'",
-    "lapx; sys_platform != 'linux' and sys_platform != 'windows'",
+    # lapjv only supports Windows/Linux (numpy 2.x since 1.3.25, Linux aarch64 since 1.3.28)
+    "lapjv>=1.3.29; sys_platform == 'linux' or sys_platform == 'win32'",
+    "lapx; sys_platform != 'linux' and sys_platform != 'win32'",
 
     "networkx",
     "capstone>=5.0.1",
