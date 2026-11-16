@@ -174,7 +174,7 @@ CUSTOM_DISTANCES = {
 
 
 def pairwise_distances(X, Y, metric: Distance = Distance.euclidean, *, n_jobs=None, **kwargs):
-    """
+    r"""
     Compute the distance matrix from a vector array X and Y.
     The returned matrix is the pairwise distance between the arrays from both X and Y.
 
